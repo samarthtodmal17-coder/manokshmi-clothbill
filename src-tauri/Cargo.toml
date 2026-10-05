@@ -1,0 +1,19 @@
+[package]
+name = "manokshmi-clothbill"
+version = "0.1.0"
+description = "Manokshmi ClothBill - billing & management for cloth shops (Tauri desktop, SQLite)"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2" }
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+tauri-plugin-fs = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Real OS-level device id (Windows MachineGuid) for license activation.
+machine-uid = "0.6"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
