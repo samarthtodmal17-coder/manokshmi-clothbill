@@ -10,7 +10,7 @@
   var IS_TAURI = !!(window.__TAURI__ && window.__TAURI__.core);
   window.IS_TAURI = IS_TAURI;
 
-  var APP_VERSION = '0.1.0';
+  var APP_VERSION = '0.1.1';
   var PRODUCT_ID = 'cloth-pos';
   var LICENSE_API_BASE = 'https://licensing-platform.pages.dev';
   var LICENSE_STORAGE_KEY = 'clothBillLicense_v1';
@@ -94,7 +94,7 @@
   function callActivate(key, deviceId){
     return fetch(LICENSE_API_BASE + '/api/activate', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({licenseKey: key, deviceId: deviceId, productId: PRODUCT_ID, appVersion: APP_VERSION, dbVersion: typeof DB_VERSION !== 'undefined' ? DB_VERSION : 10})
+      body: JSON.stringify({licenseKey: key, deviceId: deviceId, productId: PRODUCT_ID, appVersion: APP_VERSION, dbVersion: String(typeof DB_VERSION !== 'undefined' ? DB_VERSION : 10)})
     }).then(function(r){ return r.json(); });
   }
 
