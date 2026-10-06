@@ -766,7 +766,7 @@ async function findOrCreateFirmProduct(allProducts, srcProduct, srcVariant, firm
   if(!destProduct){
     destProduct = {
       name: srcProduct.name, category: srcProduct.category, brand: srcProduct.brand,
-      taxRate: srcProduct.taxRate, firmId, createdAt: new Date().toISOString(),
+      taxRate: srcProduct.taxRate, taxInclusive: !!srcProduct.taxInclusive, firmId, createdAt: new Date().toISOString(),
       variants: []
     };
     const newId = await dbAdd('products', destProduct);
@@ -865,7 +865,7 @@ async function ensureCatalogSplitMigrated(){
         return cv;
       });
       await dbAdd('products', {
-        name: p.name, category: p.category, brand: p.brand, taxRate: p.taxRate,
+        name: p.name, category: p.category, brand: p.brand, taxRate: p.taxRate, taxInclusive: !!p.taxInclusive,
         firmId: fid, createdAt: new Date().toISOString(), variants: clonedVariants
       });
     }
@@ -898,6 +898,9 @@ const DEFAULT_SETTINGS = {
   creditReminderTemplate:'Hello {name}, this is a gentle reminder from {shop}. An amount of {amount} is pending on your account for {days} days. Kindly arrange the payment at your convenience. Thank you!',
   invoiceCounter:1,
   defaultTaxRate:5,
+  defaultTaxInclusive:true,       // new products: price already includes GST (999 stays 999)
+  requireCustomerOnBill:true,     // every bill needs a customer with name + mobile
+  bulkMessageTemplate:'Hello {name}, greetings from {shop}! We have new arrivals and offers for you — visit us soon. Thank you!',
   lowStockDefault:3,
   currency:'₹',
   logo:'',
@@ -1122,13 +1125,83 @@ const I18N = {
     prod_sizesPlaceholder:'S, M, L, XL', prod_colorsPlaceholder:'Red, Blue, Black', sa_newStockWillBe:'New stock will be: ', sa_cannotGoBelowZero:' (cannot go below 0 — will be clamped)', cp_addCouponBtn:'Add Coupon', pu_stockPrefix:' (stock: ', pu_recordPurchaseAddStockBtn:'Record Purchase &amp; Add Stock',
     pu_supplierOptionalLabel:'Supplier (optional)', pu_quantityRequiredLabel:'Quantity *', pu_costPerUnitLabel:'Cost Price / Unit *', pu_supplierLabel:'Supplier', pu_totalCostPrefix:'Total cost: ', pu_balanceDueSep:'  •  Balance due to supplier: ', pu_cashPurchaseNote:'  •  Cash purchase — no supplier ledger will be recorded', pu_unpaidNotTracked:' (unpaid amount not tracked, select a supplier to track it)',
     sa_currentPrefix:'(current: ', sa_skuPrefix:'SKU ', sa_adjustmentLabel:'Adjustment', sa_addToStock:'Add to stock (+)', sa_removeFromStock:'Remove from stock (-)', sa_quantityLabel:'Quantity', sa_reasonLabel:'Reason', sa_applyBtn:'Apply Adjustment', sa_adjustingPrefix:'Adjusting ', dv_Damaged:'Damaged', dv_LostTheft:'Lost / Theft', dv_FoundExtra:'Found Extra', dv_StockCountCorrection:'Stock Count Correction', bk_chooseOption:'-- choose --', bk_estRateLabel:'Est. Rate', bk_customerRequiredLabel:'Customer *', bk_selectCustomerOption:'-- select customer --', bk_advanceAmountLabel:'Advance Amount (₹) *', bk_estimatedTotalLabel:'Estimated Total (₹)', bk_notesPlaceholder:'e.g. blouse stitching, expected pickup date', bk_advanceNote:'The advance is added to the customer\'s store credit immediately and can be used toward any future bill, including when they collect these items.', bk_saveBookingBtn:'Save Booking', bk_itemPrefix:'Item ', cp_codeLabel:'Code *', cp_percentOption:'Percent (%)', cp_flatAmountOption:'Flat Amount (₹)', cp_valueLabel:'Value', cp_minBillLabel:'Minimum Bill Amount (₹, optional)',
-    prod_nameLabel:'Product Name *', prod_namePlaceholder:'e.g. Cotton Kurta', prod_categoryPlaceholder:'e.g. Kurtas, Sarees, Belts', prod_gstRateLabel:'GST Rate (%)', prod_preferredSupplierLabel:'Preferred Supplier (optional)', prod_noneOption:'-- none --', prod_photoLabel:'Photo (optional)', prod_removeBtn:'Remove', prod_variantsTitle:'Variants (size / color / stock)', prod_addVariantBtn:'+ Add Variant', prod_quickAddGridBtn:'Quick Add Grid (Size &times; Color)', prod_gridHelp:'List your sizes and colors once and this generates one variant row for every combination — much faster than typing each row by hand.', prod_sizesLabel:'Sizes (comma-separated)', prod_colorsLabel:'Colors (comma-separated, optional)', prod_costPriceAllLabel:'Cost Price (₹, applied to all)', prod_sellPriceAllLabel:'Sell Price (₹, applied to all)', prod_startingStockLabel:'Starting Stock (each)', prod_generateVariantsBtn:'Generate Variants', terms_cod:'Cash on Delivery', terms_net15:'Net 15 days', terms_net30:'Net 30 days', terms_net45:'Net 45 days', terms_advance:'Advance Required',
+    prod_nameLabel:'Product Name *', prod_namePlaceholder:'e.g. Cotton Kurta', prod_categoryPlaceholder:'e.g. Kurtas, Sarees, Belts', prod_gstRateLabel:'GST Rate (%)', prod_preferredSupplierLabel:'Vendor / Supplier (optional)', prod_noneOption:'-- none --', prod_photoLabel:'Photo (optional)', prod_removeBtn:'Remove', prod_variantsTitle:'Variants (size / color / stock)', prod_addVariantBtn:'+ Add Variant', prod_quickAddGridBtn:'Quick Add Grid (Size &times; Color)', prod_gridHelp:'List your sizes and colors once and this generates one variant row for every combination — much faster than typing each row by hand.', prod_sizesLabel:'Sizes (comma-separated)', prod_colorsLabel:'Colors (comma-separated, optional)', prod_costPriceAllLabel:'Cost Price (₹, applied to all)', prod_sellPriceAllLabel:'Sell Price (₹, applied to all)', prod_startingStockLabel:'Starting Stock (each)', prod_generateVariantsBtn:'Generate Variants', terms_cod:'Cash on Delivery', terms_net15:'Net 15 days', terms_net30:'Net 30 days', terms_net45:'Net 45 days', terms_advance:'Advance Required',
     dv_Rent:'Rent', dv_Salaries:'Salaries', dv_Utilities:'Utilities', dv_Transport:'Transport', dv_Marketing:'Marketing', dv_Maintenance:'Maintenance', dv_Miscellaneous:'Miscellaneous',
     inv_catalogCountLine:'{0} product(s) · {1} SKU(s) in your catalog', inv_lowStockFilter:'Low Stock', inv_noProductsMatch:'No products match this view.', inv_clickAddProductHint:' Click "+ Add Product" to create your first item.', inv_tryClearingFilters:' Try clearing or adjusting your filters.', sales_tileBills:'Bills', sales_tileAvgBillValue:'Avg. Bill Value', sales_tileGstCollected:'GST Collected', sales_tileNewCreditGiven:'New Credit Given', trends_noSalesYetPeriod:'No sales yet in this period.', trends_noStockToCompare:'No stock to compare.', cust_customerInsightsBtn:'Customer Insights', settings_noCouponsYet:'No coupons yet.', settings_restoreBackupBtn:'Restore from Backup', staff_changeOwnerPinBtn:'Change Owner PIN', bill_overallDiscountLabel:'Overall Discount', inv_skusAutoAssigned:'SKUs are auto-assigned when you save. Blank rows already in the list are replaced.',
     bill_fullPrefix:'Full ',
     dv_Cash:'Cash', dv_UPI:'UPI', dv_Card:'Card', dv_BankTransfer:'Bank Transfer', dv_Cheque:'Cheque', dv_Wallet:'Wallet', dv_Fabric:'Fabric', dv_Accessories:'Accessories', dv_Packaging:'Packaging', dv_Trims:'Trims', dv_Other:'Other', dv_DefectiveDamaged:'Defective / Damaged', dv_WrongSizeorFit:'Wrong Size or Fit', dv_WrongColor:'Wrong Color', dv_WrongItemDelivered:'Wrong Item Delivered', dv_ChangedMind:'Changed Mind', dv_Advance:'Advance', chrome_switchUser:'Switch', chrome_darkMode:'Dark mode', chrome_lightMode:'Light mode', chrome_roleOwnerSuffix:' — Owner', chrome_roleStaffSuffix:' — Staff',
     auth_setupOwnerPinTitle:'Set Up Owner PIN', auth_setupOwnerPinSub:'This protects Settings, Sales/Trends reports and stock edits. You can add limited staff PINs later from Settings.', auth_choosePinLabel:'Choose a PIN (4–6 digits)', auth_confirmPinLabel:'Confirm PIN', auth_createOwnerPinBtn:'Create Owner PIN', auth_pinMustBe46:'PIN must be 4-6 digits', auth_pinsDoNotMatch:'PINs do not match', auth_saveRecoveryTitle:'Save Your Recovery Code', auth_newRecoveryTitle:'New Recovery Code', auth_recoverySub:'If you ever forget your owner PIN, this code is the only way back in. Write it down or take a screenshot — it will not be shown again.', auth_copyCodeBtn:'Copy Code', auth_savedItContinueBtn:'I\'ve Saved It — Continue', auth_resetOwnerPinTitle:'Reset Owner PIN', auth_resetSub:'Enter the recovery code you saved when the owner PIN was first created.', auth_recoveryCodeLabel:'Recovery Code', auth_resetPinBtn:'Reset PIN', auth_backToLoginBtn:'Back to Login', auth_recoveryIncorrect:'That recovery code is incorrect', auth_newPinMustBe46:'New PIN must be 4-6 digits', auth_signInToContinue:'Sign in to continue', auth_staffTab:'Staff', auth_loginBtn:'Login', auth_forgotPinBtn:'Forgot PIN?', auth_noStaffProfiles:'No staff profiles yet. Ask the owner to add one from Settings.', auth_staffMemberLabel:'Staff Member', auth_pinLabel:'PIN', auth_incorrectPin:'Incorrect PIN', auth_defaultShopName:'Cloth Shop Billing and Management', auth_lostRecoveryHelp:'Lost the recovery code too? Your shop data is safe either way — ask someone technical to open the browser console (press F12), type ', auth_lostRecoveryHelp2:' and press Enter, then reload this page. That clears only the PIN lock, never your products, bills or customers.',
     acct_accountantExportsDesc:'Best-effort exports to hand to your CA or accountant — a GSTR-1 JSON (B2C summary, in the general shape GST offline tools expect) and a Tally-compatible sales voucher XML. These are a starting point, not guaranteed direct-upload or direct-import ready: have your CA review ledger names, place of supply, and totals before filing or importing.', acct_accountantExportsHeading:'Accountant-Ready Exports', acct_accountantExportsTab:'Accountant Exports', acct_addExpenseBtn:'+ Add Expense', acct_addExpenseModalBtn:'Add Expense', acct_allCategoriesOption:'All Categories', acct_allMovements:'All Movements', acct_allTimeBtn:'All Time', acct_cancelBtn:'Cancel', acct_cashSalesFallback:'Cash Sales', acct_categoryLabel:'Category', acct_cgstCreditLabel:'CGST Credit', acct_cogsHeading:'Cost of Goods Sold', acct_csvDate:'Date', acct_csvInvoice:'Invoice', acct_csvMode:'Mode', acct_csvRowPurchases:'Purchases', acct_csvRowSales:'Sales', acct_csvType:'Type', acct_customerFallback:'Customer', acct_dayBookDesc:'Every money movement in and out — sales collected, vendor payments, customer credit collections, and expenses. Pick a single day or a range.', acct_dayBookHeading:'Day Book / Cash Book', acct_dayBookTab:'Day Book', acct_deleteBtn:'Delete', acct_deletingExpenseEntry:'Deleting an expense entry', acct_editBtn:'Edit', acct_entriesLabel:'Entries', acct_excessItcCarriedForward:'Excess ITC (carried forward)', acct_expAmountLabel:'Amount (₹) *', acct_expCategoryLabel:'Category *', acct_expDateLabel:'Date *', acct_expNotePlaceholder:'e.g. Shop electricity bill for September', acct_expReferenceLabel:'Reference (optional)', acct_expReferencePlaceholder:'e.g. receipt no., cheque no.', acct_expensesTab:'Expenses', acct_generatedCostApproxFootnote:'. Cost of goods approximated at current cost prices.', acct_generatedPrefix:'Generated ', acct_grossMarginPrefix:'Gross Margin: ', acct_grossProfit:'Gross Profit', acct_grossProfitParenPrefix:'Gross Profit (', acct_grossSalesExclGst:'Gross Sales (excl. GST)', acct_gstr1CsvBtn:'GSTR-1 CSV', acct_gstr1Desc:'Sales invoices broken down by GST rate — the data you hand to your CA or use to file GSTR-1. Assumes intra-state sales (CGST + SGST); adjust manually for interstate customers. Sales returns are not netted out here.', acct_gstr1Heading:'GSTR-1 — Outward Supplies', acct_gstr1JsonBtn:'GSTR-1 JSON (B2C)', acct_gstr3bDesc:'A monthly-style summary of output tax on sales, input tax credit from purchases, and the net GST payable. Sales/purchase returns are not netted out — verify with your CA before filing.', acct_gstr3bFootnote:'. Returns are not netted out — verify with your CA before filing.', acct_gstr3bHeading:'GSTR-3B Summary', acct_gstr3bPrintHeading:'GSTR-3B Summary — ', acct_inputTaxCreditOnPurchases:'Input Tax Credit (on Purchases)', acct_inputTaxCreditPurchasesTd:'Input Tax Credit (Purchases)', acct_invoiceWiseDetail:'Invoice-wise Detail', acct_invoicesInRange:'Invoices in Range', acct_invoicesLabel:'Invoices', acct_lastMonthBtn:'Last Month', acct_lessCostOfReturnedGoods:'Less: Cost of Returned Goods', acct_lessSalesReturns:'Less: Sales Returns', acct_marginSuffix:'% margin)', acct_miscellaneousCategory:'Miscellaneous', acct_myShopFallback:'My Shop', acct_netCashFlow:'Net Cash Flow', acct_netCogs:'Net COGS', acct_netGstPayable:'Net GST Payable', acct_netLoss:'Net Loss', acct_netMarginPrefix:'Net Margin: ', acct_netProfit:'Net Profit', acct_netRevenue:'Net Revenue', acct_nextDayBtn:'Next Day &rarr;', acct_noExpensesRecorded:'No expenses recorded for this period.', acct_noGstTaggedPurchases:'No GST-tagged purchases in this period.', acct_noInvoicesInPeriodRow:'No invoices in this period', acct_noMoneyMovements:'No money movements for this period.', acct_noSalesCollected:'No sales collected in this period.', acct_noneFallback:'None', acct_noteLabel:'Note', acct_operatingExpenses:'Operating Expenses', acct_outputTaxOnSales:'Output Tax (on Sales)', acct_outputTaxSalesTd:'Output Tax (Sales)', acct_periodLabel:'Period', acct_periodNow:'Now', acct_periodStart:'Start', acct_periodToJoiner:' to ', acct_pnlPrintDocTitleRaw:'Profit & Loss', acct_pnlPrintHeading:'Profit &amp; Loss — ', acct_prevDayBtn:'&larr; Previous Day', acct_printPnlBtn:'Print P&amp;L', acct_printSummaryBtn:'Print Summary', acct_profitLossDesc:'Revenue and cost of goods are calculated excluding GST. Cost of goods uses each item\'s current cost price — if cost prices have changed over time, older sales\' cost is approximated at today\'s cost price.', acct_profitLossTab:'Profit &amp; Loss', acct_purchasesByRateInputTax:'Purchases by Rate (Input Tax)', acct_rateWiseSummary:'Rate-wise Summary', acct_revenueHeading:'Revenue', acct_salesByRate:'Sales by Rate', acct_salesCollectedByMode:'Sales Collected by Mode', acct_sgstCreditLabel:'SGST Credit', acct_stateTipPrefix:'Tip: set your shop\'s ', acct_stateTipSuffix:' in Settings so the GSTR-1 export can fill in "Place of Supply" correctly.', acct_stateWordBold:'State', acct_tallyLedgerOutputCgstAt:'Output CGST @ ', acct_tallyLedgerOutputSgstAt:'Output SGST @ ', acct_tallyLedgerSalesAt:'Sales @ ', acct_tallySalesVouchersBtn:'Tally Sales Vouchers (XML)', acct_taxRateSummaryDesc:'Sales and purchases grouped by GST rate for quick reconciliation. Purchase GST only reflects invoices where a GST % was entered.', acct_taxRateSummaryHeading:'Tax Rate-wise Summary', acct_taxRateSummaryTab:'Tax Rate Summary', acct_taxableValueLabel:'Taxable Value', acct_thisMonthBtn:'This Month', acct_thisQuarterBtn:'This Quarter', acct_totalCgstLabel:'Total CGST', acct_totalExpensesLabel:'Total Expenses', acct_totalInputTaxCredit:'Total Input Tax Credit', acct_totalItc:'Total ITC', acct_totalOperatingExpenses:'Total Operating Expenses', acct_totalOutputTax:'Total Output Tax', acct_totalPaid:'Total Paid', acct_totalReceived:'Total Received', acct_totalSalesValue:'Total Sales Value', acct_totalSgstLabel:'Total SGST', acct_typeSale:'Sale', alter_addJobBtn:'Add Job', alter_chargesLabel:'Charges (₹)', alter_customerNameLabel:'Customer Name *', alter_deleteJobConfirmBody:'Delete this alteration job record? This cannot be undone.', alter_expectedPickupDateLabel:'Expected Pickup Date', alter_filterAll:'All', alter_filterDelivered:'Delivered', alter_filterPendingOnly:'Pending only', alter_filterPendingReady:'Pending &amp; Ready', alter_itemLabel:'Item (e.g. Blue Kurta, Saree Fall)', alter_markDeliveredBtn:'Mark Delivered', alter_markReadyBtn:'Mark Ready', alter_newJobBtn:'+ New Alteration Job', alter_noJobsEmpty:'No alteration jobs here.', alter_notesLabel:'Notes', alter_pendingTag:'Pending', alter_readyForPickup:'Ready for pickup', alter_receivedDateLabel:'Received Date', alter_showFilterLabel:'Show', alter_statusLabel:'Status', alter_workNeededLabel:'Work Needed (e.g. Take in waist, hem length)', bill_addNoteLink:'+ note', bill_automaticDiscount:'Automatic Discount', bill_billsToday:'Bills Today', bill_bookingsHint:'Take an advance against items a customer will collect later; the advance becomes store credit usable at pickup.', bill_cartEmptyHint:'Cart is empty. Click a product on the left to add it.', bill_cashCollectedToday:'Cash Collected Today', bill_couponPlaceholder:'e.g. FESTIVE10', bill_decreaseQty:'Decrease quantity', bill_deliveryAddress:'Delivery Address', bill_deliveryChargePlaceholder:'Delivery charge (₹)', bill_deliveryLabel:'Delivery', bill_discard:'Discard', bill_grandTotal:'Grand Total', bill_gst:'GST', bill_increaseQty:'Increase quantity', bill_invoicePhonePlaceholder:'Invoice number or phone number', bill_itemDiscounts:'Item Discounts', bill_labelHeldBillPrompt:'Label this held bill (optional):', bill_newAdvanceBooking:'+ New Advance Booking', bill_noMatchingProducts:'No matching products. Add products from the Inventory tab.', bill_noteExamplePlaceholder:'e.g. alter length, gift wrap', bill_notePrefix:'Note: ', bill_outOfStockParen:'(out of stock)', bill_packagingLabel:'Packaging', bill_quotationsHint:'Estimates for undecided customers — no stock or invoice is created until resumed and checked out.', bill_resume:'Resume', bill_returnLookupHint:'Look up a past bill by invoice number or customer phone to process a return or exchange.', bill_returnWithoutBillBtn:'Return Without Bill', bill_returnWithoutBillTooltip:'Process a return/exchange without the original invoice (needs owner approval)', bill_roundOff:'Round Off', bill_saleTag:'SALE', bill_salesToday:'Sales Today', bill_scannedPrefix:'Scanned: ', bill_subtotal:'Subtotal', bill_walkIn:'Walk-in', bill_walkInCustomerOption:'Walk-in customer', btn_saveChanges:'Save Changes', cust_addCustomerBtn:'+ Add Customer', cust_anniversaryLabel:'Anniversary (optional)', cust_birthdayLabel:'Birthday (optional)', cust_cardOption:'Card', cust_cashOption:'Cash', cust_creditHistoryTitle:'Credit History', cust_currentBalanceDue:'Current Balance Due', cust_daysAgoSuffix:' days ago', cust_exportLapsedListBtn:'Export Lapsed List (CSV)', cust_lapsedDaysLabel:'Consider "lapsed" after (days)', cust_ledgerBtn:'Ledger', cust_loyaltyPointsHistoryTitle:'Loyalty Points History', cust_loyaltyPointsLabel:'Loyalty Points', cust_newCustomersNote:'(first purchase in last 30 days)', cust_noCustomersPastThreshold:'No customers past this threshold — nice!', cust_noCustomersYet:'No customers yet.', cust_noNewCustomers30d:'No new customers in the last 30 days.', cust_noPurchaseHistoryYet:'No purchase history yet.', cust_oneDayAgo:'1 day ago', cust_pts:'pts', cust_recordBtn:'Record', cust_recordPaymentLabel:'Record Payment (₹)', cust_searchLabel:'Search customer', cust_searchPlaceholder:'Name or phone', cust_storeCreditAvailable:'Store Credit Available', cust_upiOption:'UPI', cust_winBack:'Win Back', dash_openVendorLedgerTooltip:'Open Vendor Ledger', firm_deactivateBtn:'Deactivate', firm_duplicatePrefixError:'Another firm already uses this invoice prefix — pick a different one so bills don\\\'t collide.', firm_gstinInlineLabel:'GSTIN: ', firm_inactiveTag:'Inactive', firm_invoicePrefixInline:'Invoice prefix: ', firm_invoiceSeriesHint:'Each firm keeps its own invoice series so bills from different firms never collide — use a distinct prefix for each one.', firm_multiFirmExplainer:'Running more than one business from this install — e.g. a Retail shop and a Wholesale shop? Add each one as a firm here. Once there are two or more, a "Working Firm" switcher appears in the sidebar and each firm gets its own completely separate products, customers, vendors, purchases and invoice numbers — nothing is shared between them. A new <strong>Transfer Stock</strong> tab appears under Inventory &amp; Stock to move goods from one firm\'s catalog to the other\'s, and the Dashboard, Sales, Trends and Accounts screens can still show a combined view across all firms for overall reporting. With just one firm, nothing here changes how the app works.', firm_nameLabel:'Firm Name *', firm_namePlaceholder:'e.g. Retail Shop, Wholesale Shop', firm_nameRequiredError:'Firm name is required', firm_nextInlineSep:' · Next: ', firm_noFirmsEmpty:'No firms yet — you\'re running a single shop, which is the default.', firm_reactivateBtn:'Reactivate', firm_workingFirmTag:'Working firm', inv_addItemBtn:'+ Add Item', inv_addProductBtn:'+ Add Product', inv_adjustmentsLogBtn:'Adjustments Log', inv_allBrandsOption:'All brands', inv_allCategoriesOption:'All categories', inv_anyColorOption:'Any color', inv_anySizeOption:'Any size', inv_applyAllVariantsBtn:'Apply to All Variants', inv_applyCategoryBtn:'Apply to Category', inv_barcodeLabelsPageTitle:'Barcode Labels', inv_barcodeModalHint:'Each variant gets its own barcode (from its SKU). Set how many copies of each label to print, then print the label sheet. Any USB/Bluetooth barcode scanner can then scan these into Billing.', inv_brandLabel:'Brand', inv_bulkDiscountSaleBtn:'Bulk Discount / Sale', inv_bulkToolsHint:'Update many products at once, or move your whole catalog in and out via CSV.', inv_clearAllFiltersBtn:'Clear All Filters', inv_colorLabel:'Color', inv_completeTransferBtn:'Complete Transfer', inv_copiesLabel:'Copies', inv_costLabel:'Cost', inv_deadStockBtn:'Dead Stock', inv_defaultVariant:'Default', inv_deliveryChallanTitle:'Delivery Challan ', inv_discountTypeLabel:'Discount Type', inv_discountValueLabel:'Discount Value', inv_endDateOptionalLabel:'End Date (optional)', inv_endSaleAllVariantsBtn:'End Sale on All Variants', inv_endSaleBtn:'End Sale', inv_endSaleCategoryBtn:'End Sale for Category', inv_errAddAtLeastOneItem:'Add at least one item to transfer', inv_errFromToDifferent:'From and To firms must be different', inv_exportCsvBtn:'Export CSV', inv_fixedAmountOffOption:'Fixed amount off (₹)', inv_fromLabel:'From:', inv_importCsvBtn:'Import CSV', inv_lowAtLabel:'Low At', inv_maxPriceLabel:'Max ₹', inv_minPriceLabel:'Min ₹', inv_moreFilters:'More Filters', inv_noEndDate:'No end date', inv_noItemsOnSale:'No items currently on sale.', inv_noSaleOption:'No sale (regular price)', inv_noTransfersYet:'No transfers yet.', inv_notTaxInvoiceNote:'This is an internal stock movement record, not a tax invoice.', inv_onSaleFilterBtn:'On Sale', inv_outOfStockFilterBtn:'Out of Stock', inv_percentOffOption:'Percentage off (%)', inv_printLabelsBtn:'Print Labels', inv_rateRupeeLabel:'Rate (₹)', inv_reportsHint:'Stock valuation, slow-moving items, and a full history of every manual stock correction.', inv_reportsTitle:'Inventory Reports', inv_saleDatesHint:'Leave dates blank for a sale that stays on until you end it. Billing will pick up this discount automatically the moment the item is added to a bill.', inv_salePricePrefix:'Sale price: ', inv_sampleCsvBtn:'Sample CSV', inv_searchPlaceholder:'e.g. Blue Kurta, SKU-102', inv_searchProductSku:'Search product / SKU', inv_selectCategoryOption:'-- select a category --', inv_sellPriceLabel:'Sell Price *', inv_sizeLabel:'Size', inv_skuLabel:'SKU', inv_startDateOptionalLabel:'Start Date (optional)', inv_stockRequiredLabel:'Stock *', inv_stockTransferChallanHeading:'Stock Transfer / Delivery Challan', inv_tabBulkTools:'Bulk Tools', inv_tabProducts:'Products', inv_tabReports:'Reports', inv_thisVariantFallback:'this variant', inv_toLabel:'To:', inv_totalValuePrefix:'Total value: ', inv_transferHint:'Moves stock from one firm\'s shelf to another\'s — the business-wide total for each item doesn\'t change, only which firm can sell it.', inv_transferNotePlaceholder:'e.g. weekly restock from wholesale', inv_variantFallbackPrefix:'Variant ', print_a4LetterOption:'A4 / Letter', print_addressLabel:'Address:', print_amountPayable:'Amount Payable', print_cashTendered:'Cash Tendered', print_changeGiven:'Change Given', print_closeBtn:'Close', print_closingBalancePrefix:'Closing Balance: ', print_discountLabel:'Discount', print_generatedLabelColon:'Generated:', print_homeDeliveryToPrefix:'Home Delivery to: ', print_inclCouponPrefix:' (incl. coupon ', print_ledgerTitlePrefix:'Ledger — ', print_loyaltyPointsEarned:'Loyalty Points Earned', print_loyaltyPointsRedeemedPrefix:'Loyalty Points Redeemed (', print_onCredit:'On Credit', print_periodLabelColon:'Period:', print_phLabel:'Ph: ', print_printBtn:'Print', print_printFormatLabel:'Print Format', print_scanToPay:'Scan to pay ', print_sendViaWhatsAppBtn:'Send via WhatsApp', print_supplierLabel:'Supplier:', print_thankYouShopping:'Thank you for shopping with us!', print_thermal58Option:'Thermal — 58mm', print_thermal80Option:'Thermal — 80mm', print_totalCreditPrefix:'Total Credit: ', print_totalDebitPrefix:'Total Debit: ', print_totalRowLabel:'Total', print_vendorLedgerStatementHeading:'Vendor Ledger Statement', print_viaUpi:' via UPI', sales_allFirmsCombinedLabel:'All Firms (Combined)', sales_anyExtraDetailPlaceholder:'Any extra detail', sales_bestSellersTitle:'Best Sellers', sales_customerOptionalLabel:'Customer (optional)', sales_loyaltyPointsReducedNote:'Loyalty points earned on this bill will be reduced proportionally.', sales_noCustomerRefundCashNote:'No customer selected — refund is assumed to be handed back in cash.', sales_noItemSalesYet:'No item sales yet.', sales_noPaymentsRecorded:'No payments recorded.', sales_noteOptionalLabel:'Note (optional)', sales_ownerApprovalNoBillReturn:'Processing a return without an original bill', sales_ownerApprovalNote:' Owner approval will be required to proceed.', sales_ownerApprovalReturnOutsidePolicy:'Processing this return outside the return-policy window', sales_ownerApprovedManualReturnNote:'Owner-approved manual return. Add the item(s) being returned below.', sales_paymentModeCollectionsTitle:'Collections by Payment Mode', sales_priceRupeeLabel:'Price ₹', sales_processReturnBtn:'Process Return', sales_processStartExchangeBtn:'Process &amp; Start Exchange', sales_reasonDefectiveDamaged:'Defective / Damaged', sales_reasonForReturnLabel:'Reason for Return *', sales_reasonNoBillAvailable:'No bill available', sales_reasonOther:'Other', sales_refundAmountPrefix:'Refund Amount: ', sales_returnExchangeBtn:'Return/Exchange', sales_returnInstructions:'Set the quantity being returned for each item. Returned items are added back to stock automatically.', sales_returnNoBillBtn:'Return (No Bill)', sales_salesHistoryTitle:'Sales History', sales_selectReasonPlaceholder:'-- Select Reason --', sales_settleCashNoLedgerChange:'Cash / UPI handed back now (no ledger change)', sales_settleCashNow:'Cash / UPI handed back now', sales_settleReduceCreditBalance:'Reduce customer\'s existing balance due', sales_settleRefundAsLabel:'Settle refund as', sales_settleStoreCredit:'Store credit — usable on a future purchase', sales_showingPrefix:'Showing: ', sales_tagCredit:'Credit', sales_tagPaid:'Paid', sales_viewBtn:'View', sales_walkInNoCustomerRecordOption:'Walk-in / no customer record', sales_walkInSaleRefundNote:'Walk-in sale — refund is assumed to be handed back in cash.', settings_a4Option:'A4 / Letter (full page invoice)', settings_addCouponBtn:'+ Add Coupon', settings_addExpenseCatBtn:'+ Add', settings_addFirmBtn:'+ Add Firm', settings_addTierBtn:'+ Add Tier', settings_address:'Address', settings_anniversaryTplLabel:'Anniversary message template', settings_backupIncludesHint:'Backup includes: products &amp; stock, bills, customers, suppliers &amp; vendor ledgers, purchase orders/invoices/returns, expenses, alterations, quotations, bookings, customer requests, staff logins and shop settings.', settings_billAmountLabel:'Bill amount ≥ ₹', settings_billPrintFormatHint:'This is the default used when printing a bill. You can still switch the format for a single print from the invoice screen.', settings_billPrintFormatLabel:'Bill Print Format', settings_billPrintingTitle:'Bill Printing', settings_billingExtrasHint:'These prefill the Packaging/Delivery fields on the billing screen — cashiers can still edit per bill.', settings_billingExtrasTitle:'Billing Extras', settings_billingLayoutHint:'Bigger buttons, inputs and spacing on the Billing screen — useful when billing from a tablet or a touchscreen POS stand instead of a mouse and keyboard.', settings_billingLayoutTitle:'Billing Screen Layout', settings_birthdayOffersTitle:'Birthday / Anniversary Offers', settings_birthdayTplHint:'Use <code>{shop}</code> in the message to insert your shop name automatically. Sent from the Dashboard\'s "Today\'s Occasions" panel.', settings_birthdayTplLabel:'Birthday message template', settings_couponCodesHint:'Predefined discount codes cashiers can apply at checkout instead of typing a manual discount.', settings_couponCodesTitle:'Coupon Codes', settings_customerWinBackTitle:'Customer Win-Back', settings_dataBackupHint:'All data lives only in this browser (offline-first) — nothing is sent anywhere. If this device is lost, its storage is cleared, or you move to a new phone/laptop, anything not backed up is gone for good. Export a full backup regularly (e.g. weekly) and keep the file somewhere safe (email it to yourself, save to Google Drive, a USB drive).', settings_dataBackupTitle:'Data Backup &amp; Restore', settings_defaultDeliveryCharge:'Default Delivery Charge (₹)', settings_defaultGstRate:'Default GST Rate (%)', settings_defaultPackagingCharge:'Default Packaging Charge (₹)', settings_discountPercentLabel:'Discount %', settings_earnPerRupeeLabel:'Earn 1 point per ₹', settings_enableLoyaltyLabel:'Enable loyalty points', settings_expenseCatPlaceholder:'e.g. Internet Bill', settings_expenseCategoriesHint:'Used when recording shop expenses under Accounts → Expenses.', settings_expenseCategoriesTitle:'Expense Categories', settings_exportFullBackupBtn:'Export Full Backup (JSON)', settings_firmsTitle:'Firms', settings_gstinOptional:'GSTIN (optional)', settings_invoicePrefix:'Invoice Prefix', settings_languageHint:'Switches the sidebar menu, dashboard and billing screen. More screens will be added over time.', settings_lapsedDaysLabel:'Consider a customer "lapsed" after (days since last visit)', settings_lowStockThreshold:'Low Stock Alert Threshold (default per variant)', settings_loyaltyHint:'Points are earned and can be redeemed only when a customer is selected on the bill (not for walk-in sales).', settings_loyaltyTitle:'Loyalty Program', settings_nextInvoiceNumber:'Next Invoice Number', settings_noExpenseCatEmpty:'No categories yet — add one below.', settings_noLogo:'No logo', settings_noTiersEmpty:'No tiers set — no automatic discount applies.', settings_ownerPinThresholdHint:'Staff will need the Owner PIN to save a purchase invoice at or above this amount. Set to 0 to disable.', settings_ownerPinThresholdLabel:'Owner PIN approval required for purchase invoices above (₹)', settings_paymentModesHint:'Choose which payment modes appear at checkout. Turn off ones you never use to keep the payment screen quick — at least one must stay on.', settings_paymentModesTitle:'Payment Modes at Checkout', settings_phone:'Phone', settings_pointWorthLabel:'Each point worth ₹', settings_purchaseVendorTitle:'Purchase &amp; Vendor Settings', settings_removeLogoBtn:'Remove Logo', settings_returnsPeriodHint:'Returns requested after this many days need an Owner PIN to approve. Set to 0 for no time limit.', settings_returnsPeriodLabel:'Accept returns/exchanges within (days)', settings_returnsPolicyTitle:'Returns &amp; Exchange Policy', settings_roundOffLabel:'Round off bill total to nearest ₹1', settings_saveSettingsBtn:'Save Settings', settings_selectStateOption:'— Select state —', settings_shopLogoHint:'Shown in the sidebar and printed on every bill/invoice.', settings_shopLogoTitle:'Shop Logo', settings_shopName:'Shop Name', settings_shopSettingsTitle:'Shop Settings', settings_shopStateLabel:'Shop\'s State (for GSTR-1 export — place of supply)', settings_thermal58Option:'Thermal Receipt — 58mm', settings_thermal80Option:'Thermal Receipt — 80mm', settings_tieredDiscountsHint:'Applied automatically on the bill\'s item total (after item discounts, before overall discount) when it crosses a threshold — e.g. 5% off above ₹5,000. Highest matching tier applies.', settings_tieredDiscountsTitle:'Automatic Tiered Discounts', settings_touchBillingLabel:'Touch-Friendly Billing Layout', settings_upiHint:'When set, a scannable UPI QR code for the exact amount due is printed on every bill.', settings_upiIdLabel:'UPI ID (e.g. shopname@okhdfcbank)', settings_upiPaymentsTitle:'UPI Payments', settings_upiPlaceholder:'yourshop@bank', settings_winbackTplHint:'Use <code>{shop}</code> for your shop name. Used by Customers &rarr; Customer Insights to reach out to customers who haven\'t come back in a while.', settings_winbackTplLabel:'Win-back message template', staff_addStaffBtn:'+ Add Staff', staff_allTimeOption:'All time', staff_attendanceHint:'A check-in is recorded each time someone logs in, and a check-out when they log out or switch users.', staff_attendanceSubtitle:'Attendance', staff_changePinBtn:'Change PIN', staff_currentPinLabel:'Current PIN', staff_customRangeOption:'Custom Range&hellip;', staff_dateRangeLabel:'Date Range', staff_filterByStaffLabel:'Filter by staff', staff_fromLabel:'From', staff_hrsSuffix:' hrs', staff_last7DaysOption:'Last 7 days', staff_nameLabel:'Name *', staff_newPinLabel:'New PIN (4–6 digits)', staff_noAttendanceEmpty:'No attendance recorded yet.', staff_noSalesEmpty:'No sales in this period.', staff_noStaffEmpty:'No staff added yet.', staff_ownerPinSubtitle:'Owner PIN', staff_ownerTag:'Owner', staff_pinLabelWithAsterisk:'PIN (4–6 digits) *', staff_removedStaffName:'Removed Staff', staff_salesPerformanceHint:'See how much each staff login (and the owner) has billed, so you can track who\'s selling what.', staff_salesPerformanceSubtitle:'Sales Performance', staff_staffAccessHint:'Staff logins can bill, view stock and manage customer contacts — they can\'t see cost prices, reports, requirements or settings. This is a simple PIN lock for accountability on a shared shop device, not full security.', staff_staffAccessTitle:'Staff &amp; Access', staff_thisMonthOption:'This month', staff_toLabel:'To', staff_todayOption:'Today', staff_unattributedHint:'"Unattributed" covers bills made before this report was added, when who processed each sale wasn\'t recorded yet.', staff_viewAttendanceLogBtn:'View Attendance Log', staff_viewSalesPerformanceBtn:'View Sales Performance', trends_analyzePeriodLabel:'Analyze Period', trends_billsPeriodLabel:'Bills (period)', trends_fastMoversTitle:'Fast Movers', trends_fastVsSlowMoversTitle:'Fast Movers vs Slow Movers', trends_monthlySalesTrendTitle:'Monthly Sales Trend (last 6 months)', trends_noCategorySales:'No category sales in this period.', trends_noColorData:'No color data in this period.', trends_noSizeData:'No size data in this period.', trends_rangeLast3Months:'Last 3 months', trends_rangeLast6Months:'Last 6 months', trends_revenuePeriodLabel:'Revenue (period)', trends_salesByCategoryTitle:'Sales by Category', trends_salesByColorTitle:'Sales by Color', trends_salesBySizeTitle:'Sales by Size', trends_slowMoversTitle:'Slow Movers (sitting in stock)', trends_vsPreviousPeriodSuffix:'% vs previous period', vendor_accountNameLabel:'Account Name', vendor_accountNumberLabel:'Account Number', vendor_activeCheckboxLabel:'Active', vendor_addCustomerRequestBtn:'+ Add Customer Request', vendor_addSupplierBtn:'+ Add Supplier', vendor_allProductsOption:'All products', vendor_alternatePhoneLabel:'Alternate Phone', vendor_amountPaidNowLabel:'Amount Paid Now (₹)', vendor_applyAdvanceBalanceLabel:'Apply Advance Balance', vendor_backBtn:'Back', vendor_bankUpiDetailsTitle:'Bank / UPI Details (optional, for making payments)', vendor_cancelPOBody:'This just marks it cancelled — nothing else changes.', vendor_cancelPOBtn:'Cancel PO', vendor_cannotBeUndone:'This cannot be undone.', vendor_cashPurchaseLabel:'Cash purchase', vendor_cashPurchaseOptionLabel:'Cash purchase (no supplier ledger)', vendor_chooseProductCompareNote:'Choose a product above to compare vendor prices.', vendor_chooseProductPlaceholder:'-- choose a product --', vendor_compareSupplierPricesBtn:'Compare Supplier Prices', vendor_contactPersonLabel:'Contact Person', vendor_createPOsForSelectedBtn:'Create Purchase Orders for Selected', vendor_creditLimitLabel:'Credit Limit (₹, 0 = no limit)', vendor_deleteRequestConfirmText:'Delete this customer request? This cannot be undone.', vendor_discountRupeeLabel:'Discount (₹)', vendor_dueDateLabel:'Due Date', vendor_emailLabel:'Email', vendor_estimatedTotalPrefix:'Estimated Total: ', vendor_existingCustomerOptionalLabel:'Existing Customer (optional)', vendor_filterByProductLabel:'Filter by product', vendor_filterFulfilled:'Fulfilled', vendor_freightLabel:'Freight', vendor_freightRupeeLabel:'Freight (₹)', vendor_gstHelpText:'Applied on the subtotal after discount, and added on top of the total owed — needed to claim Input Tax Credit under GSTR-3B. Leave at 0 for GST-exempt or unregistered vendors.', vendor_gstPercentChargedLabel:'GST % charged by supplier', vendor_ifscLabel:'IFSC', vendor_labelProduct:'Product', vendor_labelQty:'Qty', vendor_labelRateRupee:'Rate ₹', vendor_labelVariant:'Variant', vendor_lookingForPlaceholder:'e.g. Red saree, size L, silk', vendor_markSentBtn:'Mark Sent', vendor_newPurchaseInvoiceBtn:'+ New Purchase Invoice', vendor_newPurchaseOrderBtn:'+ New Purchase Order', vendor_newPurchaseReturnBtn:'+ New Purchase Return', vendor_noCustomerRequestsYet:'No customer requests here. Log what a customer is looking for and get reminded when it\'s time to follow up.', vendor_noPurchaseHistoryForProduct:'No purchase history for this product yet.', vendor_noPurchaseInvoicesYet:'No purchase invoices recorded yet.', vendor_noPurchasePriceHistoryYet:'No purchase price history yet.', vendor_noPurchaseReturnsYet:'No purchase returns recorded yet.', vendor_noReorderNeeded:'Nothing needs reordering right now — stock levels look healthy against recent sales.', vendor_noSuppliersFound:'No suppliers found.', vendor_noSuppliersYetLong:'No suppliers yet. Add one, or record a cash purchase without a supplier.', vendor_notLinkedNewPersonOption:'Not linked / new person', vendor_notesOptionalLabel:'Notes (optional)', vendor_openingBalanceLabel:'Opening Balance (₹)', vendor_otherExpensesLabel:'Other Expenses', vendor_otherExpensesRupeeLabel:'Other Expenses (₹)', vendor_ownerApprovalPurchaseInvoiceOver:'Recording a purchase invoice over ', vendor_payBtn:'Pay', vendor_payablesAgingHelp:'What you owe, grouped by how overdue each invoice is (based on each supplier\'s payment terms).', vendor_payablesAgingTitle:'Payables Aging', vendor_paymentHistoryTitle:'Payment History', vendor_paymentModeBankTransfer:'Bank Transfer', vendor_paymentModeCheque:'Cheque', vendor_paymentModeLabel:'Payment Mode', vendor_paymentTermsLabel:'Payment Terms', vendor_purchasePriceHistoryBtn:'Purchase Price History', vendor_quickPurchaseBtn:'Quick Purchase (1 item)', vendor_reasonDamagedInTransit:'Damaged in Transit', vendor_reasonExcessStock:'Excess Stock', vendor_reasonRequiredLabel:'Reason *', vendor_reasonWrongItemReceived:'Wrong Item Received', vendor_receiveInvoiceBtn:'Receive &amp; Invoice', vendor_recordPaymentBtn:'Record Payment', vendor_remindMeOnLabel:'Remind Me On', vendor_reorderHelpText:'Based on stock below threshold or projected to run out within 14 days (using last 30 days\' sales velocity). Tick items and create draft Purchase Orders in bulk — they\'re grouped automatically by each product\'s Preferred Supplier.', vendor_salesRepNamePlaceholder:'Sales rep name', vendor_saveAsDraftBtn:'Save as Draft', vendor_saveInvoiceUpdateStockBtn:'Save Invoice &amp; Update Stock', vendor_saveMarkSentBtn:'Save &amp; Mark Sent', vendor_searchSupplierPlaceholder:'Search supplier by name...', vendor_selectSupplierPlaceholder:'-- Select Supplier --', vendor_showInactiveLabel:'Show inactive', vendor_statusCancelled:'Cancelled', vendor_statusDraft:'Draft', vendor_statusReceived:'Received', vendor_statusSent:'Sent', vendor_subtotalPrefix:'Subtotal: ', vendor_suggestedReordersTitle:'Suggested Reorders', vendor_supplierRequiredLabel:'Supplier *', vendor_supplierWisePurchaseSummaryTitle:'Supplier-wise Purchase Summary', vendor_tabCustomerRequests:'Customer Requests', vendor_tabPurchaseInvoices:'Purchase Invoices', vendor_tabPurchaseOrders:'Purchase Orders', vendor_tabPurchaseReports:'Purchase Reports', vendor_tabPurchaseReturns:'Purchase Returns', vendor_tabReorderSuggestions:'Reorder Suggestions', vendor_tabSuppliers:'Suppliers', vendor_tabVendorLedger:'Vendor Ledger', vendor_tagDue:'Due', vendor_totalAdvanceHeldLabel:'Total Advance Held', vendor_totalPayablesLabel:'Total Payables', vendor_totalPrefix:'Total: ', vendor_unknownSupplier:'Unknown', vendor_upiIdLabel:'UPI ID', vendor_useMaxBtn:'Use Max', vendor_vendorLedgerHelpText:'A running debit/credit statement for every supplier — purchases, payments, returns and adjustments, all in one place.', vendor_vendorNotesPlaceholder:'e.g. best on cotton, negotiate above 50 pcs', vendor_vendorTypeLabel:'Vendor Type', vendor_vendorsWithBalanceDueLabel:'Vendors with Balance Due', vendor_viewLedgerBtn:'View Ledger', vendor_whatLookingForLabel:'What are they looking for? *', wa_availableFallback:'Available', wa_balanceDueLabelPrefix:'Balance due: ', wa_currentlyOutOfStock:'Currently out of stock.', wa_customerPhoneLabel:'Customer phone number', wa_dateLabelPrefix:'Date: ', wa_deliveryLabelPrefix:'Delivery: ', wa_emailSubjectInvoiceSep:' — Invoice ', wa_inStockSuffix:' in stock)', wa_invoiceLabelPrefix:'Invoice: ', wa_ledgerStatementPrefix:'Ledger Statement — ', wa_openWhatsAppBtn:'Open WhatsApp', wa_openWhatsAppHint:'This opens WhatsApp Web/App with the message pre-filled — you press send. (Photos aren\'t attached automatically; only text.)', wa_ourShopFallback:'our shop', wa_packagingLabelPrefix:'Packaging: ', wa_phonePlaceholder:'e.g. 9876543210', wa_usFallback:'us',
+    bill_gstIncludedRow:'GST included in prices',
+    print_cgstAt:'CGST @{0}%',
+    print_sgstAt:'SGST @{0}%',
+    print_inclSuffix:' (incl.)',
+    print_taxableValueIncl:'Taxable value (before GST)',
+    prod_gstModeLabel:'Selling price and GST',
+    prod_gstModeIncl:'Price INCLUDES GST (price stays as typed, GST calculated inside it)',
+    prod_gstModeExcl:'GST is ADDED on top of the price',
+    prod_gstExampleIncl:'Example: {0} stays {0}. GST {1}% is inside it → taxable {2} + CGST {3}% {4} + SGST {3}% {5}.',
+    prod_gstExampleExcl:'Example: {0} + GST {1}% ({2}) = customer pays {3}.',
+    settings_defaultGstModeLabel:'For new products, selling price…',
+    settings_requireCustomerLabel:'Customer name and mobile number are compulsory on every bill',
+    settings_requireCustomerHint:'Keeps your customer list complete so you can message everyone later. Untick only if you want to allow walk-in bills without a customer.',
+    cust_mobileLabel:'Mobile number *',
+    cust_mobilePlaceholder:'10-digit mobile number',
+    cust_mobileMissing:'Mobile missing',
+    cust_mobileMissingTip:'Edit this customer and add a valid 10-digit mobile number',
+    toast_mobileRequired:'Mobile number is required',
+    toast_mobileInvalid:'Enter a valid 10-digit mobile number',
+    toast_mobileAlreadyUsed:'This mobile number already belongs to {0}',
+    toast_customerAlreadyExistsSelected:'{0} is already a customer — selected for this bill',
+    toast_customerRequiredForBill:'Add the customer\'s name and mobile number to continue',
+    toast_customerNeedsMobile:'{0} needs a valid mobile number before billing — please add it',
+    cust_messageAllBtn:'Message All Customers',
+    bulk_title:'Send a message to customers',
+    bulk_audienceLabel:'Who should get it?',
+    bulk_aud_all:'All customers',
+    bulk_aud_recent:'Bought in the last 30 days',
+    bulk_aud_lapsed:'Haven\'t visited for a while (see Settings)',
+    bulk_aud_credit:'Customers with credit due',
+    bulk_aud_birthday:'Birthday this month',
+    bulk_messageLabel:'Your message',
+    bulk_placeholderHint:'Type {name} where the customer\'s name should appear and {shop} for your shop name.',
+    bulk_summary:'{0} customers will get this message ({1} skipped — no valid mobile number, or duplicate).',
+    bulk_whatsappNote:'WhatsApp does not allow any app to send to many people automatically. This opens each customer\'s chat with the message already typed — you only tap Send in WhatsApp.',
+    bulk_copyNumbers:'Copy numbers',
+    bulk_downloadCsv:'Download list (CSV)',
+    bulk_startBtn:'Start sending',
+    bulk_copied:'{0} numbers copied',
+    bulk_copyFailed:'Could not copy — use Download list instead',
+    bulk_messageEmpty:'Write a message first',
+    bulk_sendingTitle:'Sending messages',
+    bulk_progress:'Opened {0} of {1} chats',
+    bulk_openNext:'Open next chat — {0}',
+    bulk_afterOpenHint:'WhatsApp opens with the message ready. Tap Send there, then come back here for the next one.',
+    bulk_allDone:'All chats done.',
+    bulk_statusSent:'Opened',
+    bulk_statusPending:'Pending',
+    bulk_statusSkipped:'Skipped',
+    bulk_openChat:'Open chat',
+    bulk_skip:'Skip',
+    bulk_editMessage:'← Edit message',
+    pu_gstModeLabel:'GST on this purchase',
+    pu_gstModeReport:'Include in GST (counted in GST reports)',
+    pu_gstModeNone:'Not in GST (kept out of GST reports)',
+    pu_gstNoneHelp:'No GST is added and this purchase will not appear in GSTR-3B / input tax credit. The total is just the rates you entered.',
+    pu_tagNoGst:'Not in GST',
+    pu_tagGst:'In GST',
+    pu_detailNoGst:'This purchase is kept out of GST reports.',
+    prod_recordPurchaseLabel:'Record the stock added here as a purchase from this vendor',
+    prod_purGstReportOpt:'Include in GST (product\'s GST added on top)',
+    prod_purPaidNow:'Paid to vendor now (₹)',
+    prod_recordPurchaseHint:'Shows under Purchases › Purchase Invoices and in the vendor\'s ledger, using the Cost price of each variant. Any amount not paid now is added to what you owe the vendor. Applies only to stock added in this save.',
+    toast_purchaseFromStockRecorded:'Purchase {0} recorded for {1}',
+    toast_purchaseNeedsCost:'Stock was added, but no purchase was recorded — enter a cost price above 0',
+    sa_vendorLabel:'Bought from vendor (optional)',
+    sa_noVendorOption:'— Not from a vendor —',
+    sa_costPerPiece:'Cost per piece (₹)',
+    sa_vendorHint:'Creates a purchase invoice under Purchases and updates the vendor\'s balance.',
+    dv_PurchasedfromVendor:'Purchased from Vendor',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1290,13 +1363,83 @@ const I18N = {
     prod_sizesPlaceholder:'S, M, L, XL', prod_colorsPlaceholder:'लाल, निळा, काळा', sa_newStockWillBe:'नवीन स्टॉक असेल: ', sa_cannotGoBelowZero:' (० च्या खाली जाऊ शकत नाही — ० वर मर्यादित होईल)', cp_addCouponBtn:'कूपन जोडा', pu_stockPrefix:' (स्टॉक: ', pu_recordPurchaseAddStockBtn:'खरेदी नोंदवा आणि स्टॉक जोडा',
     pu_supplierOptionalLabel:'पुरवठादार (ऐच्छिक)', pu_quantityRequiredLabel:'प्रमाण *', pu_costPerUnitLabel:'खरेदी किंमत / नग *', pu_supplierLabel:'पुरवठादार', pu_totalCostPrefix:'एकूण खर्च: ', pu_balanceDueSep:'  •  पुरवठादाराला देय शिल्लक: ', pu_cashPurchaseNote:'  •  रोख खरेदी — पुरवठादार खातेवही नोंदवली जाणार नाही', pu_unpaidNotTracked:' (न भरलेली रक्कम नोंदवली जात नाही, नोंदवण्यासाठी पुरवठादार निवडा)',
     sa_currentPrefix:'(सध्या: ', sa_skuPrefix:'SKU ', sa_adjustmentLabel:'समायोजन', sa_addToStock:'स्टॉकमध्ये जोडा (+)', sa_removeFromStock:'स्टॉकमधून काढा (-)', sa_quantityLabel:'प्रमाण', sa_reasonLabel:'कारण', sa_applyBtn:'समायोजन लागू करा', sa_adjustingPrefix:'समायोजित करत आहात ', dv_Damaged:'खराब झाले', dv_LostTheft:'हरवले / चोरी', dv_FoundExtra:'जास्त सापडले', dv_StockCountCorrection:'स्टॉक मोजणी दुरुस्ती', bk_chooseOption:'-- निवडा --', bk_estRateLabel:'अंदाजित दर', bk_customerRequiredLabel:'ग्राहक *', bk_selectCustomerOption:'-- ग्राहक निवडा --', bk_advanceAmountLabel:'आगाऊ रक्कम (₹) *', bk_estimatedTotalLabel:'अंदाजित एकूण (₹)', bk_notesPlaceholder:'उदा. ब्लाउज शिवणे, अपेक्षित पिकअप तारीख', bk_advanceNote:'आगाऊ रक्कम लगेच ग्राहकाच्या स्टोअर क्रेडिटमध्ये जमा होते आणि कोणत्याही पुढील बिलासाठी, या वस्तू घेताना सुद्धा, वापरता येते.', bk_saveBookingBtn:'बुकिंग जतन करा', bk_itemPrefix:'वस्तू ', cp_codeLabel:'कोड *', cp_percentOption:'टक्केवारी (%)', cp_flatAmountOption:'ठराविक रक्कम (₹)', cp_valueLabel:'मूल्य', cp_minBillLabel:'किमान बिल रक्कम (₹, ऐच्छिक)',
-    prod_nameLabel:'उत्पादनाचे नाव *', prod_namePlaceholder:'उदा. कॉटन कुर्ता', prod_categoryPlaceholder:'उदा. कुर्ते, साड्या, बेल्ट', prod_gstRateLabel:'GST दर (%)', prod_preferredSupplierLabel:'पसंतीचा पुरवठादार (ऐच्छिक)', prod_noneOption:'-- काहीही नाही --', prod_photoLabel:'फोटो (ऐच्छिक)', prod_removeBtn:'काढा', prod_variantsTitle:'व्हेरिएंट्स (आकार / रंग / स्टॉक)', prod_addVariantBtn:'+ व्हेरिएंट जोडा', prod_quickAddGridBtn:'जलद ग्रिड (आकार × रंग)', prod_gridHelp:'तुमचे आकार आणि रंग एकदाच लिहा, प्रत्येक जोडणीसाठी एक व्हेरिएंट ओळ आपोआप तयार होईल — प्रत्येक ओळ हाताने टाइप करण्यापेक्षा खूप जलद.', prod_sizesLabel:'आकार (स्वल्पविरामाने वेगळे)', prod_colorsLabel:'रंग (स्वल्पविरामाने वेगळे, ऐच्छिक)', prod_costPriceAllLabel:'खरेदी किंमत (₹, सर्वांना लागू)', prod_sellPriceAllLabel:'विक्री किंमत (₹, सर्वांना लागू)', prod_startingStockLabel:'सुरुवातीचा स्टॉक (प्रत्येकी)', prod_generateVariantsBtn:'व्हेरिएंट्स तयार करा', terms_cod:'डिलिव्हरीवर रोख', terms_net15:'नेट १५ दिवस', terms_net30:'नेट ३० दिवस', terms_net45:'नेट ४५ दिवस', terms_advance:'आगाऊ रक्कम आवश्यक',
+    prod_nameLabel:'उत्पादनाचे नाव *', prod_namePlaceholder:'उदा. कॉटन कुर्ता', prod_categoryPlaceholder:'उदा. कुर्ते, साड्या, बेल्ट', prod_gstRateLabel:'GST दर (%)', prod_preferredSupplierLabel:'विक्रेता / पुरवठादार (ऐच्छिक)', prod_noneOption:'-- काहीही नाही --', prod_photoLabel:'फोटो (ऐच्छिक)', prod_removeBtn:'काढा', prod_variantsTitle:'व्हेरिएंट्स (आकार / रंग / स्टॉक)', prod_addVariantBtn:'+ व्हेरिएंट जोडा', prod_quickAddGridBtn:'जलद ग्रिड (आकार × रंग)', prod_gridHelp:'तुमचे आकार आणि रंग एकदाच लिहा, प्रत्येक जोडणीसाठी एक व्हेरिएंट ओळ आपोआप तयार होईल — प्रत्येक ओळ हाताने टाइप करण्यापेक्षा खूप जलद.', prod_sizesLabel:'आकार (स्वल्पविरामाने वेगळे)', prod_colorsLabel:'रंग (स्वल्पविरामाने वेगळे, ऐच्छिक)', prod_costPriceAllLabel:'खरेदी किंमत (₹, सर्वांना लागू)', prod_sellPriceAllLabel:'विक्री किंमत (₹, सर्वांना लागू)', prod_startingStockLabel:'सुरुवातीचा स्टॉक (प्रत्येकी)', prod_generateVariantsBtn:'व्हेरिएंट्स तयार करा', terms_cod:'डिलिव्हरीवर रोख', terms_net15:'नेट १५ दिवस', terms_net30:'नेट ३० दिवस', terms_net45:'नेट ४५ दिवस', terms_advance:'आगाऊ रक्कम आवश्यक',
     dv_Rent:'भाडे', dv_Salaries:'पगार', dv_Utilities:'वीज-पाणी', dv_Transport:'वाहतूक', dv_Marketing:'मार्केटिंग', dv_Maintenance:'देखभाल', dv_Miscellaneous:'इतर खर्च',
     inv_catalogCountLine:'तुमच्या कॅटलॉगमध्ये {0} उत्पादने · {1} SKU', inv_lowStockFilter:'कमी स्टॉक', inv_noProductsMatch:'या दृश्याशी जुळणारी उत्पादने नाहीत.', inv_clickAddProductHint:' तुमची पहिली वस्तू तयार करण्यासाठी "+ उत्पादन जोडा" वर क्लिक करा.', inv_tryClearingFilters:' तुमचे फिल्टर्स काढून किंवा बदलून पहा.', sales_tileBills:'बिले', sales_tileAvgBillValue:'सरासरी बिल मूल्य', sales_tileGstCollected:'जमा झालेला GST', sales_tileNewCreditGiven:'नवीन दिलेली उधारी', trends_noSalesYetPeriod:'या कालावधीत अजून विक्री नाही.', trends_noStockToCompare:'तुलना करण्यासाठी स्टॉक नाही.', cust_customerInsightsBtn:'ग्राहक माहिती', settings_noCouponsYet:'अजून कोणतेही कूपन नाहीत.', settings_restoreBackupBtn:'बॅकअपमधून पुनर्संचयित करा', staff_changeOwnerPinBtn:'मालक PIN बदला', bill_overallDiscountLabel:'एकूण सूट', inv_skusAutoAssigned:'जतन करताना SKU आपोआप दिले जातात. यादीतील रिकाम्या ओळी बदलल्या जातात.',
     bill_fullPrefix:'पूर्ण ',
     dv_Cash:'रोख', dv_UPI:'UPI', dv_Card:'कार्ड', dv_BankTransfer:'बँक ट्रान्सफर', dv_Cheque:'चेक', dv_Wallet:'वॉलेट', dv_Fabric:'कापड', dv_Accessories:'अ‍ॅक्सेसरीज', dv_Packaging:'पॅकेजिंग', dv_Trims:'ट्रिम्स', dv_Other:'इतर', dv_DefectiveDamaged:'सदोष / खराब', dv_WrongSizeorFit:'चुकीचा आकार किंवा फिट', dv_WrongColor:'चुकीचा रंग', dv_WrongItemDelivered:'चुकीची वस्तू दिली', dv_ChangedMind:'विचार बदलला', dv_Advance:'आगाऊ', chrome_switchUser:'बदला', chrome_darkMode:'डार्क मोड', chrome_lightMode:'लाइट मोड', chrome_roleOwnerSuffix:' — मालक', chrome_roleStaffSuffix:' — कर्मचारी',
     auth_setupOwnerPinTitle:'मालक PIN सेट करा', auth_setupOwnerPinSub:'हे सेटिंग्ज, विक्री/कल अहवाल आणि स्टॉक बदल सुरक्षित ठेवते. नंतर सेटिंग्जमधून मर्यादित कर्मचारी PIN जोडू शकता.', auth_choosePinLabel:'PIN निवडा (४–६ अंक)', auth_confirmPinLabel:'PIN ची खात्री करा', auth_createOwnerPinBtn:'मालक PIN तयार करा', auth_pinMustBe46:'PIN ४-६ अंकांचा असावा', auth_pinsDoNotMatch:'दोन्ही PIN जुळत नाहीत', auth_saveRecoveryTitle:'तुमचा रिकव्हरी कोड जतन करा', auth_newRecoveryTitle:'नवीन रिकव्हरी कोड', auth_recoverySub:'जर तुम्ही मालक PIN विसरलात, तर हा कोडच परत आत येण्याचा एकमेव मार्ग आहे. तो लिहून ठेवा किंवा स्क्रीनशॉट घ्या — तो पुन्हा दाखवला जाणार नाही.', auth_copyCodeBtn:'कोड कॉपी करा', auth_savedItContinueBtn:'जतन केला — पुढे चला', auth_resetOwnerPinTitle:'मालक PIN रीसेट करा', auth_resetSub:'मालक PIN प्रथम तयार करताना तुम्ही जतन केलेला रिकव्हरी कोड टाका.', auth_recoveryCodeLabel:'रिकव्हरी कोड', auth_resetPinBtn:'PIN रीसेट करा', auth_backToLoginBtn:'लॉगिनवर परत जा', auth_recoveryIncorrect:'तो रिकव्हरी कोड चुकीचा आहे', auth_newPinMustBe46:'नवीन PIN ४-६ अंकांचा असावा', auth_signInToContinue:'पुढे जाण्यासाठी साइन इन करा', auth_staffTab:'कर्मचारी', auth_loginBtn:'लॉगिन', auth_forgotPinBtn:'PIN विसरलात?', auth_noStaffProfiles:'अजून कर्मचारी प्रोफाइल नाहीत. मालकाला सेटिंग्जमधून एक जोडायला सांगा.', auth_staffMemberLabel:'कर्मचारी', auth_pinLabel:'PIN', auth_incorrectPin:'चुकीचा PIN', auth_defaultShopName:'कापड दुकान बिलिंग आणि व्यवस्थापन', auth_lostRecoveryHelp:'रिकव्हरी कोडही हरवला? तुमचा दुकानाचा डेटा तरीही सुरक्षित आहे — कोणा तांत्रिक व्यक्तीला ब्राउझर कन्सोल उघडायला सांगा (F12 दाबा), टाइप करा ', auth_lostRecoveryHelp2:' आणि Enter दाबा, मग हे पान पुन्हा लोड करा. त्याने फक्त PIN लॉक निघतो, तुमची उत्पादने, बिले किंवा ग्राहक कधीच नाहीत.',
     acct_accountantExportsDesc:'तुमच्या CA किंवा अकाउंटंटला देण्यासाठीची उत्तम-प्रयत्न निर्यात — एक GSTR-1 JSON (B2C सारांश, GST ऑफलाईन टूल्सना अपेक्षित असलेल्या सर्वसाधारण स्वरूपात) आणि Tally-सुसंगत विक्री व्हाउचर XML. या फक्त सुरुवातीच्या फाईल्स आहेत, थेट अपलोड किंवा इम्पोर्टसाठी हमी दिलेल्या नाहीत — फाईल किंवा इम्पोर्ट करण्यापूर्वी खातेवहीची नावे, पुरवठ्याचे ठिकाण आणि एकूण रक्कम तुमच्या CA कडून तपासून घ्या.', acct_accountantExportsHeading:'अकाउंटंटसाठी तयार निर्यात', acct_accountantExportsTab:'अकाउंटंट निर्यात', acct_addExpenseBtn:'+ खर्च जोडा', acct_addExpenseModalBtn:'खर्च जोडा', acct_allCategoriesOption:'सर्व वर्ग', acct_allMovements:'सर्व व्यवहार', acct_allTimeBtn:'सर्व कालावधी', acct_cancelBtn:'रद्द करा', acct_cashSalesFallback:'रोख विक्री', acct_categoryLabel:'वर्ग', acct_cgstCreditLabel:'CGST क्रेडिट', acct_cogsHeading:'विकलेल्या मालाची किंमत', acct_csvDate:'दिनांक', acct_csvInvoice:'इनव्हॉइस', acct_csvMode:'पद्धत', acct_csvRowPurchases:'खरेदी', acct_csvRowSales:'विक्री', acct_csvType:'प्रकार', acct_customerFallback:'ग्राहक', acct_dayBookDesc:'आत-बाहेर होणारी प्रत्येक पैशांची हालचाल — जमा झालेली विक्री, पुरवठादारांना दिलेले पेमेंट, ग्राहकांकडून उधारी वसुली आणि खर्च. एक दिवस किंवा कालावधी निवडा.', acct_dayBookHeading:'डे बुक / कॅश बुक', acct_dayBookTab:'डे बुक', acct_deleteBtn:'हटवा', acct_deletingExpenseEntry:'खर्च नोंद हटवत आहे', acct_editBtn:'संपादित करा', acct_entriesLabel:'नोंदी', acct_excessItcCarriedForward:'जास्तीचे ITC (पुढे वर्ग केलेले)', acct_expAmountLabel:'रक्कम (₹) *', acct_expCategoryLabel:'वर्ग *', acct_expDateLabel:'दिनांक *', acct_expNotePlaceholder:'उदा. सप्टेंबर महिन्याचे दुकानाचे वीज बिल', acct_expReferenceLabel:'संदर्भ (ऐच्छिक)', acct_expReferencePlaceholder:'उदा. पावती क्र., धनादेश क्र.', acct_expensesTab:'खर्च', acct_generatedCostApproxFootnote:'. मालाची किंमत सध्याच्या किमतीनुसार अंदाजे मोजली आहे.', acct_generatedPrefix:'तयार केले ', acct_grossMarginPrefix:'एकूण मार्जिन: ', acct_grossProfit:'एकूण नफा', acct_grossProfitParenPrefix:'एकूण नफा (', acct_grossSalesExclGst:'एकूण विक्री (GST वगळून)', acct_gstr1CsvBtn:'GSTR-1 CSV', acct_gstr1Desc:'GST दरानुसार विभागलेली विक्री इनव्हॉइसेस — ही माहिती तुम्ही तुमच्या CA ला देऊ शकता किंवा GSTR-1 फाईल करण्यासाठी वापरू शकता. ही आकडेवारी राज्यांतर्गत विक्री (CGST + SGST) गृहीत धरते; इतर राज्यांतील ग्राहकांसाठी हाताने बदल करा. विक्री परतावा येथे वजा केलेला नाही.', acct_gstr1Heading:'GSTR-1 — बाह्य पुरवठा', acct_gstr1JsonBtn:'GSTR-1 JSON (B2C)', acct_gstr3bDesc:'विक्रीवरील आउटपुट कर, खरेदीवरील इनपुट टॅक्स क्रेडिट आणि देय निव्वळ GST यांचा महिन्यासारखा सारांश. विक्री/खरेदी परतावा येथे वजा केलेला नाही — फाईल करण्यापूर्वी तुमच्या CA कडून खात्री करून घ्या.', acct_gstr3bFootnote:'. रिटर्न्स वजा केलेले नाहीत — फाईल करण्यापूर्वी तुमच्या CA कडून खात्री करून घ्या.', acct_gstr3bHeading:'GSTR-3B सारांश', acct_gstr3bPrintHeading:'GSTR-3B सारांश — ', acct_inputTaxCreditOnPurchases:'इनपुट टॅक्स क्रेडिट (खरेदीवरील)', acct_inputTaxCreditPurchasesTd:'इनपुट टॅक्स क्रेडिट (खरेदी)', acct_invoiceWiseDetail:'इनव्हॉइसनिहाय तपशील', acct_invoicesInRange:'कालावधीतील इनव्हॉइसेस', acct_invoicesLabel:'इनव्हॉइसेस', acct_lastMonthBtn:'मागील महिना', acct_lessCostOfReturnedGoods:'वजा: परत केलेल्या मालाची किंमत', acct_lessSalesReturns:'वजा: विक्री परतावा', acct_marginSuffix:'% मार्जिन)', acct_miscellaneousCategory:'विविध', acct_myShopFallback:'माझे दुकान', acct_netCashFlow:'निव्वळ रोख प्रवाह', acct_netCogs:'निव्वळ COGS', acct_netGstPayable:'देय निव्वळ GST', acct_netLoss:'निव्वळ तोटा', acct_netMarginPrefix:'निव्वळ मार्जिन: ', acct_netProfit:'निव्वळ नफा', acct_netRevenue:'निव्वळ महसूल', acct_nextDayBtn:'पुढील दिवस &rarr;', acct_noExpensesRecorded:'या कालावधीसाठी कोणताही खर्च नोंदवलेला नाही.', acct_noGstTaggedPurchases:'या कालावधीत GST नोंदवलेली कोणतीही खरेदी नाही.', acct_noInvoicesInPeriodRow:'या कालावधीत कोणतीही इनव्हॉइस नाहीत', acct_noMoneyMovements:'या कालावधीसाठी कोणतेही पैशांचे व्यवहार नाहीत.', acct_noSalesCollected:'या कालावधीत कोणतीही विक्री जमा झालेली नाही.', acct_noneFallback:'काहीही नाही', acct_noteLabel:'टीप', acct_operatingExpenses:'परिचालन खर्च', acct_outputTaxOnSales:'आउटपुट कर (विक्रीवरील)', acct_outputTaxSalesTd:'आउटपुट कर (विक्री)', acct_periodLabel:'कालावधी', acct_periodNow:'आत्तापर्यंत', acct_periodStart:'सुरुवात', acct_periodToJoiner:' ते ', acct_pnlPrintDocTitleRaw:'नफा आणि तोटा', acct_pnlPrintHeading:'नफा आणि तोटा — ', acct_prevDayBtn:'&larr; मागील दिवस', acct_printPnlBtn:'नफा-तोटा प्रिंट करा', acct_printSummaryBtn:'सारांश प्रिंट करा', acct_profitLossDesc:'महसूल आणि मालाची किंमत GST वगळून मोजली आहे. मालाच्या किमतीसाठी प्रत्येक वस्तूची सध्याची किंमत वापरली जाते — जर किमती वेळोवेळी बदलल्या असतील, तर जुन्या विक्रीची किंमत आजच्या किमतीनुसार अंदाजे मोजली जाते.', acct_profitLossTab:'नफा आणि तोटा', acct_purchasesByRateInputTax:'दरानुसार खरेदी (इनपुट टॅक्स)', acct_rateWiseSummary:'दरनिहाय सारांश', acct_revenueHeading:'महसूल', acct_salesByRate:'दरानुसार विक्री', acct_salesCollectedByMode:'पद्धतीनुसार जमा झालेली विक्री', acct_sgstCreditLabel:'SGST क्रेडिट', acct_stateTipPrefix:'टीप: तुमच्या दुकानाचे ', acct_stateTipSuffix:' सेटिंग्जमध्ये सेट करा, जेणेकरून GSTR-1 निर्यातीत "Place of Supply" बरोबर भरले जाईल.', acct_stateWordBold:'राज्य', acct_tallyLedgerOutputCgstAt:'आउटपुट CGST @ ', acct_tallyLedgerOutputSgstAt:'आउटपुट SGST @ ', acct_tallyLedgerSalesAt:'विक्री @ ', acct_tallySalesVouchersBtn:'Tally विक्री व्हाउचर्स (XML)', acct_taxRateSummaryDesc:'जलद ताळमेळीसाठी विक्री आणि खरेदी GST दरानुसार गटबद्ध केली आहे. ज्या इनव्हॉइसमध्ये GST % नोंदवले आहे तेवढीच खरेदीवरील GST आकडेवारी येथे दिसते.', acct_taxRateSummaryHeading:'कर दरनिहाय सारांश', acct_taxRateSummaryTab:'कर दर सारांश', acct_taxableValueLabel:'करपात्र मूल्य', acct_thisMonthBtn:'या महिन्यात', acct_thisQuarterBtn:'या तिमाहीत', acct_totalCgstLabel:'एकूण CGST', acct_totalExpensesLabel:'एकूण खर्च', acct_totalInputTaxCredit:'एकूण इनपुट टॅक्स क्रेडिट', acct_totalItc:'एकूण ITC', acct_totalOperatingExpenses:'एकूण परिचालन खर्च', acct_totalOutputTax:'एकूण आउटपुट कर', acct_totalPaid:'एकूण भरलेले', acct_totalReceived:'एकूण प्राप्त', acct_totalSalesValue:'एकूण विक्री मूल्य', acct_totalSgstLabel:'एकूण SGST', acct_typeSale:'विक्री', alter_addJobBtn:'जॉब जोडा', alter_chargesLabel:'शुल्क (₹)', alter_customerNameLabel:'ग्राहकाचे नाव *', alter_deleteJobConfirmBody:'हा अल्टरेशन जॉब रेकॉर्ड हटवायचा? ही क्रिया पूर्ववत करता येणार नाही.', alter_expectedPickupDateLabel:'अपेक्षित पिकअप तारीख', alter_filterAll:'सर्व', alter_filterDelivered:'डिलिव्हर झाले', alter_filterPendingOnly:'फक्त प्रलंबित', alter_filterPendingReady:'प्रलंबित &amp; तयार', alter_itemLabel:'वस्तू (उदा. ब्लू कुर्ता, साडी फॉल)', alter_markDeliveredBtn:'डिलिव्हर झाले असे चिन्हांकित करा', alter_markReadyBtn:'तयार म्हणून चिन्हांकित करा', alter_newJobBtn:'+ नवीन अल्टरेशन जॉब', alter_noJobsEmpty:'इथे कोणतेही अल्टरेशन जॉब नाहीत.', alter_notesLabel:'टीप', alter_pendingTag:'प्रलंबित', alter_readyForPickup:'पिकअपसाठी तयार', alter_receivedDateLabel:'प्राप्त तारीख', alter_showFilterLabel:'दाखवा', alter_statusLabel:'स्थिती', alter_workNeededLabel:'आवश्यक काम (उदा. कंबर आत घेणे, हेम लांबी)', bill_addNoteLink:'+ टीप', bill_automaticDiscount:'स्वयंचलित सूट', bill_billsToday:'आजची बिले', bill_bookingsHint:'ग्राहक नंतर घेऊन जाणार असलेल्या वस्तूंसाठी आगाऊ रक्कम घ्या; ती आगाऊ रक्कम पिकअपच्या वेळी वापरता येणारे स्टोअर क्रेडिट बनते.', bill_cartEmptyHint:'कार्ट रिकामी आहे. जोडण्यासाठी डावीकडील उत्पादनावर क्लिक करा.', bill_cashCollectedToday:'आज जमा झालेली रोकड', bill_couponPlaceholder:'उदा. FESTIVE10', bill_decreaseQty:'प्रमाण कमी करा', bill_deliveryAddress:'डिलिव्हरी पत्ता', bill_deliveryChargePlaceholder:'डिलिव्हरी शुल्क (₹)', bill_deliveryLabel:'डिलिव्हरी', bill_discard:'काढून टाका', bill_grandTotal:'एकूण रक्कम', bill_gst:'GST', bill_increaseQty:'प्रमाण वाढवा', bill_invoicePhonePlaceholder:'इनव्हॉइस नंबर किंवा फोन नंबर', bill_itemDiscounts:'वस्तूंवरील सूट', bill_labelHeldBillPrompt:'या थांबवलेल्या बिलाला लेबल द्या (ऐच्छिक):', bill_newAdvanceBooking:'+ नवीन आगाऊ बुकिंग', bill_noMatchingProducts:'जुळणारी उत्पादने नाहीत. इन्व्हेंटरी टॅबमधून उत्पादने जोडा.', bill_noteExamplePlaceholder:'उदा. लांबी बदल, गिफ्ट रॅप', bill_notePrefix:'टीप: ', bill_outOfStockParen:'(स्टॉक संपला)', bill_packagingLabel:'पॅकिंग', bill_quotationsHint:'अनिश्चित ग्राहकांसाठी अंदाजपत्रके — पुन्हा सुरू करून चेकआउट होईपर्यंत कोणताही स्टॉक किंवा इनव्हॉइस तयार होत नाही.', bill_resume:'पुन्हा सुरू करा', bill_returnLookupHint:'परत किंवा बदली करण्यासाठी इनव्हॉइस नंबर किंवा ग्राहकाच्या फोन नंबरने जुने बिल शोधा.', bill_returnWithoutBillBtn:'बिलाशिवाय परत', bill_returnWithoutBillTooltip:'मूळ इनव्हॉइसशिवाय परत/बदली करा (मालकाची मंजुरी आवश्यक)', bill_roundOff:'राउंड ऑफ', bill_saleTag:'सेल', bill_salesToday:'आजची विक्री', bill_scannedPrefix:'स्कॅन केले: ', bill_subtotal:'उपएकूण', bill_walkIn:'वॉक-इन', bill_walkInCustomerOption:'वॉक-इन ग्राहक', btn_saveChanges:'बदल जतन करा', cust_addCustomerBtn:'+ ग्राहक जोडा', cust_anniversaryLabel:'लग्नवाढदिवस (ऐच्छिक)', cust_birthdayLabel:'वाढदिवस (ऐच्छिक)', cust_cardOption:'कार्ड', cust_cashOption:'रोख', cust_creditHistoryTitle:'उधारी इतिहास', cust_currentBalanceDue:'सध्याची देय शिल्लक', cust_daysAgoSuffix:' दिवसांपूर्वी', cust_exportLapsedListBtn:'निष्क्रिय यादी निर्यात करा (CSV)', cust_lapsedDaysLabel:'"निष्क्रिय" समजण्यासाठी दिवस', cust_ledgerBtn:'खातेवही', cust_loyaltyPointsHistoryTitle:'लॉयल्टी पॉइंट्स इतिहास', cust_loyaltyPointsLabel:'लॉयल्टी पॉइंट्स', cust_newCustomersNote:'(शेवटच्या ३० दिवसांतील पहिली खरेदी)', cust_noCustomersPastThreshold:'या मर्यादेपेक्षा जास्त काळ निष्क्रिय ग्राहक नाहीत — छान!', cust_noCustomersYet:'अजून कोणतेही ग्राहक नाहीत.', cust_noNewCustomers30d:'शेवटच्या ३० दिवसांत कोणतेही नवीन ग्राहक नाहीत.', cust_noPurchaseHistoryYet:'अजून कोणताही खरेदी इतिहास नाही.', cust_oneDayAgo:'१ दिवसापूर्वी', cust_pts:'पॉइंट्स', cust_recordBtn:'नोंदवा', cust_recordPaymentLabel:'पेमेंट नोंदवा (₹)', cust_searchLabel:'ग्राहक शोधा', cust_searchPlaceholder:'नाव किंवा फोन', cust_storeCreditAvailable:'उपलब्ध स्टोअर क्रेडिट', cust_upiOption:'UPI', cust_winBack:'पुन्हा जोडा', dash_openVendorLedgerTooltip:'पुरवठादार खातेवही उघडा', firm_deactivateBtn:'निष्क्रिय करा', firm_duplicatePrefixError:'दुसऱ्या फर्मने आधीच हा इनव्हॉइस प्रीफिक्स वापरला आहे — बिलांची टक्कर होऊ नये म्हणून वेगळा प्रीफिक्स निवडा.', firm_gstinInlineLabel:'GSTIN: ', firm_inactiveTag:'निष्क्रिय', firm_invoicePrefixInline:'इनव्हॉइस प्रीफिक्स: ', firm_invoiceSeriesHint:'प्रत्येक फर्मची स्वतःची इनव्हॉइस मालिका असते जेणेकरून वेगवेगळ्या फर्म्सची बिले एकमेकांशी टक्कर घेणार नाहीत — प्रत्येकासाठी वेगळा प्रीफिक्स वापरा.', firm_multiFirmExplainer:'या इन्स्टॉलमधून एकापेक्षा जास्त व्यवसाय चालवत आहात — उदा. रिटेल शॉप आणि होलसेल शॉप? प्रत्येकाला इथे एक फर्म म्हणून जोडा. दोन किंवा अधिक फर्म्स झाल्यावर, साइडबारमध्ये "कार्यरत फर्म" स्विचर दिसेल आणि प्रत्येक फर्मला स्वतःची पूर्णपणे वेगळी उत्पादने, ग्राहक, पुरवठादार, खरेदी आणि इनव्हॉइस क्रमांक मिळतील — त्यांच्यामध्ये काहीही शेअर केले जाणार नाही. इन्व्हेंटरी &amp; स्टॉक अंतर्गत एक नवीन <strong>स्टॉक ट्रान्सफर</strong> टॅब दिसेल, ज्याद्वारे एका फर्मच्या कॅटलॉगमधून दुसऱ्या फर्मच्या कॅटलॉगमध्ये माल हलवता येईल, आणि डॅशबोर्ड, विक्री, कल आणि हिशोब स्क्रीन्स एकूण अहवालासाठी सर्व फर्म्सचे एकत्रित दृश्य दाखवू शकतील. फक्त एकच फर्म असल्यास, इथे काहीही बदलल्याने अ‍ॅप कसे काम करते यावर परिणाम होणार नाही.', firm_nameLabel:'फर्मचे नाव *', firm_namePlaceholder:'उदा. रिटेल शॉप, होलसेल शॉप', firm_nameRequiredError:'फर्मचे नाव आवश्यक आहे', firm_nextInlineSep:' · पुढील: ', firm_noFirmsEmpty:'अजून कोणतीही फर्म नाही — तुम्ही सध्या एकच दुकान चालवत आहात, जो डिफॉल्ट पर्याय आहे.', firm_reactivateBtn:'पुन्हा सक्रिय करा', firm_workingFirmTag:'कार्यरत फर्म', inv_addItemBtn:'+ वस्तू जोडा', inv_addProductBtn:'+ उत्पादन जोडा', inv_adjustmentsLogBtn:'समायोजन नोंद', inv_allBrandsOption:'सर्व ब्रँड्स', inv_allCategoriesOption:'सर्व वर्ग', inv_anyColorOption:'कोणताही रंग', inv_anySizeOption:'कोणताही आकार', inv_applyAllVariantsBtn:'सर्व व्हेरिएंट्सना लागू करा', inv_applyCategoryBtn:'वर्गाला लागू करा', inv_barcodeLabelsPageTitle:'बारकोड लेबल्स', inv_barcodeModalHint:'प्रत्येक व्हेरिएंटला स्वतःचा बारकोड मिळतो (त्याच्या SKU वरून). प्रत्येक लेबलच्या किती प्रती छापायच्या ते ठरवा, नंतर लेबल शीट प्रिंट करा. कोणताही USB/ब्लूटूथ बारकोड स्कॅनर नंतर हे बिलिंगमध्ये स्कॅन करू शकतो.', inv_brandLabel:'ब्रँड', inv_bulkDiscountSaleBtn:'बल्क सूट / सेल', inv_bulkToolsHint:'एकाच वेळी अनेक उत्पादने अद्ययावत करा, किंवा CSV द्वारे संपूर्ण कॅटलॉग आयात/निर्यात करा.', inv_clearAllFiltersBtn:'सर्व फिल्टर्स रिकामे करा', inv_colorLabel:'रंग', inv_completeTransferBtn:'ट्रान्सफर पूर्ण करा', inv_copiesLabel:'प्रती', inv_costLabel:'खरेदी किंमत', inv_deadStockBtn:'डेड स्टॉक', inv_defaultVariant:'डीफॉल्ट', inv_deliveryChallanTitle:'डिलिव्हरी चलन ', inv_discountTypeLabel:'सूट प्रकार', inv_discountValueLabel:'सूट रक्कम', inv_endDateOptionalLabel:'समाप्ती तारीख (ऐच्छिक)', inv_endSaleAllVariantsBtn:'सर्व व्हेरिएंट्सवरील सेल थांबवा', inv_endSaleBtn:'सेल थांबवा', inv_endSaleCategoryBtn:'वर्गासाठी सेल थांबवा', inv_errAddAtLeastOneItem:'ट्रान्सफर करण्यासाठी किमान एक वस्तू जोडा', inv_errFromToDifferent:'कडून आणि कडे फर्म्स वेगळ्या असणे आवश्यक आहे', inv_exportCsvBtn:'CSV निर्यात करा', inv_fixedAmountOffOption:'निश्चित रक्कम सूट (₹)', inv_fromLabel:'कडून:', inv_importCsvBtn:'CSV आयात करा', inv_lowAtLabel:'कमी स्टॉक मर्यादा', inv_maxPriceLabel:'कमाल ₹', inv_minPriceLabel:'किमान ₹', inv_moreFilters:'अधिक फिल्टर्स', inv_noEndDate:'समाप्ती तारीख नाही', inv_noItemsOnSale:'सध्या कोणतीही वस्तू सेलवर नाही.', inv_noSaleOption:'सेल नाही (नियमित किंमत)', inv_noTransfersYet:'अजून कोणतेही ट्रान्सफर नाहीत.', inv_notTaxInvoiceNote:'ही एक अंतर्गत स्टॉक हालचाल नोंद आहे, कर इनव्हॉइस नाही.', inv_onSaleFilterBtn:'सेलवर', inv_outOfStockFilterBtn:'स्टॉक संपलेले', inv_percentOffOption:'टक्केवारी सूट (%)', inv_printLabelsBtn:'लेबल्स प्रिंट करा', inv_rateRupeeLabel:'दर (₹)', inv_reportsHint:'स्टॉक मूल्यांकन, संथ खपणाऱ्या वस्तू, आणि प्रत्येक स्टॉक सुधारणा नोंदीचा संपूर्ण इतिहास.', inv_reportsTitle:'इन्व्हेंटरी अहवाल', inv_saleDatesHint:'तुम्ही स्वतः थांबवेपर्यंत चालू राहणाऱ्या सेलसाठी तारखा रिकाम्या ठेवा. वस्तू बिलात जोडताच बिलिंगमध्ये ही सूट आपोआप लागू होईल.', inv_salePricePrefix:'सेल किंमत: ', inv_sampleCsvBtn:'नमुना CSV', inv_searchPlaceholder:'उदा. निळा कुर्ता, SKU-102', inv_searchProductSku:'उत्पादन / SKU शोधा', inv_selectCategoryOption:'-- एक वर्ग निवडा --', inv_sellPriceLabel:'विक्री किंमत *', inv_sizeLabel:'आकार', inv_skuLabel:'SKU', inv_startDateOptionalLabel:'सुरुवात तारीख (ऐच्छिक)', inv_stockRequiredLabel:'स्टॉक *', inv_stockTransferChallanHeading:'स्टॉक ट्रान्सफर / डिलिव्हरी चलन', inv_tabBulkTools:'बल्क टूल्स', inv_tabProducts:'उत्पादने', inv_tabReports:'अहवाल', inv_thisVariantFallback:'हा व्हेरिएंट', inv_toLabel:'कडे:', inv_totalValuePrefix:'एकूण मूल्य: ', inv_transferHint:'एका फर्मच्या शेल्फमधून दुसऱ्या फर्मकडे स्टॉक हलवते — प्रत्येक वस्तूची एकूण (संपूर्ण व्यवसायाची) संख्या बदलत नाही, फक्त ती कोणती फर्म विकू शकते हे बदलते.', inv_transferNotePlaceholder:'उदा. घाऊक विक्रेत्याकडून साप्ताहिक पुनर्भरण', inv_variantFallbackPrefix:'व्हेरिएंट ', print_a4LetterOption:'A4 / लेटर', print_addressLabel:'पत्ता:', print_amountPayable:'देय रक्कम', print_cashTendered:'दिलेली रोख रक्कम', print_changeGiven:'परत दिलेले सुट्टे', print_closeBtn:'बंद करा', print_closingBalancePrefix:'अंतिम शिल्लक: ', print_discountLabel:'सूट', print_generatedLabelColon:'तयार केले:', print_homeDeliveryToPrefix:'होम डिलिव्हरी येथे: ', print_inclCouponPrefix:' (कूपनसह ', print_ledgerTitlePrefix:'खातेवही — ', print_loyaltyPointsEarned:'मिळालेले लॉयल्टी पॉइंट्स', print_loyaltyPointsRedeemedPrefix:'वापरलेले लॉयल्टी पॉइंट्स (', print_onCredit:'उधारीवर', print_periodLabelColon:'कालावधी:', print_phLabel:'फोन: ', print_printBtn:'प्रिंट करा', print_printFormatLabel:'प्रिंट फॉरमॅट', print_scanToPay:'स्कॅन करून भरा ', print_sendViaWhatsAppBtn:'व्हॉट्सअॅपद्वारे पाठवा', print_supplierLabel:'पुरवठादार:', print_thankYouShopping:'आमच्याकडे खरेदी केल्याबद्दल धन्यवाद!', print_thermal58Option:'थर्मल — ५८mm', print_thermal80Option:'थर्मल — ८०mm', print_totalCreditPrefix:'एकूण क्रेडिट: ', print_totalDebitPrefix:'एकूण डेबिट: ', print_totalRowLabel:'एकूण', print_vendorLedgerStatementHeading:'पुरवठादार खातेवही स्टेटमेंट', print_viaUpi:' UPI द्वारे', sales_allFirmsCombinedLabel:'सर्व फर्म्स (एकत्रित)', sales_anyExtraDetailPlaceholder:'अतिरिक्त तपशील', sales_bestSellersTitle:'सर्वाधिक विकल्या जाणाऱ्या वस्तू', sales_customerOptionalLabel:'ग्राहक (ऐच्छिक)', sales_loyaltyPointsReducedNote:'या बिलावर मिळालेले लॉयल्टी पॉइंट्स प्रमाणशीर कमी केले जातील.', sales_noCustomerRefundCashNote:'कोणताही ग्राहक निवडलेला नाही — परतावा रोखीने दिला जाईल असे गृहीत धरले आहे.', sales_noItemSalesYet:'अद्याप कोणत्याही वस्तूची विक्री नाही.', sales_noPaymentsRecorded:'कोणतेही पेमेंट नोंदवलेले नाही.', sales_noteOptionalLabel:'टीप (ऐच्छिक)', sales_ownerApprovalNoBillReturn:'मूळ बिलाशिवाय परतावा प्रक्रिया करणे', sales_ownerApprovalNote:' पुढे जाण्यासाठी मालकाची मंजुरी आवश्यक असेल.', sales_ownerApprovalReturnOutsidePolicy:'परत धोरणाच्या मुदतीबाहेर हा परतावा प्रक्रिया करणे', sales_ownerApprovedManualReturnNote:'मालकाने मंजूर केलेली हाताने केलेली परत. खाली परत करायच्या वस्तू जोडा.', sales_paymentModeCollectionsTitle:'पेमेंट पद्धतीनुसार जमा रक्कम', sales_priceRupeeLabel:'किंमत ₹', sales_processReturnBtn:'परत प्रक्रिया करा', sales_processStartExchangeBtn:'प्रक्रिया करा आणि बदली सुरू करा', sales_reasonDefectiveDamaged:'सदोष / खराब झालेले', sales_reasonForReturnLabel:'परत करण्याचे कारण *', sales_reasonNoBillAvailable:'बिल उपलब्ध नाही', sales_reasonOther:'इतर', sales_refundAmountPrefix:'परतावा रक्कम: ', sales_returnExchangeBtn:'परत/बदली', sales_returnInstructions:'प्रत्येक वस्तूसाठी परत करायचे प्रमाण टाका. परत केलेल्या वस्तू आपोआप स्टॉकमध्ये परत जोडल्या जातात.', sales_returnNoBillBtn:'परत (बिलाशिवाय)', sales_salesHistoryTitle:'विक्री इतिहास', sales_selectReasonPlaceholder:'-- कारण निवडा --', sales_settleCashNoLedgerChange:'रोख / UPI आत्ताच परत दिले (खातेवहीत बदल नाही)', sales_settleCashNow:'रोख / UPI आत्ताच परत दिले', sales_settleReduceCreditBalance:'ग्राहकाची सध्याची देय शिल्लक कमी करा', sales_settleRefundAsLabel:'परतावा असा निकाली काढा', sales_settleStoreCredit:'स्टोअर क्रेडिट — पुढील खरेदीसाठी वापरता येईल', sales_showingPrefix:'दाखवत आहे: ', sales_tagCredit:'उधारी', sales_tagPaid:'भरले', sales_viewBtn:'पहा', sales_walkInNoCustomerRecordOption:'वॉक-इन / ग्राहक नोंद नाही', sales_walkInSaleRefundNote:'वॉक-इन विक्री — परतावा रोखीने दिला जाईल असे गृहीत धरले आहे.', settings_a4Option:'A4 / लेटर (फुल पेज इनव्हॉइस)', settings_addCouponBtn:'+ कूपन जोडा', settings_addExpenseCatBtn:'+ जोडा', settings_addFirmBtn:'+ फर्म जोडा', settings_addTierBtn:'+ टायर जोडा', settings_address:'पत्ता', settings_anniversaryTplLabel:'लग्नवाढदिवस संदेश टेम्प्लेट', settings_backupIncludesHint:'बॅकअपमध्ये समाविष्ट: उत्पादने &amp; स्टॉक, बिले, ग्राहक, पुरवठादार &amp; व्हेंडर खातेवही, खरेदी ऑर्डर्स/इनव्हॉइसेस/रिटर्न्स, खर्च, अल्टरेशन्स, कोटेशन्स, बुकिंग्स, ग्राहक मागण्या, कर्मचारी लॉगिन आणि दुकान सेटिंग्ज.', settings_billAmountLabel:'बिल रक्कम ≥ ₹', settings_billPrintFormatHint:'बिल प्रिंट करताना हा डिफॉल्ट फॉरमॅट वापरला जातो. तुम्ही इनव्हॉइस स्क्रीनवरून एका प्रिंटपुरता फॉरमॅट बदलू शकता.', settings_billPrintFormatLabel:'बिल प्रिंट फॉरमॅट', settings_billPrintingTitle:'बिल प्रिंटिंग', settings_billingExtrasHint:'हे बिलिंग स्क्रीनवरील पॅकिंग/डिलिव्हरी फील्ड्स आपोआप भरतात — कॅशियर प्रत्येक बिलासाठी ते बदलू शकतात.', settings_billingExtrasTitle:'बिलिंग अतिरिक्त सुविधा', settings_billingLayoutHint:'बिलिंग स्क्रीनवर मोठी बटणे, इनपुट्स आणि जास्त स्पेसिंग — माउस-कीबोर्डऐवजी टॅबलेट किंवा टचस्क्रीन POS स्टँडवरून बिलिंग करताना उपयुक्त.', settings_billingLayoutTitle:'बिलिंग स्क्रीन मांडणी', settings_birthdayOffersTitle:'वाढदिवस / लग्नवाढदिवस ऑफर्स', settings_birthdayTplHint:'संदेशात तुमच्या दुकानाचे नाव आपोआप घालण्यासाठी <code>{shop}</code> वापरा. डॅशबोर्डच्या "आजचे विशेष प्रसंग" पॅनेलमधून पाठवले जाते.', settings_birthdayTplLabel:'वाढदिवस संदेश टेम्प्लेट', settings_couponCodesHint:'पूर्वनिर्धारित सूट कोड्स, जे कॅशियर चेकआउटवेळी मॅन्युअल सूट टाइप करण्याऐवजी लागू करू शकतात.', settings_couponCodesTitle:'कूपन कोड्स', settings_customerWinBackTitle:'ग्राहक परत आणा', settings_dataBackupHint:'सर्व डेटा फक्त या ब्राउझरमध्ये असतो (ऑफलाइन-फर्स्ट) — काहीही कुठेही पाठवले जात नाही. हे डिव्हाइस हरवले, त्याचा स्टोरेज क्लिअर झाला किंवा तुम्ही नवीन फोन/लॅपटॉपवर गेलात, तर बॅकअप न घेतलेले सर्व काही कायमचे नाहीसे होईल. नियमितपणे (उदा. दर आठवड्याला) पूर्ण बॅकअप एक्सपोर्ट करा आणि फाईल सुरक्षित ठिकाणी ठेवा (स्वतःला ईमेल करा, गूगल ड्राइव्हवर सेव्ह करा, USB ड्राइव्हवर ठेवा).', settings_dataBackupTitle:'डेटा बॅकअप &amp; पुनर्संचयन', settings_defaultDeliveryCharge:'डिफॉल्ट डिलिव्हरी शुल्क (₹)', settings_defaultGstRate:'डिफॉल्ट GST दर (%)', settings_defaultPackagingCharge:'डिफॉल्ट पॅकिंग शुल्क (₹)', settings_discountPercentLabel:'सूट %', settings_earnPerRupeeLabel:'प्रत्येक ₹ ला १ पॉइंट मिळवा', settings_enableLoyaltyLabel:'लॉयल्टी पॉइंट्स सुरू करा', settings_expenseCatPlaceholder:'उदा. इंटरनेट बिल', settings_expenseCategoriesHint:'हिशोब → खर्च अंतर्गत दुकानाचे खर्च नोंदवताना वापरले जाते.', settings_expenseCategoriesTitle:'खर्च वर्ग', settings_exportFullBackupBtn:'पूर्ण बॅकअप एक्सपोर्ट करा (JSON)', settings_firmsTitle:'फर्म्स', settings_gstinOptional:'GSTIN (ऐच्छिक)', settings_invoicePrefix:'इनव्हॉइस प्रीफिक्स', settings_languageHint:'हे साइडबार मेनू, डॅशबोर्ड आणि बिलिंग स्क्रीन बदलते. कालांतराने आणखी स्क्रीन्स जोडल्या जातील.', settings_lapsedDaysLabel:'ग्राहकाला इतक्या दिवसांनी "निष्क्रिय" समजा (शेवटच्या भेटीपासून दिवस)', settings_lowStockThreshold:'कमी स्टॉक इशारा मर्यादा (प्रत्येक व्हेरिएंटसाठी डिफॉल्ट)', settings_loyaltyHint:'बिलावर ग्राहक निवडलेला असेल तेव्हाच पॉइंट्स मिळतात आणि वापरता येतात (वॉक-इन विक्रीसाठी नाही).', settings_loyaltyTitle:'लॉयल्टी प्रोग्राम', settings_nextInvoiceNumber:'पुढील इनव्हॉइस क्रमांक', settings_noExpenseCatEmpty:'अजून कोणतेही वर्ग नाहीत — खाली एक जोडा.', settings_noLogo:'लोगो नाही', settings_noTiersEmpty:'कोणतेही टायर सेट केलेले नाहीत — कोणतीही स्वयंचलित सूट लागू होत नाही.', settings_ownerPinThresholdHint:'या किंवा त्यापेक्षा जास्त रकमेचे खरेदी इनव्हॉइस जतन करण्यासाठी कर्मचाऱ्यांना मालक PIN लागेल. बंद करण्यासाठी ० सेट करा.', settings_ownerPinThresholdLabel:'यापेक्षा जास्त खरेदी इनव्हॉइससाठी मालक PIN मंजुरी आवश्यक (₹)', settings_paymentModesHint:'चेकआउटवेळी कोणत्या पेमेंट पद्धती दिसाव्यात ते निवडा. न वापरल्या जाणाऱ्या पद्धती बंद करा जेणेकरून पेमेंट स्क्रीन जलद राहील — किमान एक पद्धत चालू असणे आवश्यक आहे.', settings_paymentModesTitle:'चेकआउटवेळील पेमेंट पद्धती', settings_phone:'फोन', settings_pointWorthLabel:'प्रत्येक पॉइंटची किंमत ₹', settings_purchaseVendorTitle:'खरेदी &amp; पुरवठादार सेटिंग्ज', settings_removeLogoBtn:'लोगो काढा', settings_returnsPeriodHint:'इतक्या दिवसांनंतर मागितलेल्या परताव्यांना मंजुरीसाठी मालक PIN लागेल. वेळ मर्यादा नसावी यासाठी ० सेट करा.', settings_returnsPeriodLabel:'इतक्या दिवसांत परत/बदली स्वीकारा (दिवस)', settings_returnsPolicyTitle:'परत &amp; बदली धोरण', settings_roundOffLabel:'बिलाची एकूण रक्कम जवळच्या ₹१ पर्यंत राउंड ऑफ करा', settings_saveSettingsBtn:'सेटिंग्ज जतन करा', settings_selectStateOption:'— राज्य निवडा —', settings_shopLogoHint:'साइडबारमध्ये दिसतो आणि प्रत्येक बिल/इनव्हॉइसवर छापला जातो.', settings_shopLogoTitle:'दुकानाचा लोगो', settings_shopName:'दुकानाचे नाव', settings_shopSettingsTitle:'दुकान सेटिंग्ज', settings_shopStateLabel:'दुकानाचे राज्य (GSTR-1 निर्यातीसाठी — पुरवठा स्थान)', settings_thermal58Option:'थर्मल रिसीट — ५८mm', settings_thermal80Option:'थर्मल रिसीट — ८०mm', settings_tieredDiscountsHint:'बिलाची वस्तू एकूण रक्कम (वस्तू सुटीनंतर, एकूण सुटीपूर्वी) मर्यादा ओलांडल्यास आपोआप लागू होते — उदा. ₹५,०००च्या वर ५% सूट. सर्वात जास्त जुळणारा टायर लागू होतो.', settings_tieredDiscountsTitle:'स्वयंचलित टायर्ड सूट', settings_touchBillingLabel:'टच-फ्रेंडली बिलिंग मांडणी', settings_upiHint:'सेट केल्यावर, देय रकमेचा स्कॅन करण्यायोग्य UPI QR कोड प्रत्येक बिलावर छापला जातो.', settings_upiIdLabel:'UPI ID (उदा. shopname@okhdfcbank)', settings_upiPaymentsTitle:'UPI पेमेंट्स', settings_upiPlaceholder:'yourshop@bank', settings_winbackTplHint:'तुमच्या दुकानाच्या नावासाठी <code>{shop}</code> वापरा. बराच काळ न आलेल्या ग्राहकांशी संपर्क साधण्यासाठी ग्राहक &rarr; ग्राहक माहितीमध्ये वापरले जाते.', settings_winbackTplLabel:'परत आणण्याचा संदेश टेम्प्लेट', staff_addStaffBtn:'+ कर्मचारी जोडा', staff_allTimeOption:'सर्व काळ', staff_attendanceHint:'कोणी लॉगिन केल्यावर चेक-इन आणि लॉगआउट किंवा युजर बदलल्यावर चेक-आउट नोंदवले जाते.', staff_attendanceSubtitle:'हजेरी', staff_changePinBtn:'PIN बदला', staff_currentPinLabel:'सध्याचा PIN', staff_customRangeOption:'कस्टम रेंज…', staff_dateRangeLabel:'तारीख कालावधी', staff_filterByStaffLabel:'कर्मचाऱ्यानुसार फिल्टर करा', staff_fromLabel:'पासून', staff_hrsSuffix:' तास', staff_last7DaysOption:'गेले ७ दिवस', staff_nameLabel:'नाव *', staff_newPinLabel:'नवीन PIN (४–६ अंकी)', staff_noAttendanceEmpty:'अजून कोणतीही हजेरी नोंदवलेली नाही.', staff_noSalesEmpty:'या कालावधीत कोणतीही विक्री नाही.', staff_noStaffEmpty:'अजून कोणताही कर्मचारी जोडलेला नाही.', staff_ownerPinSubtitle:'मालक PIN', staff_ownerTag:'मालक', staff_pinLabelWithAsterisk:'PIN (४–६ अंकी) *', staff_removedStaffName:'काढलेला कर्मचारी', staff_salesPerformanceHint:'प्रत्येक कर्मचारी लॉगिनने (आणि मालकाने) किती बिलिंग केले ते पहा, जेणेकरून कोण काय विकत आहे ते तुम्हाला कळेल.', staff_salesPerformanceSubtitle:'विक्री कामगिरी', staff_staffAccessHint:'कर्मचारी लॉगिनने बिलिंग करता येते, स्टॉक पाहता येतो आणि ग्राहक संपर्क व्यवस्थापित करता येतात — त्यांना कॉस्ट किंमती, अहवाल, गरजा किंवा सेटिंग्ज दिसत नाहीत. शेअर केलेल्या दुकान डिव्हाइसवर उत्तरदायित्वासाठी हा फक्त साधा PIN लॉक आहे, पूर्ण सुरक्षा नाही.', staff_staffAccessTitle:'कर्मचारी &amp; प्रवेश', staff_thisMonthOption:'या महिन्यात', staff_toLabel:'पर्यंत', staff_todayOption:'आज', staff_unattributedHint:'"अनिर्दिष्ट" म्हणजे हा अहवाल जोडण्यापूर्वी झालेली बिले, जेव्हा प्रत्येक विक्री कोणी केली हे अजून नोंदवले जात नव्हते.', staff_viewAttendanceLogBtn:'हजेरी नोंद पहा', staff_viewSalesPerformanceBtn:'विक्री कामगिरी पहा', trends_analyzePeriodLabel:'विश्लेषण कालावधी', trends_billsPeriodLabel:'बिले (कालावधी)', trends_fastMoversTitle:'वेगाने विकणाऱ्या वस्तू', trends_fastVsSlowMoversTitle:'वेगाने विकणाऱ्या वि. हळू विकणाऱ्या वस्तू', trends_monthlySalesTrendTitle:'मासिक विक्री कल (गेले ६ महिने)', trends_noCategorySales:'या कालावधीत वर्गनिहाय विक्री नाही.', trends_noColorData:'या कालावधीत रंगाचा डेटा नाही.', trends_noSizeData:'या कालावधीत साईजचा डेटा नाही.', trends_rangeLast3Months:'गेले ३ महिने', trends_rangeLast6Months:'गेले ६ महिने', trends_revenuePeriodLabel:'महसूल (कालावधी)', trends_salesByCategoryTitle:'वर्गानुसार विक्री', trends_salesByColorTitle:'रंगानुसार विक्री', trends_salesBySizeTitle:'साईजनुसार विक्री', trends_slowMoversTitle:'हळू विकणाऱ्या वस्तू (स्टॉकमध्ये पडून)', trends_vsPreviousPeriodSuffix:'% मागील कालावधीच्या तुलनेत', vendor_accountNameLabel:'खाते नाव', vendor_accountNumberLabel:'खाते क्रमांक', vendor_activeCheckboxLabel:'सक्रिय', vendor_addCustomerRequestBtn:'+ ग्राहक मागणी जोडा', vendor_addSupplierBtn:'+ पुरवठादार जोडा', vendor_allProductsOption:'सर्व उत्पादने', vendor_alternatePhoneLabel:'पर्यायी फोन', vendor_amountPaidNowLabel:'आत्ता भरलेली रक्कम (₹)', vendor_applyAdvanceBalanceLabel:'आगाऊ शिल्लक लागू करा', vendor_backBtn:'मागे', vendor_bankUpiDetailsTitle:'बँक / UPI तपशील (ऐच्छिक, पेमेंट करण्यासाठी)', vendor_cancelPOBody:'यामुळे फक्त ती रद्द झाल्याचे चिन्हांकित होते — इतर काहीही बदलत नाही.', vendor_cancelPOBtn:'PO रद्द करा', vendor_cannotBeUndone:'हे पूर्ववत करता येणार नाही.', vendor_cashPurchaseLabel:'रोख खरेदी', vendor_cashPurchaseOptionLabel:'रोख खरेदी (पुरवठादार खातेवही नाही)', vendor_chooseProductCompareNote:'पुरवठादार किमतींची तुलना करण्यासाठी वरून एक उत्पादन निवडा.', vendor_chooseProductPlaceholder:'-- एक उत्पादन निवडा --', vendor_compareSupplierPricesBtn:'पुरवठादार किमतींची तुलना', vendor_contactPersonLabel:'संपर्क व्यक्ती', vendor_createPOsForSelectedBtn:'निवडलेल्यांसाठी खरेदी ऑर्डर्स तयार करा', vendor_creditLimitLabel:'क्रेडिट मर्यादा (₹, ० = मर्यादा नाही)', vendor_deleteRequestConfirmText:'ही ग्राहक मागणी हटवायची? हे पूर्ववत करता येणार नाही.', vendor_discountRupeeLabel:'सूट (₹)', vendor_dueDateLabel:'देय तारीख', vendor_emailLabel:'ईमेल', vendor_estimatedTotalPrefix:'अंदाजित एकूण: ', vendor_existingCustomerOptionalLabel:'सध्याचा ग्राहक (ऐच्छिक)', vendor_filterByProductLabel:'उत्पादनानुसार फिल्टर करा', vendor_filterFulfilled:'पूर्ण झाले', vendor_freightLabel:'मालवाहतूक', vendor_freightRupeeLabel:'मालवाहतूक (₹)', vendor_gstHelpText:'सूटीनंतरच्या उपएकूणावर लागू होते आणि एकूण देय रकमेत जोडले जाते — GSTR-3B अंतर्गत इनपुट टॅक्स क्रेडिट मिळवण्यासाठी आवश्यक. GST-सवलतप्राप्त किंवा नोंदणी नसलेल्या पुरवठादारांसाठी ० ठेवा.', vendor_gstPercentChargedLabel:'पुरवठादाराने आकारलेला GST %', vendor_ifscLabel:'IFSC', vendor_labelProduct:'उत्पादन', vendor_labelQty:'प्रमाण', vendor_labelRateRupee:'दर ₹', vendor_labelVariant:'व्हेरिएंट', vendor_lookingForPlaceholder:'उदा. लाल साडी, साईज L, सिल्क', vendor_markSentBtn:'पाठवले असे चिन्हांकित करा', vendor_newPurchaseInvoiceBtn:'+ नवीन खरेदी इनव्हॉइस', vendor_newPurchaseOrderBtn:'+ नवीन खरेदी ऑर्डर', vendor_newPurchaseReturnBtn:'+ नवीन खरेदी परत', vendor_noCustomerRequestsYet:'इथे कोणत्याही ग्राहक मागण्या नाहीत. ग्राहक काय शोधत आहे ते नोंदवा आणि पाठपुरावा करण्याची वेळ आल्यावर आठवण मिळवा.', vendor_noPurchaseHistoryForProduct:'या उत्पादनासाठी अद्याप कोणताही खरेदी इतिहास नाही.', vendor_noPurchaseInvoicesYet:'अद्याप कोणतेही खरेदी इनव्हॉइस नोंदवलेले नाही.', vendor_noPurchasePriceHistoryYet:'अद्याप कोणताही खरेदी किंमत इतिहास नाही.', vendor_noPurchaseReturnsYet:'अद्याप कोणतीही खरेदी परत नोंदवलेली नाही.', vendor_noReorderNeeded:'सध्या काहीही पुन्हा ऑर्डर करण्याची गरज नाही — अलीकडील विक्रीच्या तुलनेत स्टॉक पातळी व्यवस्थित दिसत आहे.', vendor_noSuppliersFound:'कोणताही पुरवठादार सापडला नाही.', vendor_noSuppliersYetLong:'अद्याप कोणताही पुरवठादार नाही. एक जोडा, किंवा पुरवठादाराशिवाय रोख खरेदी नोंदवा.', vendor_notLinkedNewPersonOption:'जोडलेले नाही / नवीन व्यक्ती', vendor_notesOptionalLabel:'टिपा (ऐच्छिक)', vendor_openingBalanceLabel:'सुरुवातीची शिल्लक (₹)', vendor_otherExpensesLabel:'इतर खर्च', vendor_otherExpensesRupeeLabel:'इतर खर्च (₹)', vendor_ownerApprovalPurchaseInvoiceOver:'यापेक्षा जास्त रकमेचे खरेदी इनव्हॉइस नोंदवणे ', vendor_payBtn:'भरा', vendor_payablesAgingHelp:'तुम्ही देणे असलेली रक्कम, प्रत्येक इनव्हॉइस किती काळ थकीत आहे यानुसार गटबद्ध (प्रत्येक पुरवठादाराच्या पेमेंट अटींनुसार).', vendor_payablesAgingTitle:'देणी थकबाकी कालावधी', vendor_paymentHistoryTitle:'पेमेंट इतिहास', vendor_paymentModeBankTransfer:'बँक ट्रान्सफर', vendor_paymentModeCheque:'चेक', vendor_paymentModeLabel:'पेमेंट पद्धत', vendor_paymentTermsLabel:'पेमेंट अटी', vendor_purchasePriceHistoryBtn:'खरेदी किंमत इतिहास', vendor_quickPurchaseBtn:'जलद खरेदी (१ वस्तू)', vendor_reasonDamagedInTransit:'वाहतुकीत खराब झालेले', vendor_reasonExcessStock:'जास्तीचा स्टॉक', vendor_reasonRequiredLabel:'कारण *', vendor_reasonWrongItemReceived:'चुकीची वस्तू मिळाली', vendor_receiveInvoiceBtn:'माल स्वीकारा आणि इनव्हॉइस करा', vendor_recordPaymentBtn:'पेमेंट नोंदवा', vendor_remindMeOnLabel:'मला आठवण करून द्या', vendor_reorderHelpText:'मर्यादेपेक्षा कमी स्टॉक किंवा १४ दिवसांत संपण्याचा अंदाज (गेल्या ३० दिवसांच्या विक्री वेगावर आधारित) यावर आधारित. वस्तू निवडा आणि एकत्रितपणे मसुदा खरेदी ऑर्डर तयार करा — त्या प्रत्येक उत्पादनाच्या पसंतीच्या पुरवठादारानुसार आपोआप गटबद्ध होतात.', vendor_salesRepNamePlaceholder:'सेल्स प्रतिनिधीचे नाव', vendor_saveAsDraftBtn:'मसुदा म्हणून जतन करा', vendor_saveInvoiceUpdateStockBtn:'इनव्हॉइस जतन करा आणि स्टॉक अद्ययावत करा', vendor_saveMarkSentBtn:'जतन करा आणि पाठवले असे चिन्हांकित करा', vendor_searchSupplierPlaceholder:'नावाने पुरवठादार शोधा...', vendor_selectSupplierPlaceholder:'-- पुरवठादार निवडा --', vendor_showInactiveLabel:'निष्क्रिय दाखवा', vendor_statusCancelled:'रद्द केले', vendor_statusDraft:'मसुदा', vendor_statusReceived:'प्राप्त झाले', vendor_statusSent:'पाठवले', vendor_subtotalPrefix:'उपएकूण: ', vendor_suggestedReordersTitle:'सुचवलेल्या पुन्हा ऑर्डर', vendor_supplierRequiredLabel:'पुरवठादार *', vendor_supplierWisePurchaseSummaryTitle:'पुरवठादारनिहाय खरेदी सारांश', vendor_tabCustomerRequests:'ग्राहक मागण्या', vendor_tabPurchaseInvoices:'खरेदी इनव्हॉइसेस', vendor_tabPurchaseOrders:'खरेदी ऑर्डर्स', vendor_tabPurchaseReports:'खरेदी अहवाल', vendor_tabPurchaseReturns:'खरेदी परत', vendor_tabReorderSuggestions:'पुन्हा ऑर्डर सूचना', vendor_tabSuppliers:'पुरवठादार', vendor_tabVendorLedger:'पुरवठादार खातेवही', vendor_tagDue:'बाकी', vendor_totalAdvanceHeldLabel:'एकूण ठेवलेली आगाऊ रक्कम', vendor_totalPayablesLabel:'एकूण देणी', vendor_totalPrefix:'एकूण: ', vendor_unknownSupplier:'अज्ञात', vendor_upiIdLabel:'UPI ID', vendor_useMaxBtn:'कमाल वापरा', vendor_vendorLedgerHelpText:'प्रत्येक पुरवठादारासाठी सुरू असलेले डेबिट/क्रेडिट विवरण — खरेदी, पेमेंट, परत आणि समायोजन, सर्व एका ठिकाणी.', vendor_vendorNotesPlaceholder:'उदा. कापसासाठी सर्वोत्तम, ५० नगांपेक्षा जास्तवर घासाघीस करा', vendor_vendorTypeLabel:'पुरवठादार प्रकार', vendor_vendorsWithBalanceDueLabel:'देय शिल्लक असलेले पुरवठादार', vendor_viewLedgerBtn:'खातेवही पहा', vendor_whatLookingForLabel:'ते काय शोधत आहेत? *', wa_availableFallback:'उपलब्ध', wa_balanceDueLabelPrefix:'येणे शिल्लक: ', wa_currentlyOutOfStock:'सध्या स्टॉकमध्ये नाही.', wa_customerPhoneLabel:'ग्राहकाचा फोन नंबर', wa_dateLabelPrefix:'दिनांक: ', wa_deliveryLabelPrefix:'डिलिव्हरी: ', wa_emailSubjectInvoiceSep:' — इनव्हॉइस ', wa_inStockSuffix:' स्टॉकमध्ये)', wa_invoiceLabelPrefix:'इनव्हॉइस: ', wa_ledgerStatementPrefix:'खातेवही स्टेटमेंट — ', wa_openWhatsAppBtn:'व्हॉट्सअॅप उघडा', wa_openWhatsAppHint:'यामुळे WhatsApp Web/App मेसेज आधीच भरलेल्या स्थितीत उघडेल — तुम्ही फक्त पाठवा दाबायचे आहे. (फोटो आपोआप जोडले जात नाहीत; फक्त मजकूर जातो.)', wa_ourShopFallback:'आमचे दुकान', wa_packagingLabelPrefix:'पॅकिंग: ', wa_phonePlaceholder:'उदा. 9876543210', wa_usFallback:'आमच्याकडे',
+    bill_gstIncludedRow:'किमतीत GST समाविष्ट',
+    print_cgstAt:'CGST @{0}%',
+    print_sgstAt:'SGST @{0}%',
+    print_inclSuffix:' (समाविष्ट)',
+    print_taxableValueIncl:'करपात्र मूल्य (GST पूर्वी)',
+    prod_gstModeLabel:'विक्री किंमत आणि GST',
+    prod_gstModeIncl:'किमतीत GST समाविष्ट (किंमत जशी टाकली तशीच राहते, GST आतूनच काढला जातो)',
+    prod_gstModeExcl:'किमतीवर वरून GST जोडला जातो',
+    prod_gstExampleIncl:'उदाहरण: {0} तसेच राहतील. त्यात GST {1}% समाविष्ट → करपात्र {2} + CGST {3}% {4} + SGST {3}% {5}.',
+    prod_gstExampleExcl:'उदाहरण: {0} + GST {1}% ({2}) = ग्राहक देतो {3}.',
+    settings_defaultGstModeLabel:'नवीन उत्पादनांसाठी, विक्री किंमत…',
+    settings_requireCustomerLabel:'प्रत्येक बिलावर ग्राहकाचे नाव आणि मोबाईल क्रमांक अनिवार्य',
+    settings_requireCustomerHint:'ग्राहक यादी पूर्ण राहते, म्हणजे नंतर सर्वांना संदेश पाठवता येतो. ग्राहकाशिवाय बिल हवे असेल तरच बंद करा.',
+    cust_mobileLabel:'मोबाईल क्रमांक *',
+    cust_mobilePlaceholder:'१० अंकी मोबाईल क्रमांक',
+    cust_mobileMissing:'मोबाईल नाही',
+    cust_mobileMissingTip:'या ग्राहकाला संपादित करून योग्य १० अंकी मोबाईल क्रमांक जोडा',
+    toast_mobileRequired:'मोबाईल क्रमांक आवश्यक आहे',
+    toast_mobileInvalid:'योग्य १० अंकी मोबाईल क्रमांक टाका',
+    toast_mobileAlreadyUsed:'हा मोबाईल क्रमांक आधीच {0} यांचा आहे',
+    toast_customerAlreadyExistsSelected:'{0} आधीच ग्राहक आहेत — या बिलासाठी निवडले',
+    toast_customerRequiredForBill:'पुढे जाण्यासाठी ग्राहकाचे नाव आणि मोबाईल क्रमांक जोडा',
+    toast_customerNeedsMobile:'बिलिंगपूर्वी {0} यांचा योग्य मोबाईल क्रमांक आवश्यक आहे — कृपया जोडा',
+    cust_messageAllBtn:'सर्व ग्राहकांना संदेश',
+    bulk_title:'ग्राहकांना संदेश पाठवा',
+    bulk_audienceLabel:'कोणाला पाठवायचा?',
+    bulk_aud_all:'सर्व ग्राहक',
+    bulk_aud_recent:'गेल्या ३० दिवसांत खरेदी केलेले',
+    bulk_aud_lapsed:'बऱ्याच दिवसांपासून न आलेले (सेटिंग्ज पहा)',
+    bulk_aud_credit:'उधारी बाकी असलेले ग्राहक',
+    bulk_aud_birthday:'या महिन्यात वाढदिवस',
+    bulk_messageLabel:'तुमचा संदेश',
+    bulk_placeholderHint:'ग्राहकाचे नाव येण्यासाठी {name} आणि दुकानाच्या नावासाठी {shop} लिहा.',
+    bulk_summary:'{0} ग्राहकांना हा संदेश मिळेल ({1} वगळले — योग्य मोबाईल नाही किंवा पुनरावृत्ती).',
+    bulk_whatsappNote:'WhatsApp कोणत्याही अ‍ॅपला आपोआप अनेकांना संदेश पाठवू देत नाही. हे प्रत्येक ग्राहकाची चॅट संदेश लिहिलेल्या अवस्थेत उघडते — तुम्हाला फक्त WhatsApp मध्ये Send दाबायचे.',
+    bulk_copyNumbers:'क्रमांक कॉपी करा',
+    bulk_downloadCsv:'यादी डाउनलोड (CSV)',
+    bulk_startBtn:'पाठवणे सुरू करा',
+    bulk_copied:'{0} क्रमांक कॉपी झाले',
+    bulk_copyFailed:'कॉपी करता आले नाही — यादी डाउनलोड वापरा',
+    bulk_messageEmpty:'आधी संदेश लिहा',
+    bulk_sendingTitle:'संदेश पाठवत आहे',
+    bulk_progress:'{1} पैकी {0} चॅट उघडल्या',
+    bulk_openNext:'पुढची चॅट उघडा — {0}',
+    bulk_afterOpenHint:'संदेश तयार असलेले WhatsApp उघडेल. तिथे Send दाबा, मग पुढच्यासाठी येथे परत या.',
+    bulk_allDone:'सर्व चॅट पूर्ण.',
+    bulk_statusSent:'उघडली',
+    bulk_statusPending:'बाकी',
+    bulk_statusSkipped:'वगळली',
+    bulk_openChat:'चॅट उघडा',
+    bulk_skip:'वगळा',
+    bulk_editMessage:'← संदेश बदला',
+    pu_gstModeLabel:'या खरेदीवरील GST',
+    pu_gstModeReport:'GST मध्ये समाविष्ट (GST रिपोर्टमध्ये धरले)',
+    pu_gstModeNone:'GST मध्ये नाही (GST रिपोर्टमधून वगळले)',
+    pu_gstNoneHelp:'GST जोडला जात नाही आणि ही खरेदी GSTR-3B / इनपुट टॅक्स क्रेडिटमध्ये दिसणार नाही. एकूण म्हणजे तुम्ही टाकलेले दर.',
+    pu_tagNoGst:'GST मध्ये नाही',
+    pu_tagGst:'GST मध्ये',
+    pu_detailNoGst:'ही खरेदी GST रिपोर्टमधून वगळली आहे.',
+    prod_recordPurchaseLabel:'येथे जोडलेला स्टॉक या विक्रेत्याकडून खरेदी म्हणून नोंदवा',
+    prod_purGstReportOpt:'GST मध्ये समाविष्ट (उत्पादनाचा GST वरून जोडला)',
+    prod_purPaidNow:'विक्रेत्याला आता दिले (₹)',
+    prod_recordPurchaseHint:'खरेदी › खरेदी इनव्हॉइसेस मध्ये आणि विक्रेत्याच्या खात्यात दिसते, प्रत्येक व्हेरिएंटची खरेदी किंमत वापरून. आता न दिलेली रक्कम विक्रेत्याला द्यायच्या रकमेत जोडली जाते. फक्त या सेव्हमध्ये जोडलेल्या स्टॉकला लागू.',
+    toast_purchaseFromStockRecorded:'{1} साठी खरेदी {0} नोंदवली',
+    toast_purchaseNeedsCost:'स्टॉक जोडला, पण खरेदी नोंदवली गेली नाही — ० पेक्षा जास्त खरेदी किंमत टाका',
+    sa_vendorLabel:'विक्रेत्याकडून घेतले (ऐच्छिक)',
+    sa_noVendorOption:'— विक्रेत्याकडून नाही —',
+    sa_costPerPiece:'प्रति नग खरेदी किंमत (₹)',
+    sa_vendorHint:'खरेदी विभागात खरेदी इनव्हॉइस तयार होते आणि विक्रेत्याची शिल्लक अद्ययावत होते.',
+    dv_PurchasedfromVendor:'विक्रेत्याकडून खरेदी',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -1802,6 +1945,17 @@ function renderSettings(){
         </div>
       </div>
       <div class="field">
+        <label>${t('settings_defaultGstModeLabel')}</label>
+        <select id="set_taxmode">
+          <option value="incl" ${SETTINGS.defaultTaxInclusive!==false?'selected':''}>${t('prod_gstModeIncl')}</option>
+          <option value="excl" ${SETTINGS.defaultTaxInclusive===false?'selected':''}>${t('prod_gstModeExcl')}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="set_reqCustomer" style="width:auto;" ${SETTINGS.requireCustomerOnBill!==false?'checked':''}> ${t('settings_requireCustomerLabel')}</label>
+        <p class="muted" style="font-size:12px;margin:4px 0 0;">${t('settings_requireCustomerHint')}</p>
+      </div>
+      <div class="field">
         <label>${t('settings_shopStateLabel')}</label>
         <select id="set_state">
           <option value="">${t('settings_selectStateOption')}</option>
@@ -2039,6 +2193,8 @@ function renderSettings(){
       gstin: document.getElementById('set_gstin').value.trim(),
       stateCode: document.getElementById('set_state').value,
       defaultTaxRate: parseFloat(document.getElementById('set_tax').value)||0,
+      defaultTaxInclusive: document.getElementById('set_taxmode').value==='incl',
+      requireCustomerOnBill: document.getElementById('set_reqCustomer').checked,
       invoicePrefix: document.getElementById('set_prefix').value.trim() || 'INV-',
       invoiceCounter: parseInt(document.getElementById('set_counter').value)||1,
       lowStockDefault: parseInt(document.getElementById('set_lowstock').value)||0,
@@ -3580,6 +3736,7 @@ async function duplicateProduct(productId){
     brand: original.brand || '',
     category: original.category || '',
     taxRate: original.taxRate,
+    taxInclusive: !!original.taxInclusive,
     photo: original.photo || '',
     firmId: original.firmId,
     preferredSupplierId: original.preferredSupplierId || null,
@@ -3623,11 +3780,29 @@ async function openProductModalCore(product, productId, title){
       </div>
     </div>
     <div class="field">
+      <label>${t('prod_gstModeLabel')}</label>
+      <select id="pf_taxmode">
+        <option value="incl" ${(product ? product.taxInclusive : SETTINGS.defaultTaxInclusive!==false)?'selected':''}>${t('prod_gstModeIncl')}</option>
+        <option value="excl" ${(product ? product.taxInclusive : SETTINGS.defaultTaxInclusive!==false)?'':'selected'}>${t('prod_gstModeExcl')}</option>
+      </select>
+      <div id="pf_taxPreview" class="muted" style="font-size:12px;margin-top:5px;"></div>
+    </div>
+    <div class="field">
       <label>${t('prod_preferredSupplierLabel')}</label>
       <select id="pf_supplier">
         <option value="">${t('prod_noneOption')}</option>
         ${suppliers.map(s=>`<option value="${s.id}" ${product&&product.preferredSupplierId===s.id?'selected':''}>${escapeHTML(s.name)}</option>`).join('')}
       </select>
+    </div>
+    <div id="pf_purchaseBox" style="display:${product&&product.preferredSupplierId?'':'none'};background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="pf_recordPurchase" checked style="width:auto;"> ${t('prod_recordPurchaseLabel')}</label>
+      <div class="row" style="margin-top:8px;">
+        <div class="col field"><label>${t('pu_gstModeLabel')}</label>
+          <select id="pf_purGst"><option value="none">${t('pu_gstModeNone')}</option><option value="report">${t('prod_purGstReportOpt')}</option></select>
+        </div>
+        <div class="col field"><label>${t('prod_purPaidNow')}</label><input id="pf_purPaid" type="number" min="0" step="0.01" value="0"></div>
+      </div>
+      <p class="muted" style="font-size:11.5px;margin:0;">${t('prod_recordPurchaseHint')}</p>
     </div>
     <div class="field">
       <label>${t('prod_photoLabel')}</label>
@@ -3714,9 +3889,32 @@ async function openProductModalCore(product, productId, title){
         document.getElementById('pf_photoPreview').innerHTML = `<span class="muted" style="font-size:10px;">${t('acct_noneFallback')}</span>`;
         document.getElementById('pf_photoRemove').disabled = true;
       });
+      ['pf_tax','pf_taxmode'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', updateProductTaxPreview); el.addEventListener('change', updateProductTaxPreview); });
+      updateProductTaxPreview();
+      document.getElementById('pf_supplier').addEventListener('change', ()=>{ document.getElementById('pf_purchaseBox').style.display = document.getElementById('pf_supplier').value ? '' : 'none'; });
       document.getElementById('saveProductBtn').addEventListener('click', ()=>saveProductFromModal(productId));
     }
   });
+}
+// Fills {0},{1}… in a translated sentence (every occurrence, not just the first).
+function fillTpl(str, args){ return args.reduce((s,a,i)=>s.split('{'+i+'}').join(String(a)), str); }
+// Live example under the GST fields so the owner sees exactly what a price will do.
+function updateProductTaxPreview(){
+  const el = document.getElementById('pf_taxPreview');
+  if(!el) return;
+  const rate = parseFloat(document.getElementById('pf_tax').value)||0;
+  const incl = document.getElementById('pf_taxmode').value==='incl';
+  const row = (typeof VARIANT_ROWS!=='undefined' ? VARIANT_ROWS : []).find(v=>parseFloat(v.sellPrice)>0);
+  const price = row ? parseFloat(row.sellPrice) : 999;
+  const r2 = x=>Math.round(x*100)/100;
+  if(!(rate>0)){ el.textContent = ''; return; }
+  if(incl){
+    const tax = r2(price*rate/(100+rate)), taxable = r2(price-tax), cg = r2(tax/2), sg = r2(tax-cg);
+    el.textContent = fillTpl(t('prod_gstExampleIncl'), [fmtMoney(price), rate, fmtMoney(taxable), String(+(rate/2).toFixed(2)), fmtMoney(cg), fmtMoney(sg)]);
+  } else {
+    const tax = r2(price*rate/100);
+    el.textContent = fillTpl(t('prod_gstExampleExcl'), [fmtMoney(price), rate, fmtMoney(tax), fmtMoney(r2(price+tax))]);
+  }
 }
 function blankVariant(){ return {sku:'', size:'', color:'', costPrice:'', sellPrice:'', stock:0, lowStock:''}; }
 
@@ -3741,6 +3939,7 @@ function renderVariantRows(){
       const i = parseInt(e.target.dataset.i);
       const f = e.target.dataset.f;
       VARIANT_ROWS[i][f] = e.target.value;
+      if(f==='sellPrice') updateProductTaxPreview();
     });
   });
 }
@@ -3777,6 +3976,7 @@ async function saveProductFromModal(productId){
     brand: document.getElementById('pf_brand').value.trim(),
     category: document.getElementById('pf_category').value.trim(),
     taxRate: parseFloat(document.getElementById('pf_tax').value)||0,
+    taxInclusive: document.getElementById('pf_taxmode').value==='incl',
     hsn: (document.getElementById('pf_hsn').value||'').trim(),
     photo: PRODUCT_PHOTO || '',
     // Editing (or duplicating) keeps the product in its original firm's catalog; a
@@ -3786,6 +3986,8 @@ async function saveProductFromModal(productId){
     variants: cleanVariants,
     createdAt: new Date().toISOString()
   };
+  const oldProduct = productId ? await dbGet('products', productId) : null;
+  let savedId = productId;
   if(productId){
     record.id = productId;
     record.variants.forEach((v,i)=>{ if(!v.sku) v.sku = autoSKU(productId, i); });
@@ -3793,6 +3995,7 @@ async function saveProductFromModal(productId){
     toast(t('toast_productUpdated'),'success');
   } else {
     const newId = await dbAdd('products', record);
+    savedId = newId;
     const needsSku = record.variants.some(v=>!v.sku);
     if(needsSku){
       record.variants.forEach((v,i)=>{ if(!v.sku) v.sku = autoSKU(newId, i); });
@@ -3800,6 +4003,30 @@ async function saveProductFromModal(productId){
       await dbPut('products', record);
     }
     toast(t('toast_productAdded'),'success');
+  }
+  // Stock added with a vendor chosen = a purchase from that vendor. Records it under Purchases
+  // (and the vendor's ledger) so the books match the shelves.
+  const vendorId = record.preferredSupplierId;
+  if(vendorId && document.getElementById('pf_recordPurchase') && document.getElementById('pf_recordPurchase').checked){
+    const lines = [];
+    record.variants.forEach((v,i)=>{
+      const prev = oldProduct ? (oldProduct.variants||[]).find(x=>x.sku && x.sku===v.sku) : null;
+      const added = (Number(v.stock)||0) - (prev ? Number(prev.stock||0) : 0);
+      if(added>0) lines.push({productId:savedId, variantIndex:i, qty:added, rate:Number(v.costPrice)||0});
+    });
+    if(lines.length){
+      const inv = await recordStockPurchase({
+        supplierId: vendorId, lines,
+        gstMode: document.getElementById('pf_purGst').value, gstRate: record.taxRate,
+        paidNow: parseFloat(document.getElementById('pf_purPaid').value)||0, payMode:'Cash'
+      });
+      if(inv){
+        const sup = await dbGet('suppliers', vendorId);
+        toast(t('toast_purchaseFromStockRecorded').replace('{0}', inv.invoiceNumber).replace('{1}', sup?sup.name:''),'success');
+      } else {
+        toast(t('toast_purchaseNeedsCost'),'error');
+      }
+    }
   }
   closeModal();
   await renderInventoryTable();
@@ -3931,6 +4158,7 @@ async function openStockAdjustModal(productId){
     const label = [v.size,v.color].filter(Boolean).join('/') || v.sku || (t('inv_variantFallbackPrefix')+(i+1));
     return `<option value="${i}">${escapeHTML(label)} — ${t('sa_skuPrefix')}${escapeHTML(v.sku||'-')} ${t('sa_currentPrefix')}${v.stock})</option>`;
   }).join('');
+  const saSuppliers = (await scopedGetAll('suppliers')).sort((a,b)=>a.name.localeCompare(b.name));
   const firmNote = multiFirmInUse() ? `<p class="muted" style="font-size:12px;margin:-4px 0 8px;">${t('sa_adjustingPrefix')}${escapeHTML((firmById(product.firmId)||{}).name||'—')}'s stock of this product.</p>` : '';
 
   openModal({
@@ -3954,9 +4182,28 @@ async function openStockAdjustModal(productId){
           <input id="sa_qty" type="number" min="1" step="1" value="1">
         </div>
       </div>
+      <div id="sa_vendorBox" style="background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div class="field"><label>${t('sa_vendorLabel')}</label>
+          <select id="sa_vendor">
+            <option value="">${t('sa_noVendorOption')}</option>
+            ${saSuppliers.map(s=>`<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div id="sa_vendorExtra" style="display:none;">
+          <div class="row">
+            <div class="col field"><label>${t('sa_costPerPiece')}</label><input id="sa_cost" type="number" min="0" step="0.01" value="0"></div>
+            <div class="col field"><label>${t('pu_gstModeLabel')}</label>
+              <select id="sa_gst"><option value="none">${t('pu_gstModeNone')}</option><option value="report">${t('prod_purGstReportOpt')}</option></select>
+            </div>
+            <div class="col field"><label>${t('prod_purPaidNow')}</label><input id="sa_paid" type="number" min="0" step="0.01" value="0"></div>
+          </div>
+          <p class="muted" style="font-size:11.5px;margin:0;">${t('sa_vendorHint')}</p>
+        </div>
+      </div>
       <div class="field">
         <label>${t('sa_reasonLabel')}</label>
         <select id="sa_reason">
+          <option value="Purchased from Vendor">${t('dv_PurchasedfromVendor')}</option>
           <option value="Damaged">${t('dv_Damaged')}</option>
           <option value="Lost / Theft">${t('dv_LostTheft')}</option>
           <option value="Found Extra">${t('dv_FoundExtra')}</option>
@@ -3983,11 +4230,33 @@ async function openStockAdjustModal(productId){
       };
       ['sa_variant','sa_qty','sa_direction'].forEach(id=>document.getElementById(id).addEventListener('input', recalc));
       recalc();
+      // Vendor purchase fields only make sense when stock is being ADDED.
+      const syncVendorBox = ()=>{
+        const adding = document.getElementById('sa_direction').value==='add';
+        document.getElementById('sa_vendorBox').style.display = adding ? '' : 'none';
+        const vend = adding && document.getElementById('sa_vendor').value;
+        document.getElementById('sa_vendorExtra').style.display = vend ? '' : 'none';
+        const reasonSel = document.getElementById('sa_reason');
+        if(vend) reasonSel.value = 'Purchased from Vendor';
+        else if(reasonSel.value==='Purchased from Vendor') reasonSel.value = adding ? 'Found Extra' : 'Damaged';
+        if(vend){
+          const v = product.variants[parseInt(document.getElementById('sa_variant').value)];
+          const costEl = document.getElementById('sa_cost');
+          if(!costEl.dataset.touched) costEl.value = (v && v.costPrice) || 0;
+        }
+      };
+      document.getElementById('sa_cost').addEventListener('input', e=>{ e.target.dataset.touched = '1'; });
+      document.getElementById('sa_variant').addEventListener('change', ()=>{ delete document.getElementById('sa_cost').dataset.touched; syncVendorBox(); });
+      ['sa_direction','sa_vendor'].forEach(id=>document.getElementById(id).addEventListener('change', syncVendorBox));
+      syncVendorBox();
       document.getElementById('sa_save').addEventListener('click', async ()=>{
         const vi = parseInt(document.getElementById('sa_variant').value);
         const qty = Math.max(1, parseInt(document.getElementById('sa_qty').value)||1);
         const dir = document.getElementById('sa_direction').value;
-        const reason = document.getElementById('sa_reason').value;
+        const vendorId = (dir==='add' && document.getElementById('sa_vendor').value) ? parseInt(document.getElementById('sa_vendor').value) : null;
+        const vendorCost = vendorId ? (parseFloat(document.getElementById('sa_cost').value)||0) : 0;
+        if(vendorId && vendorCost<=0){ toast(t('toast_purchaseNeedsCost'),'error'); return; }
+        const reason = vendorId ? 'Purchased from Vendor' : document.getElementById('sa_reason').value;
         const note = document.getElementById('sa_note').value.trim();
         const fresh = await dbGet('products', productId);
         const v = fresh.variants[vi];
@@ -4008,8 +4277,21 @@ async function openStockAdjustModal(productId){
           date: new Date().toISOString(),
           user: (typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER.name : 'Owner'
         });
+        if(vendorId){
+          fresh.variants[vi].costPrice = vendorCost;
+          await dbPut('products', fresh);
+          const inv = await recordStockPurchase({
+            supplierId: vendorId, lines:[{productId, variantIndex:vi, qty, rate:vendorCost}],
+            gstMode: document.getElementById('sa_gst').value, gstRate: fresh.taxRate,
+            paidNow: parseFloat(document.getElementById('sa_paid').value)||0, payMode:'Cash'
+          });
+          if(inv){
+            const sup = await dbGet('suppliers', vendorId);
+            toast(t('toast_purchaseFromStockRecorded').replace('{0}', inv.invoiceNumber).replace('{1}', sup?sup.name:''),'success');
+          }
+        }
         closeModal();
-        toast(t('toast_stockAdjusted'),'success');
+        if(!vendorId) toast(t('toast_stockAdjusted'),'success');
         await renderInventoryTable();
         await refreshLowStockBadge();
       });
@@ -4087,14 +4369,14 @@ function parseCSV(text){
   return rows.filter(r=> !(r.length===1 && r[0].trim()===''));
 }
 
-const INVENTORY_CSV_HEADER = ['Name','Brand','Category','TaxRate','Size','Color','SKU','CostPrice','SellPrice','Stock','LowStock'];
+const INVENTORY_CSV_HEADER = ['Name','Brand','Category','TaxRate','Size','Color','SKU','CostPrice','SellPrice','Stock','LowStock','GstIncluded'];
 
 async function exportInventoryCSV(){
   const products = await scopedGetAll('products');
   const lines = [toCSVRow(INVENTORY_CSV_HEADER)];
   products.forEach(p=>{
     (p.variants||[]).forEach(v=>{
-      lines.push(toCSVRow([p.name, p.brand||'', p.category||'', p.taxRate||0, v.size||'', v.color||'', v.sku||'', v.costPrice||0, v.sellPrice||0, v.stock||0, v.lowStock!=null?v.lowStock:'']));
+      lines.push(toCSVRow([p.name, p.brand||'', p.category||'', p.taxRate||0, v.size||'', v.color||'', v.sku||'', v.costPrice||0, v.sellPrice||0, v.stock||0, v.lowStock!=null?v.lowStock:'', p.taxInclusive?'Yes':'No']));
     });
   });
   const blob = new Blob([lines.join('\r\n')], {type:'text/csv'});
@@ -4131,7 +4413,7 @@ async function importInventoryCSV(file){
     name: header.indexOf('name'), brand: header.indexOf('brand'), category: header.indexOf('category'),
     taxrate: header.indexOf('taxrate'), size: header.indexOf('size'), color: header.indexOf('color'),
     sku: header.indexOf('sku'), costprice: header.indexOf('costprice'), sellprice: header.indexOf('sellprice'),
-    stock: header.indexOf('stock'), lowstock: header.indexOf('lowstock')
+    stock: header.indexOf('stock'), lowstock: header.indexOf('lowstock'), gstincluded: header.indexOf('gstincluded')
   };
   if(idx.name<0 || idx.sellprice<0 || idx.stock<0){
     toast(t('toast_csvMissingColumns'),'error');
@@ -4164,6 +4446,7 @@ async function importInventoryCSV(file){
     const brand = idx.brand>=0 ? (r[idx.brand]||'').trim() : '';
     const category = idx.category>=0 ? (r[idx.category]||'').trim() : '';
     const taxRate = idx.taxrate>=0 && r[idx.taxrate]!=='' ? (parseFloat(r[idx.taxrate])||0) : SETTINGS.defaultTaxRate;
+    const taxInclusive = idx.gstincluded>=0 && (r[idx.gstincluded]||'').trim()!=='' ? /^(y|yes|true|1)/i.test((r[idx.gstincluded]||'').trim()) : (SETTINGS.defaultTaxInclusive!==false);
     const size = idx.size>=0 ? (r[idx.size]||'').trim() : '';
     const color = idx.color>=0 ? (r[idx.color]||'').trim() : '';
     const sku = idx.sku>=0 ? (r[idx.sku]||'').trim() : '';
@@ -4195,7 +4478,7 @@ async function importInventoryCSV(file){
         const newKey = 'new:'+nameKey;
         let obj = touchedProducts.get(newKey);
         if(!obj){
-          obj = {name, brand, category, taxRate, photo:'', firmId: firmIdForStockOps(), variants:[], createdAt:new Date().toISOString()};
+          obj = {name, brand, category, taxRate, taxInclusive, photo:'', firmId: firmIdForStockOps(), variants:[], createdAt:new Date().toISOString()};
           touchedProducts.set(newKey, obj);
           newProducts++;
         }
@@ -6784,6 +7067,22 @@ function itemDiscountAmount(it){
   return Math.min(base, Number(it.discount)||0);
 }
 
+// GST for one bill line. A shop quotes prices in one of two ways:
+//  - GST added on top (how this app always worked): price 999 -> customer pays 999 + tax.
+//  - GST included in the price (it.taxInclusive): the price IS what the customer pays. The tax
+//    is worked out from inside it (999 @5% -> taxable 951.43 + GST 47.57), so the price on the
+//    tag never changes and no odd paise appear in the rate.
+function lineTaxParts(it){
+  const gross = Math.max(0, it.qty*it.rate - itemDiscountAmount(it));
+  const r = Number(it.taxRate)||0;
+  if(!(r>0)) return {gross, taxable:gross, tax:0, included:false, rate:r};
+  if(it.taxInclusive){
+    const tax = gross*r/(100+r);
+    return {gross, taxable:gross-tax, tax, included:true, rate:r};
+  }
+  return {gross, taxable:gross, tax:gross*r/100, included:false, rate:r};
+}
+
 async function doBillLookup(){
   const q = document.getElementById('billLookupInput').value.trim().toLowerCase();
   const wrap = document.getElementById('billLookupResults');
@@ -7328,6 +7627,7 @@ async function addToCart(productId, variantIndex){
       note: '',
       hsn: product.hsn||'',
       taxRate: product.taxRate||0,
+      taxInclusive: !!product.taxInclusive,
       maxStock: avail
     });
     if(onSale) toast(t('toast_addedAtSalePrice').replace('{0}',product.name).replace('{1}',variant.saleType==='percent'?variant.saleValue+'% off':fmtMoney(variant.saleValue)+' off'), 'success');
@@ -7416,14 +7716,18 @@ function autoTierDiscountAmount(baseAmount){
 // tab passes its own cart so the tab bar can show a running total without switching to it.
 function computeTotals(cartArg){
   const C = cartArg || CART;
-  let subtotal=0, itemDiscount=0, taxTotal=0;
+  let subtotal=0, itemDiscount=0, taxTotal=0, taxIncluded=0;
   C.items.forEach(it=>{
     subtotal += it.qty*it.rate;
-    const discAmt = itemDiscountAmount(it);
-    itemDiscount += discAmt;
-    const taxable = (it.qty*it.rate) - discAmt;
-    taxTotal += taxable * (Number(it.taxRate)||0) / 100;
+    itemDiscount += itemDiscountAmount(it);
+    const lp = lineTaxParts(it);
+    taxTotal += lp.tax;
+    if(lp.included) taxIncluded += lp.tax;
   });
+  taxTotal = Math.round(taxTotal*100)/100;
+  taxIncluded = Math.round(taxIncluded*100)/100;
+  // Only tax that is added ON TOP changes what the customer pays; included tax is already in the prices.
+  const taxAdded = Math.round((taxTotal - taxIncluded)*100)/100;
   const afterItemDiscount = Math.max(0, subtotal - itemDiscount);
   const autoTierDiscount = autoTierDiscountAmount(afterItemDiscount);
   const overallDiscount = C.overallDiscountType==='percent'
@@ -7433,11 +7737,11 @@ function computeTotals(cartArg){
   const packagingCharge = Math.max(0, Number(C.packagingCharge)||0);
   const deliveryCharge = C.deliveryEnabled ? Math.max(0, Number(C.deliveryCharge)||0) : 0;
 
-  const preRound = Math.max(0, subtotal - itemDiscount - autoTierDiscount - overallDiscount - couponDiscount + taxTotal + packagingCharge + deliveryCharge);
+  const preRound = Math.max(0, subtotal - itemDiscount - autoTierDiscount - overallDiscount - couponDiscount + taxAdded + packagingCharge + deliveryCharge);
   const roundOff = SETTINGS.roundOffEnabled ? Math.round((Math.round(preRound) - preRound)*100)/100 : 0;
   const grandTotal = Math.round((preRound + roundOff)*100)/100;
 
-  return {subtotal, itemDiscount, taxTotal, autoTierDiscount, overallDiscount, couponDiscount, packagingCharge, deliveryCharge, roundOff, grandTotal};
+  return {subtotal, itemDiscount, taxTotal, taxIncluded, taxAdded, autoTierDiscount, overallDiscount, couponDiscount, packagingCharge, deliveryCharge, roundOff, grandTotal};
 }
 function renderBillTotals(){
   const wrap = document.getElementById('billTotalsWrap');
@@ -7448,7 +7752,8 @@ function renderBillTotals(){
       <div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_subtotal')}</span><span>${fmtMoney(tot.subtotal)}</span></div>
       <div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_itemDiscounts')}</span><span>-${fmtMoney(tot.itemDiscount)}</span></div>
       ${tot.autoTierDiscount>0?`<div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_automaticDiscount')}</span><span>-${fmtMoney(tot.autoTierDiscount)}</span></div>`:''}
-      <div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_gst')}</span><span>${fmtMoney(tot.taxTotal)}</span></div>
+      ${(tot.taxAdded>0 || tot.taxIncluded<=0)?`<div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_gst')}</span><span>${fmtMoney(tot.taxAdded)}</span></div>`:''}
+      ${tot.taxIncluded>0?`<div style="display:flex;justify-content:space-between;"><span class="muted" style="font-style:italic;">${t('bill_gstIncludedRow')}</span><span class="muted" style="font-style:italic;">${fmtMoney(tot.taxIncluded)}</span></div>`:''}
       <div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_overallDiscountLabel')}</span><span>-${fmtMoney(tot.overallDiscount)}</span></div>
       ${tot.couponDiscount>0?`<div style="display:flex;justify-content:space-between;"><span class="muted">Coupon (${escapeHTML(CART.couponCode||'')})</span><span>-${fmtMoney(tot.couponDiscount)}</span></div>`:''}
       ${tot.packagingCharge>0?`<div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_packagingLabel')}</span><span>${fmtMoney(tot.packagingCharge)}</span></div>`:''}
@@ -7735,7 +8040,7 @@ async function printQuotation(id){
     invoiceNo: q.quoteNumber, date: q.date, items: q.items,
     subtotal: q.totals.subtotal,
     discountTotal: q.totals.itemDiscount + q.totals.autoTierDiscount + q.totals.overallDiscount + q.totals.couponDiscount,
-    taxTotal: q.totals.taxTotal, grandTotal: q.totals.grandTotal, amountDue: q.totals.grandTotal,
+    taxTotal: q.totals.taxTotal, taxIncluded: q.totals.taxIncluded||0, grandTotal: q.totals.grandTotal, amountDue: q.totals.grandTotal,
     pointsRedeemed:0, pointsEarned:0, creditAmount:0
   };
   const format = SETTINGS.paperSize || 'thermal80';
@@ -7909,14 +8214,26 @@ function quickAddCustomerFromBilling(){
     title:t('modal_newCustomer'),
     bodyHTML:`
       <div class="field"><label>${t('staff_nameLabel')}</label><input id="qc_name"></div>
-      <div class="field"><label>${t('settings_phone')}</label><input id="qc_phone"></div>
+      <div class="field"><label>${t('cust_mobileLabel')}</label><input id="qc_phone" type="tel" inputmode="numeric" maxlength="16" placeholder="${t('cust_mobilePlaceholder')}"></div>
     `,
     footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="qc_save">Save</button>`,
     onMount: ()=>{
       document.getElementById('qc_save').addEventListener('click', async ()=>{
         const name = document.getElementById('qc_name').value.trim();
-        if(!name){ toast(t('toast_nameRequired'),'error'); return; }
-        const phone = document.getElementById('qc_phone').value.trim();
+        if(!name){ toast(t('toast_nameRequired'),'error'); document.getElementById('qc_name').focus(); return; }
+        const phoneRaw = document.getElementById('qc_phone').value.trim();
+        if(!phoneRaw){ toast(t('toast_mobileRequired'),'error'); document.getElementById('qc_phone').focus(); return; }
+        if(!isValidMobile(phoneRaw)){ toast(t('toast_mobileInvalid'),'error'); document.getElementById('qc_phone').focus(); return; }
+        const phone = cleanMobile(phoneRaw);
+        // Already a customer? In a rush, just use them instead of making a duplicate.
+        const dup = await findCustomerByMobile(phone);
+        if(dup){
+          CART.customerId = dup.id;
+          closeModal();
+          toast(t('toast_customerAlreadyExistsSelected').replace('{0}', dup.name),'success');
+          await renderCustomerSelect();
+          return;
+        }
         const id = await dbAdd('customers', {name, phone, firmId: billableFirmId(), creditBalance:0, storeCredit:0, ledger:[], loyaltyPoints:0, pointsLedger:[]});
         CART.customerId = id;
         closeModal();
@@ -7928,8 +8245,27 @@ function quickAddCustomerFromBilling(){
 }
 
 /* ---- Checkout / payment ---- */
+// A bill needs a customer with a real name + mobile number (Settings can relax this).
+// If it's missing, open the right form straight away instead of just refusing.
+async function ensureBillCustomerOk(){
+  if(SETTINGS.requireCustomerOnBill===false) return true;
+  if(!CART.customerId){
+    toast(t('toast_customerRequiredForBill'),'error');
+    quickAddCustomerFromBilling();
+    return false;
+  }
+  const c = await dbGet('customers', CART.customerId);
+  if(!c){ CART.customerId = null; toast(t('toast_customerRequiredForBill'),'error'); quickAddCustomerFromBilling(); return false; }
+  if(!(c.name||'').trim() || !isValidMobile(c.phone)){
+    toast(t('toast_customerNeedsMobile').replace('{0}', c.name||''),'error');
+    openCustomerModal(c.id);
+    return false;
+  }
+  return true;
+}
 async function openCheckoutModal(){
   if(CART.items.length===0){ toast(t('toast_cartEmpty'),'error'); return; }
+  if(!(await ensureBillCustomerOk())) return;
   const tot = computeTotals();
   let customer = null;
   if(CART.customerId) customer = await dbGet('customers', CART.customerId);
@@ -8193,6 +8529,7 @@ async function finalizeCheckout(tot, getAmountDue){
     deliveryCharge: tot.deliveryCharge,
     roundOff: tot.roundOff,
     taxTotal: tot.taxTotal,
+    taxIncluded: tot.taxIncluded,
     grandTotal: tot.grandTotal,
     pointsRedeemed: redeemPts,
     pointsRedeemedValue: redeemValue,
@@ -8246,7 +8583,7 @@ async function finalizeCheckout(tot, getAmountDue){
     // (e.g. the new item(s) cost less than the returned item's value) is settled now
     // rather than lost, per the settle mode chosen when the return was processed.
     if(exchangeCreditApplied > 0){
-      const preDiscountTotal = Math.round((tot.subtotal - tot.itemDiscount + tot.taxTotal)*100)/100;
+      const preDiscountTotal = Math.round((tot.subtotal - tot.itemDiscount + tot.taxAdded)*100)/100;
       leftoverExchangeCredit = Math.max(0, Math.round((exchangeCreditApplied - preDiscountTotal)*100)/100);
       if(leftoverExchangeCredit > 0.01){
         if(exchangeSettleMode==='store_credit'){
@@ -8342,18 +8679,27 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
   const logoHTML = SETTINGS.logo
     ? `<div style="margin-bottom:4px;"><img src="${SETTINGS.logo}" style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;display:inline-block;"></div>` : '';
 
-  // Intra-state sales split the tax evenly, matching how the GSTR-1 screen reports it.
-  const halfTax = Math.round((Number(bill.taxTotal||0)/2)*100)/100;
+  // Intra-state sales split each rate's tax evenly into CGST + SGST, matching the GSTR-1 screen.
+  // Tax that was added on top is part of the total; tax that is INCLUDED in the prices is
+  // shown as information only (the total does not change).
+  const gstRows = billTaxBreakdown(bill).filter(r=>r.tax>0);
+  const anyIncluded = gstRows.some(r=>r.included);
+  const halfRate = r=>String(+(r/2).toFixed(2));
   const line = (label, value, opts={}) => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;${opts.bold?'font-weight:700;':''}${opts.style||''}"><span${opts.bold?'':' class="muted"'} style="min-width:0;">${label}</span><span class="num" style="white-space:nowrap;">${value}</span></div>`;
 
   let totals = '';
   totals += line(t('bill_subtotal'), fmtMoney(bill.subtotal));
   if(bill.discountTotal>0)
     totals += line(t('print_discountLabel')+((bill.couponCode && !isThermal)?t('print_inclCouponPrefix')+escapeHTML(bill.couponCode)+')':''), '-'+fmtMoney(bill.discountTotal));
-  if(bill.taxTotal>0){
-    totals += line(t('print_cgstHalf'), fmtMoney(halfTax));
-    totals += line(t('print_sgstHalf'), fmtMoney(bill.taxTotal - halfTax));
+  if(anyIncluded){
+    const taxableIncl = gstRows.filter(r=>r.included).reduce((s,r)=>s+r.taxable,0);
+    totals += line(t('print_taxableValueIncl'), fmtMoney(Math.round(taxableIncl*100)/100), {style:'font-size:.92em;'});
   }
+  gstRows.forEach(r=>{
+    const sfx = r.included ? t('print_inclSuffix') : '';
+    totals += line(t('print_cgstAt').replace('{0}',halfRate(r.rate))+sfx, fmtMoney(r.cgst), r.included?{style:'font-size:.92em;font-style:italic;'}:{});
+    totals += line(t('print_sgstAt').replace('{0}',halfRate(r.rate))+sfx, fmtMoney(r.sgst), r.included?{style:'font-size:.92em;font-style:italic;'}:{});
+  });
   if(bill.packagingCharge>0) totals += line(t('bill_packagingLabel'), fmtMoney(bill.packagingCharge));
   if(bill.deliveryCharge>0)  totals += line(t('bill_deliveryLabel'), fmtMoney(bill.deliveryCharge));
   if(bill.roundOff)          totals += line(t('bill_roundOff'), (bill.roundOff>0?'+':'')+fmtMoney(bill.roundOff));
@@ -8655,6 +9001,7 @@ async function renderCustomers(){
       </div>
       <div class="col" style="flex:0 0 auto;display:flex;gap:8px;">
         ${isOwner()?`<button class="btn btn-outline" id="customerInsightsBtn">${iconSVG('chart',15)} ${t('cust_customerInsightsBtn')}</button>`:''}
+        <button class="btn btn-whatsapp" id="bulkMsgBtn">${iconSVG('whatsapp',15)} ${t('cust_messageAllBtn')}</button>
         <button class="btn btn-primary" id="addCustomerBtn">${t('cust_addCustomerBtn')}</button>
       </div>
     </div>
@@ -8666,6 +9013,7 @@ async function renderCustomers(){
   `;
   document.getElementById('custSearch').addEventListener('input',(e)=>{ CUST_SEARCH = e.target.value; renderCustomerTable(); });
   document.getElementById('addCustomerBtn').addEventListener('click', ()=>openCustomerModal());
+  document.getElementById('bulkMsgBtn').addEventListener('click', openBulkMessageModal);
   if(isOwner()) document.getElementById('customerInsightsBtn').addEventListener('click', openCustomerInsightsModal);
   if(isOwner()) await renderCreditReminders();
   await renderCustomerTable();
@@ -8692,7 +9040,7 @@ async function renderCustomerTable(){
         ${customers.map(c=>`
           <tr>
             <td>${escapeHTML(c.name)}</td>
-            <td>${escapeHTML(c.phone||'-')}</td>
+            <td>${isValidMobile(c.phone)?escapeHTML(c.phone):`<span class="tag tag-red" title="${t('cust_mobileMissingTip')}">${c.phone?escapeHTML(c.phone)+' · ':''}${t('cust_mobileMissing')}</span>`}</td>
             <td class="num">${c.creditBalance>0?`<span class="tag tag-red">${fmtMoney(c.creditBalance)}</span>`:`<span class="tag tag-green">${fmtMoney(0)}</span>`}</td>
             ${showPoints?`<td class="num"><span class="tag tag-green">${c.loyaltyPoints||0} ${t('cust_pts')}</span></td>`:''}
             <td>
@@ -8707,6 +9055,149 @@ async function renderCustomerTable(){
   `;
 }
 
+/* ---- Message many customers at once --------------------------------------------
+   WhatsApp will not let any app send to many people silently (that needs the paid WhatsApp
+   Business API), so this does the next best thing: it builds every personalised message,
+   then opens each customer's chat with the text already typed — one tap on Send per customer.
+   Progress is tracked so a long list can be done in several sittings without repeats. */
+let BULK_STATE = null;
+function bulkMessageText(tpl, c){
+  return tpl.replace(/\{name\}/g, (c.name||'').trim() || t('acct_customerFallback'))
+            .replace(/\{shop\}/g, SETTINGS.name || t('wa_ourShopFallback'));
+}
+async function bulkAudience(kind){
+  const customers = await scopedGetAll('customers');
+  const bills = await scopedLiveBills();
+  const last = {};
+  bills.forEach(b=>{ if(b.customerId!=null){ const ts = new Date(b.date).getTime(); if(!(last[b.customerId]>ts)) last[b.customerId] = ts; } });
+  const now = Date.now(), DAY = 86400000;
+  const lapsedDays = Math.max(1, parseInt(SETTINGS.lapsedCustomerDays)||60);
+  const thisMonth = new Date().getMonth();
+  return customers.filter(c=>{
+    if(kind==='credit') return (c.creditBalance||0) > 0.009;
+    if(kind==='recent') return last[c.id] && (now - last[c.id]) <= 30*DAY;
+    if(kind==='lapsed') return !last[c.id] || (now - last[c.id]) > lapsedDays*DAY;
+    if(kind==='birthday') return c.birthday && new Date(c.birthday+'T00:00:00').getMonth()===thisMonth;
+    return true;
+  });
+}
+async function openBulkMessageModal(){
+  const tpl0 = SETTINGS.bulkMessageTemplate || DEFAULT_SETTINGS.bulkMessageTemplate;
+  openModal({
+    title: t('bulk_title'),
+    wide: true,
+    bodyHTML: `
+      <div class="row">
+        <div class="col field">
+          <label>${t('bulk_audienceLabel')}</label>
+          <select id="bm_audience">
+            <option value="all">${t('bulk_aud_all')}</option>
+            <option value="recent">${t('bulk_aud_recent')}</option>
+            <option value="lapsed">${t('bulk_aud_lapsed')}</option>
+            <option value="credit">${t('bulk_aud_credit')}</option>
+            <option value="birthday">${t('bulk_aud_birthday')}</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>${t('bulk_messageLabel')}</label>
+        <textarea id="bm_text" rows="5" style="width:100%;">${escapeHTML(tpl0)}</textarea>
+        <p class="muted" style="font-size:12px;margin:4px 0 0;">${t('bulk_placeholderHint')}</p>
+      </div>
+      <div id="bm_summary" style="font-size:13px;font-weight:600;margin:6px 0;"></div>
+      <div id="bm_preview" style="background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;white-space:pre-wrap;"></div>
+      <p class="muted" style="font-size:12px;margin-top:8px;">${t('bulk_whatsappNote')}</p>
+    `,
+    footerHTML: `
+      <button class="btn btn-outline" onclick="closeModal()">${t('btn_close')}</button>
+      <button class="btn btn-outline" id="bm_copy">${t('bulk_copyNumbers')}</button>
+      <button class="btn btn-outline" id="bm_csv">${t('bulk_downloadCsv')}</button>
+      <button class="btn btn-whatsapp" id="bm_start">${iconSVG('whatsapp',15)} ${t('bulk_startBtn')}</button>
+    `,
+    onMount: ()=>{
+      let recipients = [];
+      const refresh = async ()=>{
+        const list = await bulkAudience(document.getElementById('bm_audience').value);
+        const seen = new Set(); recipients = []; let skipped = 0;
+        list.sort((a,b)=>(a.name||'').localeCompare(b.name||'')).forEach(c=>{
+          if(!isValidMobile(c.phone)){ skipped++; return; }
+          const m = cleanMobile(c.phone);
+          if(seen.has(m)){ skipped++; return; }
+          seen.add(m); recipients.push({id:c.id, name:c.name, phone:m, status:'pending'});
+        });
+        document.getElementById('bm_summary').textContent = t('bulk_summary').replace('{0}', recipients.length).replace('{1}', skipped);
+        document.getElementById('bm_start').disabled = recipients.length===0;
+        updatePreview();
+      };
+      const updatePreview = ()=>{
+        const tpl = document.getElementById('bm_text').value;
+        const sample = recipients[0] || {name: t('acct_customerFallback')};
+        document.getElementById('bm_preview').textContent = bulkMessageText(tpl, sample);
+      };
+      document.getElementById('bm_audience').addEventListener('change', refresh);
+      document.getElementById('bm_text').addEventListener('input', updatePreview);
+      document.getElementById('bm_copy').addEventListener('click', async ()=>{
+        const txt = recipients.map(r=>r.phone).join('\n');
+        try{ await navigator.clipboard.writeText(txt); toast(t('bulk_copied').replace('{0}', recipients.length),'success'); }
+        catch(e){ toast(t('bulk_copyFailed'),'error'); }
+      });
+      document.getElementById('bm_csv').addEventListener('click', ()=>{
+        const lines = [toCSVRow(['Name','Mobile'])];
+        recipients.forEach(r=>lines.push(toCSVRow([r.name, '91'+r.phone])));
+        const blob = new Blob([lines.join('\r\n')], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'customers-mobile-'+todayISO()+'.csv'; a.click();
+        URL.revokeObjectURL(url);
+      });
+      document.getElementById('bm_start').addEventListener('click', async ()=>{
+        const tpl = document.getElementById('bm_text').value.trim();
+        if(!tpl){ toast(t('bulk_messageEmpty'),'error'); return; }
+        await saveSettings({bulkMessageTemplate: tpl});
+        BULK_STATE = {tpl, list: recipients.map(r=>({...r}))};
+        renderBulkSending();
+      });
+      refresh();
+    }
+  });
+}
+function renderBulkSending(){
+  const S = BULK_STATE;
+  if(!S) return;
+  const sent = S.list.filter(r=>r.status==='sent').length;
+  const nextIdx = S.list.findIndex(r=>r.status==='pending');
+  const next = nextIdx>=0 ? S.list[nextIdx] : null;
+  document.getElementById('modalTitle').textContent = t('bulk_sendingTitle');
+  document.getElementById('modalBody').innerHTML = `
+    <div style="font-size:15px;font-weight:700;margin-bottom:6px;">${t('bulk_progress').replace('{0}', sent).replace('{1}', S.list.length)}</div>
+    <div style="height:8px;background:var(--paper-soft);border-radius:6px;overflow:hidden;margin-bottom:12px;"><div style="height:100%;width:${S.list.length?Math.round(sent*100/S.list.length):0}%;background:#25D366;"></div></div>
+    ${next ? `<button class="btn btn-whatsapp" id="bs_next" style="width:100%;padding:12px;font-size:15px;">${iconSVG('whatsapp',16)} ${t('bulk_openNext').replace('{0}', escapeHTML(next.name))}</button>
+      <p class="muted" style="font-size:12px;margin:6px 0 12px;">${t('bulk_afterOpenHint')}</p>` : `<div class="tag tag-green" style="font-size:14px;padding:8px 12px;">${t('bulk_allDone')}</div>`}
+    <div style="max-height:300px;overflow:auto;margin-top:10px;">
+      <table><thead><tr><th>${t('th_name')}</th><th>${t('th_phone')}</th><th>${t('th_status')}</th><th></th></tr></thead><tbody>
+        ${S.list.map((r,i)=>`<tr>
+          <td>${escapeHTML(r.name)}</td><td>${escapeHTML(r.phone)}</td>
+          <td>${r.status==='sent'?`<span class="tag tag-green">${t('bulk_statusSent')}</span>`:(r.status==='skipped'?`<span class="tag">${t('bulk_statusSkipped')}</span>`:`<span class="tag tag-red">${t('bulk_statusPending')}</span>`)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-whatsapp btn-sm" data-open="${i}">${t('bulk_openChat')}</button>
+            ${r.status==='pending'?`<button class="btn btn-outline btn-sm" data-skip="${i}">${t('bulk_skip')}</button>`:''}
+          </td></tr>`).join('')}
+      </tbody></table>
+    </div>`;
+  document.getElementById('modalFooter').innerHTML = `<button class="btn btn-outline" id="bs_back">${t('bulk_editMessage')}</button><button class="btn btn-primary" onclick="closeModal()">${t('btn_close')}</button>`;
+  const openChat = (i)=>{
+    const r = S.list[i];
+    window.open(buildWhatsAppLink(r.phone, bulkMessageText(S.tpl, r)), '_blank');
+    r.status = 'sent';
+    renderBulkSending();
+  };
+  const nb = document.getElementById('bs_next');
+  if(nb) nb.addEventListener('click', ()=>openChat(nextIdx));
+  document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click', ()=>openChat(parseInt(b.dataset.open))));
+  document.querySelectorAll('[data-skip]').forEach(b=>b.addEventListener('click', ()=>{ S.list[parseInt(b.dataset.skip)].status='skipped'; renderBulkSending(); }));
+  document.getElementById('bs_back').addEventListener('click', openBulkMessageModal);
+}
+
 function openCustomerModal(customerId){
   if(!customerId && !requireWorkingFirm(t('action_addCustomer'))) return;
   const load = customerId ? dbGet('customers', customerId) : Promise.resolve(null);
@@ -8715,7 +9206,7 @@ function openCustomerModal(customerId){
       title: customer ? t('modal_editCustomer') : t('modal_addCustomer'),
       bodyHTML:`
         <div class="field"><label>${t('staff_nameLabel')}</label><input id="cf_name" value="${escapeHTML(customer?customer.name:'')}"></div>
-        <div class="field"><label>${t('settings_phone')}</label><input id="cf_phone" value="${escapeHTML(customer?customer.phone:'')}"></div>
+        <div class="field"><label>${t('cust_mobileLabel')}</label><input id="cf_phone" type="tel" inputmode="numeric" maxlength="16" placeholder="${t('cust_mobilePlaceholder')}" value="${escapeHTML(customer?customer.phone:'')}"></div>
         <div class="row">
           <div class="col field"><label>${t('cust_birthdayLabel')}</label><input id="cf_birthday" type="date" value="${customer&&customer.birthday?customer.birthday:''}"></div>
           <div class="col field"><label>${t('cust_anniversaryLabel')}</label><input id="cf_anniversary" type="date" value="${customer&&customer.anniversary?customer.anniversary:''}"></div>
@@ -8728,8 +9219,13 @@ function openCustomerModal(customerId){
       onMount:()=>{
         document.getElementById('saveCustomerBtn').addEventListener('click', async ()=>{
           const name = document.getElementById('cf_name').value.trim();
-          if(!name){ toast(t('toast_nameRequired'),'error'); return; }
-          const phone = document.getElementById('cf_phone').value.trim();
+          if(!name){ toast(t('toast_nameRequired'),'error'); document.getElementById('cf_name').focus(); return; }
+          const phoneRaw = document.getElementById('cf_phone').value.trim();
+          if(!phoneRaw){ toast(t('toast_mobileRequired'),'error'); document.getElementById('cf_phone').focus(); return; }
+          if(!isValidMobile(phoneRaw)){ toast(t('toast_mobileInvalid'),'error'); document.getElementById('cf_phone').focus(); return; }
+          const phone = cleanMobile(phoneRaw);
+          const dup = await findCustomerByMobile(phone, customer ? customer.id : null);
+          if(dup){ toast(t('toast_mobileAlreadyUsed').replace('{0}', dup.name),'error'); document.getElementById('cf_phone').focus(); return; }
           const birthday = document.getElementById('cf_birthday').value || '';
           const anniversary = document.getElementById('cf_anniversary').value || '';
           if(customer){
@@ -9417,7 +9913,7 @@ async function openReturnModal(billId){
           const lineNet = it.qty*it.rate - itemDiscountAmount(it);
           const perUnit = it.qty>0 ? lineNet/it.qty : 0;
           const base = perUnit*qty;
-          const tax = base*(it.taxRate||0)/100;
+          const tax = it.taxInclusive ? 0 : base*(it.taxRate||0)/100;
           refund += base+tax;
         });
         const reasonChosen = !!document.getElementById('returnReason').value;
@@ -9444,7 +9940,7 @@ async function openReturnModal(billId){
           const lineNet = it.qty*it.rate - itemDiscountAmount(it);
           const perUnit = it.qty>0 ? lineNet/it.qty : 0;
           const base = perUnit*qty;
-          const tax = base*(it.taxRate||0)/100;
+          const tax = it.taxInclusive ? 0 : base*(it.taxRate||0)/100;
           items.push({itemIndex:i, productId:it.productId, variantIndex:it.variantIndex, name:it.name, size:it.size, color:it.color, qty, refundAmount:base+tax});
         }
         const reason = document.getElementById('returnReason').value;
@@ -10019,7 +10515,7 @@ async function renderPurchaseInvoicesTable(){
           const status = invoiceStatus(inv);
           return `
           <tr>
-            <td>${escapeHTML(inv.invoiceNumber)}</td>
+            <td>${escapeHTML(inv.invoiceNumber)}${inv.gstMode==='none'?` <span class="tag" style="font-size:10.5px;">${t('pu_tagNoGst')}</span>`:(inv.gstAmount>0?` <span class="tag tag-green" style="font-size:10.5px;">${t('pu_tagGst')}</span>`:'')}</td>
             <td>${fmtDate(inv.date)}</td>
             <td>${escapeHTML(supplierName(inv.supplierId))}</td>
             <td class="num">${(inv.items||[]).reduce((s,it)=>s+it.qty,0)}</td>
@@ -10057,6 +10553,7 @@ function viewPurchaseInvoiceDetail(invId){
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('vendor_freightLabel')}</span><span>${fmtMoney(inv.freight||0)}</span></div>
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('vendor_otherExpensesLabel')}</span><span>${fmtMoney(inv.otherExpenses||0)}</span></div>
           ${inv.gstAmount>0?`<div style="display:flex;justify-content:space-between;"><span class="muted">GST (${inv.gstRate}%)</span><span>${fmtMoney(inv.gstAmount)}</span></div>`:''}
+          ${inv.gstMode==='none'?`<div class="muted" style="font-size:12px;">${t('pu_detailNoGst')}</div>`:''}
           <div style="display:flex;justify-content:space-between;font-weight:700;"><span>${t('print_totalRowLabel')}</span><span>${fmtMoney(inv.total)}</span></div>
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('sales_tagPaid')}</span><span>${fmtMoney(paid)}</span></div>
           <div style="display:flex;justify-content:space-between;"><span class="muted">Outstanding</span><span>${fmtMoney(Math.max(0,inv.total-paid))}</span></div>
@@ -10074,6 +10571,61 @@ function viewPurchaseInvoiceDetail(invId){
       `
     });
   });
+}
+
+/* Records a vendor purchase for stock that has ALREADY been added to the shelves (by the
+   product form or the Adjust Stock screen), so adding stock "from a vendor" always shows up under
+   Purchases, in the vendor's ledger and in purchase price history — without adding the stock twice.
+   lines: [{productId, variantIndex, qty, rate}] */
+async function recordStockPurchase({supplierId, lines, gstMode, gstRate, paidNow, payMode}){
+  const supplier = await dbGet('suppliers', supplierId);
+  if(!supplier || !lines.length) return null;
+  const invoiceDate = new Date().toISOString();
+  const items = [];
+  let firmId = null;
+  for(const l of lines){
+    const product = await dbGet('products', l.productId);
+    if(!product || !product.variants[l.variantIndex]) continue;
+    const v = product.variants[l.variantIndex];
+    if(firmId==null) firmId = product.firmId;
+    items.push({productId:l.productId, variantIndex:l.variantIndex, productName:product.name,
+      variantLabel:[v.size,v.color].filter(Boolean).join('/') || v.sku || '', qty:l.qty, rate:l.rate});
+  }
+  if(!items.length) return null;
+  const r2 = x=>Math.round(x*100)/100;
+  const subtotal = r2(items.reduce((s,it)=>s+it.qty*it.rate,0));
+  if(subtotal<=0) return null;
+  const mode = gstMode==='report' ? 'report' : 'none';
+  const rate = mode==='report' ? Math.max(0, Number(gstRate)||0) : 0;
+  const gstAmount = r2(subtotal*rate/100);
+  const total = r2(subtotal + gstAmount);
+  const paid = r2(Math.min(total, Math.max(0, Number(paidNow)||0)));
+  const mode2 = payMode || 'Cash';
+  const dueDays = paymentTermsDays(supplier.paymentTerms);
+  const payments = paid>0 ? [{date:invoiceDate, amount:paid, mode:mode2, reference:'', note:'Paid at purchase'}] : [];
+  const newId = await dbAdd('purchaseInvoices', {
+    supplierId, poId:null, items, discount:0, freight:0, otherExpenses:0,
+    gstMode:mode, gstRate:rate, taxableValue:subtotal, gstAmount,
+    subtotal, total, paidNow:paid, paid, payments,
+    status: paid<=0.001 ? 'unpaid' : (paid+0.01>=total ? 'paid' : 'partial'),
+    dueDate: new Date(Date.now()+dueDays*86400000).toISOString(), date:invoiceDate,
+    firmId: firmId!=null ? firmId : firmIdForStockOps(), source:'stock-entry'
+  });
+  const fresh = await dbGet('purchaseInvoices', newId);
+  fresh.invoiceNumber = 'PINV-' + String(newId).padStart(4,'0');
+  await dbPut('purchaseInvoices', fresh);
+  for(const it of items){
+    await dbAdd('purchasePriceHistory', {
+      productId:it.productId, variantIndex:it.variantIndex, productName:it.productName, variantLabel:it.variantLabel,
+      price:it.rate, qty:it.qty, supplierId, supplierName:supplier.name, invoiceId:newId, date:invoiceDate
+    });
+  }
+  supplier.balanceDue = r2((supplier.balanceDue||0) + (total - paid));
+  supplier.ledger = supplier.ledger||[];
+  supplier.ledger.push({date:invoiceDate, type:'purchase', amount:total, note:'Invoice '+fresh.invoiceNumber+' ('+items.length+' item line'+(items.length>1?'s':'')+')'});
+  if(paid>0) supplier.ledger.push({date:invoiceDate, type:'payment', amount:paid, mode:mode2, note:mode2+' paid at purchase — '+fresh.invoiceNumber});
+  await dbPut('suppliers', supplier);
+  return fresh;
 }
 
 async function openPurchaseInvoiceModal(prefill){
@@ -10125,9 +10677,16 @@ async function openPurchaseInvoiceModal(prefill){
         <div class="col field"><label>${t('vendor_otherExpensesRupeeLabel')}</label><input id="pinv_other" type="number" min="0" step="0.01" value="0"></div>
       </div>
       <div class="row">
-        <div class="col field"><label>${t('vendor_gstPercentChargedLabel')}</label><input id="pinv_gstrate" type="number" min="0" step="0.01" value="${prefill.gstRate||0}"></div>
+        <div class="col field">
+          <label>${t('pu_gstModeLabel')}</label>
+          <select id="pinv_gstmode">
+            <option value="report" ${prefill.gstMode==='none'?'':'selected'}>${t('pu_gstModeReport')}</option>
+            <option value="none" ${prefill.gstMode==='none'?'selected':''}>${t('pu_gstModeNone')}</option>
+          </select>
+        </div>
+        <div class="col field" id="pinv_gstrateWrap"><label>${t('vendor_gstPercentChargedLabel')}</label><input id="pinv_gstrate" type="number" min="0" step="0.01" value="${prefill.gstRate||0}"></div>
       </div>
-      <p class="muted" style="font-size:11.5px;margin-top:-6px;">${t('vendor_gstHelpText')}</p>
+      <p class="muted" style="font-size:11.5px;margin-top:-6px;" id="pinv_gstHelp">${t('vendor_gstHelpText')}</p>
       <div id="pinvAdvanceWrap"></div>
       <div class="row">
         <div class="col field"><label>${t('vendor_amountPaidNowLabel')}</label><input id="pinv_paidnow" type="number" min="0" step="0.01" value="0"></div>
@@ -10181,7 +10740,12 @@ async function openPurchaseInvoiceModal(prefill){
         const discount = Math.max(0, parseFloat(document.getElementById('pinv_discount').value)||0);
         const freight = Math.max(0, parseFloat(document.getElementById('pinv_freight').value)||0);
         const other = Math.max(0, parseFloat(document.getElementById('pinv_other').value)||0);
-        const gstRate = Math.max(0, parseFloat(document.getElementById('pinv_gstrate')?.value)||0);
+        const gstMode = document.getElementById('pinv_gstmode')?.value==='none' ? 'none' : 'report';
+        const gstRateWrap = document.getElementById('pinv_gstrateWrap');
+        if(gstRateWrap) gstRateWrap.style.display = gstMode==='none' ? 'none' : '';
+        const gstHelp = document.getElementById('pinv_gstHelp');
+        if(gstHelp) gstHelp.textContent = gstMode==='none' ? t('pu_gstNoneHelp') : t('vendor_gstHelpText');
+        const gstRate = gstMode==='none' ? 0 : Math.max(0, parseFloat(document.getElementById('pinv_gstrate')?.value)||0);
         const taxableValue = Math.max(0, subtotal - discount);
         const gstAmount = Math.round(taxableValue * gstRate/100 * 100)/100;
         const total = Math.max(0, taxableValue + freight + other + gstAmount);
@@ -10189,7 +10753,7 @@ async function openPurchaseInvoiceModal(prefill){
         const paidNow = Math.max(0, parseFloat(document.getElementById('pinv_paidnow')?.value)||0);
         const due = Math.max(0, total - paidNow - advanceUse);
         document.getElementById('pinvSummaryWrap').textContent = `${t('vendor_subtotalPrefix')}${fmtMoney(subtotal)}${gstAmount>0?`  •  GST (${gstRate}%): ${fmtMoney(gstAmount)}`:''}  •  Total: ${fmtMoney(total)}  •  Due after payment: ${fmtMoney(due)}`;
-        return {subtotal, discount, freight, other, gstRate, taxableValue, gstAmount, total, advanceUse};
+        return {subtotal, discount, freight, other, gstRate, gstMode, taxableValue, gstAmount, total, advanceUse};
       };
       const refreshAdvanceSection = async ()=>{
         const advWrap = document.getElementById('pinvAdvanceWrap');
@@ -10217,7 +10781,7 @@ async function openPurchaseInvoiceModal(prefill){
       if(prefill.items && prefill.items.length) prefill.items.forEach(it=>addRow(it));
       else addRow();
       document.getElementById('pinv_addRow').addEventListener('click', ()=>addRow());
-      ['pinv_discount','pinv_freight','pinv_other','pinv_gstrate','pinv_paidnow'].forEach(id=>document.getElementById(id).addEventListener('input', recalc));
+      ['pinv_discount','pinv_freight','pinv_other','pinv_gstrate','pinv_gstmode','pinv_paidnow'].forEach(id=>document.getElementById(id).addEventListener('input', recalc));
       document.getElementById('pinv_supplier').addEventListener('change', refreshAdvanceSection);
       refreshAdvanceSection();
       recalc();
@@ -10236,7 +10800,7 @@ async function openPurchaseInvoiceModal(prefill){
           items.push({productId:pid, variantIndex:vi, productName:product.name, variantLabel, qty, rate});
         });
         if(items.length===0){ toast(t('toast_addAtLeastOneItem'),'error'); return; }
-        const {subtotal, discount, freight, other, gstRate, taxableValue, gstAmount, total, advanceUse} = recalc();
+        const {subtotal, discount, freight, other, gstRate, gstMode, taxableValue, gstAmount, total, advanceUse} = recalc();
         const paidNow = Math.max(0, parseFloat(document.getElementById('pinv_paidnow').value)||0);
         const payMode = document.getElementById('pinv_paymode').value;
         const supplierId = document.getElementById('pinv_supplier').value ? parseInt(document.getElementById('pinv_supplier').value) : null;
@@ -10265,7 +10829,7 @@ async function openPurchaseInvoiceModal(prefill){
 
           const newId = await dbAdd('purchaseInvoices', {
             supplierId, poId: prefill.poId||null, items, discount, freight, otherExpenses:other,
-            gstRate, taxableValue, gstAmount,
+            gstRate, gstMode, taxableValue, gstAmount,
             subtotal, total, paidNow, paid:paidTotal, payments,
             status: paidTotal<=0.001 ? 'unpaid' : (paidTotal+0.01>=total ? 'paid' : 'partial'),
             dueDate, date:invoiceDate, firmId: firmIdForStockOps()
@@ -10767,8 +11331,24 @@ function svgLineChart(data, opts={}){
 
 <!-- MODULE:WHATSAPP -->
 <script>
+// Indian mobile numbers are stored as plain 10 digits; "+91 98765 43210", "09876543210" and
+// "98765-43210" all reduce to the same thing, so duplicates are caught and WhatsApp links work.
+function cleanMobile(raw){
+  let d = String(raw||'').replace(/\D/g,'');
+  if(d.length===12 && d.startsWith('91')) d = d.slice(2);
+  else if(d.length===11 && d.startsWith('0')) d = d.slice(1);
+  return d;
+}
+function isValidMobile(raw){ return /^[6-9]\d{9}$/.test(cleanMobile(raw)); }
+async function findCustomerByMobile(raw, exceptId){
+  const m = cleanMobile(raw);
+  if(!m) return null;
+  const all = await dbGetAll('customers');
+  return all.find(c=>c.id!==exceptId && cleanMobile(c.phone)===m) || null;
+}
 function buildWhatsAppLink(phone, text){
-  const cleanPhone = (phone||'').replace(/[^0-9]/g,'');
+  let cleanPhone = (phone||'').replace(/[^0-9]/g,'');
+  if(cleanPhone.length===10) cleanPhone = '91' + cleanPhone;   // wa.me needs the country code
   return 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(text);
 }
 function promptPhoneThenOpen(text){
@@ -12331,23 +12911,30 @@ function inRange(dateStr, from, to){
   if(to){ const toTs = new Date(to+'T23:59:59').getTime(); if(ts > toTs) return false; }
   return true;
 }
+// One row per GST rate (and per way the price was quoted: tax added on top vs included in
+// the price). Every GST report, the P&L and the printed bill read from here, so an
+// inclusive-price bill (999 @5%) is reported as taxable 951.43 + GST 47.57 everywhere.
 function billTaxBreakdown(bill){
-  const byRate = {};
+  const byKey = {};
   (bill.items||[]).forEach(it=>{
-    const rate = Number(it.taxRate)||0;
-    const taxable = Math.round(((it.qty*it.rate) - itemDiscountAmount(it))*100)/100;
-    const tax = Math.round((taxable * rate/100)*100)/100;
-    if(!byRate[rate]) byRate[rate] = {rate, taxable:0, tax:0};
-    byRate[rate].taxable += taxable;
-    byRate[rate].tax += tax;
+    const lp = lineTaxParts(it);
+    const tax = Math.round(lp.tax*100)/100;
+    const taxable = Math.round((lp.gross - tax)*100)/100;
+    const key = lp.rate + (lp.included?'i':'a');
+    if(!byKey[key]) byKey[key] = {rate:lp.rate, included:lp.included, taxable:0, tax:0};
+    byKey[key].taxable += taxable;
+    byKey[key].tax += tax;
   });
-  return Object.values(byRate).map(r=>({
-    rate:r.rate,
-    taxable: Math.round(r.taxable*100)/100,
-    tax: Math.round(r.tax*100)/100,
-    cgst: Math.round(r.tax/2*100)/100,
-    sgst: Math.round(r.tax/2*100)/100
-  }));
+  return Object.values(byKey).map(r=>{
+    const tax = Math.round(r.tax*100)/100;
+    const cgst = Math.round(tax/2*100)/100;
+    return {
+      rate:r.rate, included:r.included,
+      taxable: Math.round(r.taxable*100)/100,
+      tax, cgst,
+      sgst: Math.round((tax-cgst)*100)/100     // CGST + SGST always add up to the exact tax (no stray paisa)
+    };
+  });
 }
 function renderPeriodFilterHTML(idPrefix){
   return `
@@ -12438,7 +13025,7 @@ async function renderGSTR1(){
       });
       return {
         invoiceNo:b.invoiceNo, date:b.date, customer:custName(b.customerId),
-        taxable: Math.round(taxable*100)/100, cgst: Math.round(tax/2*100)/100, sgst: Math.round(tax/2*100)/100,
+        taxable: Math.round(taxable*100)/100, cgst: breakdown.reduce((s,r)=>s+r.cgst,0), sgst: breakdown.reduce((s,r)=>s+r.sgst,0),
         tax: Math.round(tax*100)/100, grandTotal: b.grandTotal
       };
     }).sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -12446,8 +13033,8 @@ async function renderGSTR1(){
 
     const totalTaxable = Math.round(invoiceRows.reduce((s,r)=>s+r.taxable,0)*100)/100;
     const totalTax = Math.round(invoiceRows.reduce((s,r)=>s+r.tax,0)*100)/100;
-    const totalCgst = Math.round(totalTax/2*100)/100;
-    const totalSgst = Math.round(totalTax/2*100)/100;
+    const totalCgst = Math.round(invoiceRows.reduce((s,r)=>s+r.cgst,0)*100)/100;
+    const totalSgst = Math.round((totalTax-totalCgst)*100)/100;
     document.getElementById('g1SummaryWrap').innerHTML = `
       <div class="stat-tile"><div class="label">${t('acct_taxableValueLabel')}</div><div class="value small">${fmtMoney(totalTaxable)}</div></div>
       <div class="stat-tile"><div class="label">${t('acct_totalCgstLabel')}</div><div class="value small">${fmtMoney(totalCgst)}</div></div>
