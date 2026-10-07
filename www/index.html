@@ -9187,7 +9187,7 @@ function renderBulkSending(){
   document.getElementById('modalFooter').innerHTML = `<button class="btn btn-outline" id="bs_back">${t('bulk_editMessage')}</button><button class="btn btn-primary" onclick="closeModal()">${t('btn_close')}</button>`;
   const openChat = (i)=>{
     const r = S.list[i];
-    window.open(buildWhatsAppLink(r.phone, bulkMessageText(S.tpl, r)), '_blank');
+    openExternal(buildWhatsAppLink(r.phone, bulkMessageText(S.tpl, r)), '_blank');
     r.status = 'sent';
     renderBulkSending();
   };
@@ -11346,6 +11346,8 @@ async function findCustomerByMobile(raw, exceptId){
   const all = await dbGetAll('customers');
   return all.find(c=>c.id!==exceptId && cleanMobile(c.phone)===m) || null;
 }
+// The desktop app supplies its own openExternal (window.open is blocked there); in a plain browser tab fall back to window.open.
+window.openExternal = window.openExternal || function(url){ window.open(url, '_blank'); return null; };
 function buildWhatsAppLink(phone, text){
   let cleanPhone = (phone||'').replace(/[^0-9]/g,'');
   if(cleanPhone.length===10) cleanPhone = '91' + cleanPhone;   // wa.me needs the country code
