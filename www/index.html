@@ -1311,6 +1311,27 @@ const I18N = {
     led_csvStatus:'Status',
     lb_inStock:'In stock',
     lb_noCopies:'Nothing to print: every size has 0 copies. Type how many labels you want.',
+    mg_btn:'Merge selected bills',
+    mg_title:'Merge purchase bills',
+    mg_hint:'Tick two or more bills of the same supplier (all GST or all Not-GST), then press Merge. Stock and the supplier balance do not change.',
+    mg_billNo:'Supplier bill number (for the merged bill) *',
+    mg_billDate:'Bill date',
+    mg_reason:'Reason for merging *',
+    mg_confirm:'Merge bills',
+    mg_pin:'Owner PIN',
+    mg_summary:'These {0} bills become ONE bill: total {1}, paid {2}. The old bills stay in the records marked MERGED.',
+    toast_mgPickTwo:'Tick at least two bills to merge.',
+    toast_mgSameSupplier:'All ticked bills must be from the same supplier.',
+    toast_mgSameGst:'You cannot merge a GST bill with a Not-GST bill.',
+    toast_mgDupBill:'Another bill of this supplier already has that bill number.',
+    toast_mgBillNo:'Type the supplier bill number.',
+    toast_mgReason:'Write a reason (at least 4 letters).',
+    toast_mgPin:'Wrong Owner PIN.',
+    toast_mgDone:'Bills merged into one - recorded in the audit trail',
+    toast_mgGone:'One of these bills was changed. Refresh and try again.',
+    st_mergedTag:'Merged',
+    inv_mergedBanner:'MERGED into {0} on {1} by {2} - {3}',
+    inv_mergedFrom:'Merged from',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1657,6 +1678,27 @@ const I18N = {
     led_csvStatus:'स्थिती',
     lb_inStock:'स्टॉकमध्ये',
     lb_noCopies:'छापण्यासाठी काही नाही: प्रत्येक साइजसाठी 0 प्रती आहेत. किती लेबल हवेत ते टाका.',
+    mg_btn:'निवडलेली बिले एकत्र करा',
+    mg_title:'खरेदी बिले एकत्र करा',
+    mg_hint:'एकाच पुरवठादाराची दोन किंवा अधिक बिले (सर्व GST किंवा सर्व नॉन-GST) निवडा, मग एकत्र करा दाबा. स्टॉक आणि पुरवठादाराची शिल्लक बदलत नाही.',
+    mg_billNo:'पुरवठादाराचा बिल क्रमांक (एकत्र बिलासाठी) *',
+    mg_billDate:'बिल तारीख',
+    mg_reason:'एकत्र करण्याचे कारण *',
+    mg_confirm:'बिले एकत्र करा',
+    mg_pin:'मालक पिन',
+    mg_summary:'ही {0} बिले एकच बिल होतील: एकूण {1}, भरलेले {2}. जुनी बिले नोंदीत "एकत्र केले" म्हणून राहतील.',
+    toast_mgPickTwo:'एकत्र करण्यासाठी किमान दोन बिले निवडा.',
+    toast_mgSameSupplier:'सर्व निवडलेली बिले एकाच पुरवठादाराची हवीत.',
+    toast_mgSameGst:'GST बिल आणि नॉन-GST बिल एकत्र करता येत नाही.',
+    toast_mgDupBill:'या पुरवठादाराच्या दुसऱ्या बिलावर हा बिल क्रमांक आधीच आहे.',
+    toast_mgBillNo:'पुरवठादाराचा बिल क्रमांक टाका.',
+    toast_mgReason:'कारण लिहा (किमान 4 अक्षरे).',
+    toast_mgPin:'मालक पिन चुकीचा आहे.',
+    toast_mgDone:'बिले एकत्र केली - ऑडिट नोंदीत नोंदवले',
+    toast_mgGone:'यापैकी एक बिल बदलले आहे. रिफ्रेश करून पुन्हा प्रयत्न करा.',
+    st_mergedTag:'एकत्र केले',
+    inv_mergedBanner:'{1} रोजी {2} यांनी {0} मध्ये एकत्र केले - {3}',
+    inv_mergedFrom:'यातून एकत्र केले',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -11248,12 +11290,14 @@ async function refreshSupplierSurfaces(){
 }
 function invoicePaid(inv){ return inv.paid!=null ? inv.paid : (inv.paidNow||0); }
 function invoiceStatus(inv){
+  if(inv.merged) return 'merged';
   if(inv.voided) return 'void';
   if(inv.status) return inv.status;
   const paid = invoicePaid(inv);
   return paid<=0.001 ? 'unpaid' : (paid+0.01>=inv.total ? 'paid' : 'partial');
 }
 function statusTag(status){
+  if(status==='merged') return `<span class="tag">${t('st_mergedTag')}</span>`;
   if(status==='void') return `<span class="tag tag-red" style="text-decoration:line-through;">${t('st_voidTag')}</span>`;
   if(status==='paid') return `<span class="tag tag-green">${t('vendor_tagPaidStatus')}</span>`;
   if(status==='partial') return `<span class="tag tag-amber">${t('vendor_tagPartialStatus')}</span>`;
@@ -11269,13 +11313,15 @@ async function renderPurchaseInvoicesTable(){
     return;
   }
   wrap.innerHTML = `
+    <div class="row" style="align-items:center;margin-bottom:8px;gap:10px;"><button class="btn btn-outline btn-sm" id="mgBtn">${t('mg_btn')}</button><span class="muted" style="font-size:11.5px;">${t('mg_hint')}</span></div>
     <table>
-      <thead><tr><th>${t('th_invoiceHash')}</th><th>${t('th_date')}</th><th>${t('th_supplier')}</th><th class="num">${t('th_items')}</th><th class="num">${t('th_total')}</th><th class="num">${t('th_paid')}</th><th>${t('th_status')}</th><th>${t('th_actions')}</th></tr></thead>
+      <thead><tr><th style="width:26px;"></th><th>${t('th_invoiceHash')}</th><th>${t('th_date')}</th><th>${t('th_supplier')}</th><th class="num">${t('th_items')}</th><th class="num">${t('th_total')}</th><th class="num">${t('th_paid')}</th><th>${t('th_status')}</th><th>${t('th_actions')}</th></tr></thead>
       <tbody>
         ${invoices.map(inv=>{
           const status = invoiceStatus(inv);
           return `
           <tr${inv.voided?' style="opacity:.55;"':''}>
+            <td>${(!inv.voided && inv.supplierId) ? `<input type="checkbox" class="mgChk" data-id="${inv.id}" style="width:auto;">` : ''}</td>
             <td>${escapeHTML(inv.invoiceNumber)}${inv.billNo?` <span class="muted" style="font-size:11px;">(${escapeHTML(inv.billNo)})</span>`:''}${inv.gstMode==='none'?` <span class="tag" style="font-size:10.5px;">${t('pu_tagNoGst')}</span>`:(inv.gstAmount>0?` <span class="tag tag-green" style="font-size:10.5px;">${t('pu_tagGst')}</span>`:'')}</td>
             <td>${fmtDate(inv.date)}${inv.enteredAt?`<br><span class="muted" style="font-size:10.5px;">${t('inv_enteredAt')} ${fmtStamp(inv.enteredAt)}${inv.enteredBy?' · '+escapeHTML(inv.enteredBy):''}</span>`:''}</td>
             <td>${escapeHTML(supplierName(inv.supplierId))}</td>
@@ -11285,13 +11331,16 @@ async function renderPurchaseInvoicesTable(){
             <td>${statusTag(status)}</td>
             <td>
               <button class="btn btn-outline btn-sm" onclick="viewPurchaseInvoiceDetail(${inv.id})">${t('sales_viewBtn')}</button>
-              ${(status!=='paid' && status!=='void' && inv.supplierId) ? `<button class="btn btn-primary btn-sm" onclick="openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_payBtn')}</button>` : ''}
+              ${(status!=='paid' && status!=='void' && status!=='merged' && inv.supplierId) ? `<button class="btn btn-primary btn-sm" onclick="openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_payBtn')}</button>` : ''}
             </td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>
   `;
+  document.getElementById('mgBtn').addEventListener('click', ()=>{
+    openMergeModal([...document.querySelectorAll('.mgChk:checked')].map(c=>parseInt(c.dataset.id)));
+  });
 }
 
 function viewPurchaseInvoiceDetail(invId){
@@ -11310,12 +11359,14 @@ function viewPurchaseInvoiceDetail(invId){
     openModal({
       title:t('modal_purchaseInvoicePrefix')+inv.invoiceNumber,
       bodyHTML:`
-        ${inv.voided?`<div style="border:1px solid var(--red);background:var(--red-soft);color:var(--red);border-radius:9px;padding:8px 10px;margin-bottom:10px;font-size:13px;font-weight:600;">${escapeHTML(fillTpl(t('inv_voidedBanner'),[fmtStamp(inv.voidedAt), inv.voidedBy||'', inv.voidReason||'']))}</div>`:''}
+        ${inv.merged?`<div style="border:1px solid var(--line);background:var(--paper-soft);border-radius:9px;padding:8px 10px;margin-bottom:10px;font-size:13px;font-weight:600;">${escapeHTML(fillTpl(t('inv_mergedBanner'),[inv.mergedIntoNo||'', fmtStamp(inv.mergedAt), inv.mergedBy||'', inv.mergeReason||'']))}</div>`:''}
+        ${(inv.voided && !inv.merged)?`<div style="border:1px solid var(--red);background:var(--red-soft);color:var(--red);border-radius:9px;padding:8px 10px;margin-bottom:10px;font-size:13px;font-weight:600;">${escapeHTML(fillTpl(t('inv_voidedBanner'),[fmtStamp(inv.voidedAt), inv.voidedBy||'', inv.voidReason||'']))}</div>`:''}
         <div style="font-size:12.5px;line-height:1.7;margin-bottom:8px;">
           ${inv.billNo?`<div><span class="muted">${t('pu_detailBillNo')}:</span> <strong>${escapeHTML(inv.billNo)}</strong></div>`:''}
           <div><span class="muted">${t('inv_billDate')}:</span> ${fmtDate(inv.date)}</div>
           ${inv.enteredAt?`<div><span class="muted">${t('inv_enteredAt')}:</span> ${fmtStamp(inv.enteredAt)}${inv.enteredBy?' · '+escapeHTML(inv.enteredBy):''}</div>`:''}
           <div><span class="muted">${t('inv_gstStatus')}:</span> <strong>${escapeHTML(gstLabel)}</strong></div>
+          ${(inv.mergedFrom&&inv.mergedFrom.length)?`<div><span class="muted">${t('inv_mergedFrom')}:</span> ${inv.mergedFrom.map(m=>escapeHTML(m.invoiceNumber)+(m.billNo?' ('+escapeHTML(m.billNo)+')':'')+' '+fmtMoney(m.total)).join(' · ')}</div>`:''}
         </div>
         <table><thead><tr><th>${t('th_item')}</th><th class="num">${t('th_qty')}</th><th class="num">${t('th_rate')}</th><th class="num">${t('th_amount')}</th></tr></thead><tbody>${rows}</tbody></table>
         <div style="margin-top:10px;font-size:13px;line-height:1.8;">
@@ -11339,7 +11390,7 @@ function viewPurchaseInvoiceDetail(invId){
       footerHTML:`
         <button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
         ${!inv.voided ? `<button class="btn btn-outline" style="color:var(--red);" onclick="closeModal();openVoidInvoiceModal(${inv.id})">${t('inv_voidBill')}</button>` : ''}
-        ${(status!=='paid' && status!=='void' && inv.supplierId) ? `<button class="btn btn-primary" onclick="closeModal();openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_recordPaymentBtn')}</button>` : ''}
+        ${(status!=='paid' && status!=='void' && status!=='merged' && inv.supplierId) ? `<button class="btn btn-primary" onclick="closeModal();openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_recordPaymentBtn')}</button>` : ''}
       `
     });
   });
@@ -13078,6 +13129,111 @@ async function voidInvoiceRecord(inv, reason, removeStock, stamp){
   }
   for(const h of (await dbGetAll('purchasePriceHistory'))){ if(h.invoiceId===inv.id) await dbDelete('purchasePriceHistory', h.id); }
   await dbPut('purchaseInvoices', inv);
+}
+/* ---- Merge bills: several bills of one supplier become ONE bill. Nothing is deleted: the old bills stay, marked MERGED;
+   ledger rows, payments, items and price history move to the surviving (oldest) bill. Stock and balances do not change. ---- */
+async function loadMergeCandidates(ids){
+  const invs = [];
+  for(const id of ids){ const i = await dbGet('purchaseInvoices', id); if(!i || i.voided) return null; invs.push(i); }
+  return invs.sort((a,b)=>a.id-b.id);
+}
+function mergeCheck(invs){
+  if(!invs || invs.length<2) return 'toast_mgPickTwo';
+  if(invs.some(i=>!i.supplierId) || new Set(invs.map(i=>i.supplierId)).size!==1) return 'toast_mgSameSupplier';
+  if(new Set(invs.map(i=>i.gstMode==='none'?'none':'report')).size!==1) return 'toast_mgSameGst';
+  return null;
+}
+async function openMergeModal(ids){
+  const invs = await loadMergeCandidates(ids||[]);
+  if(invs===null){ toast(t('toast_mgGone'),'error'); return; }
+  const bad = mergeCheck(invs);
+  if(bad){ toast(t(bad),'error'); return; }
+  const totalSum = r2m(invs.reduce((s,i)=>s+i.total,0)), paidSum = r2m(invs.reduce((s,i)=>s+invoicePaid(i),0));
+  const firstBill = (invs.find(i=>i.billNo)||{}).billNo || '';
+  const earliest = invs.map(i=>new Date(i.date)).sort((a,b)=>a-b)[0];
+  openModal({
+    title: t('mg_title'),
+    bodyHTML: `
+      <div style="border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:10px;background:var(--paper-soft);font-size:12.5px;">
+        ${invs.map(i=>`<div>${escapeHTML(i.invoiceNumber)}${i.billNo?' ('+escapeHTML(i.billNo)+')':''} &middot; ${fmtDate(i.date)} &middot; ${fmtMoney(i.total)} &middot; ${t('sales_tagPaid')} ${fmtMoney(invoicePaid(i))}</div>`).join('')}
+        <div style="margin-top:6px;font-weight:600;">${escapeHTML(fillTpl(t('mg_summary'),[invs.length, fmtMoney(totalSum), fmtMoney(paidSum)]))}</div>
+      </div>
+      <div class="row">
+        <div class="col field"><label>${t('mg_billNo')}</label><input id="mg_billNo" autocomplete="off" value="${escapeHTML(firstBill)}"></div>
+        <div class="col field" style="max-width:190px;"><label>${t('mg_billDate')}</label><input type="date" id="mg_date" value="${localISODate(earliest)}" max="${localISODate()}"></div>
+      </div>
+      <div class="field"><label>${t('mg_reason')}</label><input id="mg_reason" autocomplete="off"></div>
+      <div class="field" style="max-width:220px;"><label>${t('mg_pin')}</label><input id="mg_pin" class="pin-input" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+    `,
+    footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="mg_go">${t('mg_confirm')}</button>`,
+    onMount: ()=>{
+      document.getElementById('mg_go').addEventListener('click', async ()=>{
+        const billNo = document.getElementById('mg_billNo').value.trim().replace(/\s+/g,' ');
+        const reason = document.getElementById('mg_reason').value.trim();
+        if(!billNo){ toast(t('toast_mgBillNo'),'error'); return; }
+        if(reason.length<4){ toast(t('toast_mgReason'),'error'); return; }
+        const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
+        if(ownerPin && document.getElementById('mg_pin').value.trim()!==ownerPin){ toast(t('toast_mgPin'),'error'); return; }
+        const res = await executeMerge(ids, billNo, document.getElementById('mg_date').value, reason);
+        if(res!==true){ if(res) toast(t(res),'error'); return; }
+        closeModal(); toast(t('toast_mgDone'),'success'); await refreshSupplierSurfaces();
+      });
+    }
+  });
+}
+async function executeMerge(ids, billNo, billDateStr, reason){
+  const invs = await loadMergeCandidates(ids);
+  if(invs===null) return 'toast_mgGone';
+  const bad = mergeCheck(invs); if(bad) return bad;
+  const supplierId = invs[0].supplierId;
+  const all = await dbGetAll('purchaseInvoices');
+  if(all.some(i=>!i.voided && i.supplierId===supplierId && !ids.includes(i.id) && normBillNo(i.billNo)===normBillNo(billNo))) return 'toast_mgDupBill';
+  const stamp = stampNow();
+  const target = invs[0], sources = invs.slice(1);
+  const supplier = JSON.parse(JSON.stringify(await dbGet('suppliers', supplierId)));
+  const report = target.gstMode!=='none';
+  // pool the money and the items; every item keeps the GST rate it was bought at
+  const items = [], payments = [], rateMap = {};
+  let subtotal=0, discount=0, freight=0, other=0, taxable=0, gstAmount=0, total=0, paid=0;
+  const mergedFrom = [];
+  for(const inv of invs){
+    (inv.items||[]).forEach(it=>{ const c = Object.assign({}, it); if(report && c.gstRate==null) c.gstRate = Number(inv.gstRate)||0; items.push(c); });
+    (inv.payments||[]).forEach(pm=>payments.push(pm));
+    subtotal+=inv.subtotal||0; discount+=inv.discount||0; freight+=inv.freight||0; other+=inv.otherExpenses||0;
+    taxable+=(inv.taxableValue!=null?inv.taxableValue:inv.subtotal)||0; gstAmount+=inv.gstAmount||0; total+=inv.total||0; paid+=invoicePaid(inv);
+    if(report){
+      const sp = (inv.gstSplits&&inv.gstSplits.length) ? inv.gstSplits : ((inv.gstAmount||0)>0 ? [{rate:Number(inv.gstRate)||0, taxable:inv.taxableValue!=null?inv.taxableValue:inv.subtotal, tax:inv.gstAmount}] : []);
+      sp.forEach(x=>{ const k=Number(x.rate); rateMap[k] = rateMap[k]||{rate:k,taxable:0,tax:0}; rateMap[k].taxable+=x.taxable||0; rateMap[k].tax+=x.tax||0; });
+    }
+    if(inv!==target) mergedFrom.push({id:inv.id, invoiceNumber:inv.invoiceNumber, billNo:inv.billNo||'', total:inv.total, paid:invoicePaid(inv), date:inv.date});
+  }
+  const splits = Object.values(rateMap).sort((a,b)=>a.rate-b.rate).map(x=>({rate:x.rate, taxable:r2m(x.taxable), tax:r2m(x.tax)}));
+  const snapshots = sources.map(s=>({id:s.id, invoiceNumber:s.invoiceNumber, items:s.items, payments:s.payments, total:s.total, paid:invoicePaid(s)}));
+  // ledger rows, price history and returns follow the bill they now belong to
+  (supplier.ledger||[]).forEach(l=>{
+    if(l.invoiceId && sources.some(s=>s.id===l.invoiceId)){ l.mergedFromInvoice = l.invoiceNo; l.invoiceId = target.id; l.invoiceNo = target.invoiceNumber; l.billNo = billNo; }
+    else if(l.invoiceId===target.id){ l.billNo = billNo; }
+  });
+  for(const h of await dbGetAll('purchasePriceHistory')){ if(sources.some(s=>s.id===h.invoiceId)){ h.invoiceId = target.id; await dbPut('purchasePriceHistory', h); } }
+  for(const r of await dbGetAll('purchaseReturns')){ if(sources.some(s=>s.id===r.invoiceId)){ r.invoiceId = target.id; await dbPut('purchaseReturns', r); } }
+  // the surviving bill
+  Object.assign(target, {items, payments, subtotal:r2m(subtotal), discount:r2m(discount), freight:r2m(freight), otherExpenses:r2m(other), taxableValue:r2m(taxable),
+    gstAmount:r2m(gstAmount), total:r2m(total), paid:r2m(paid), paidNow:r2m(paid), billNo, date:billDateToISO(billDateStr),
+    gstRate: splits.length ? splits[splits.length-1].rate : 0, mergedFrom:(target.mergedFrom||[]).concat(mergedFrom), mergedAt:stamp.at, mergedBy:stamp.by, mergeReason:reason});
+  if(splits.length>1) target.gstSplits = splits; else delete target.gstSplits;
+  target.status = target.paid<=0.001 ? 'unpaid' : (target.paid+0.01>=target.total ? 'paid' : 'partial');
+  delete target.mergedAt; delete target.mergedBy; delete target.mergeReason;
+  target.lastMergedAt = stamp.at; target.lastMergedBy = stamp.by; target.lastMergeReason = reason;
+  for(const s of sources){
+    const snap = snapshots.find(x=>x.id===s.id);
+    Object.assign(s, {voided:true, merged:true, mergedInto:target.id, mergedIntoNo:target.invoiceNumber, mergedAt:stamp.at, mergedBy:stamp.by, mergeReason:reason,
+      voidedAt:stamp.at, voidedBy:stamp.by, voidReason:'Merged into '+target.invoiceNumber, status:'merged', mergedSnapshot:snap, items:[], payments:[]});
+    await dbPut('purchaseInvoices', s);
+  }
+  await dbPut('purchaseInvoices', target);
+  supAudit(supplier, 'merge', invs.map(i=>i.invoiceNumber+(i.billNo?'['+i.billNo+']':'')).join(' + ')+' => '+target.invoiceNumber+' ['+billNo+'] total '+target.total+' — '+reason);
+  await dbPut('suppliers', supplier);
+  return true;
 }
 async function openVoidInvoiceModal(invId){
   const inv = await dbGet('purchaseInvoices', invId);
