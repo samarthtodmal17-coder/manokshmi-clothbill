@@ -1245,6 +1245,70 @@ const I18N = {
     lb_rawHint:'Direct mode sends the finished label picture straight to the printer, so Windows paper size and orientation no longer matter. Set Width/Height above to your sticker size, then press "Print 1 test label".',
     toast_labelSent:'Sent {0} label(s) to {1}',
     toast_labelSendFail:'Could not print labels: {0}',
+    pu_supplierBillNo:'Supplier bill no.',
+    pu_billNoHint:'Type the vendor\'s bill number. Products added with the same vendor and the same bill number go on ONE bill.',
+    pu_billNoPlaceholder:'e.g. INV-4521 (optional)',
+    pur_sumJoin:'Adding to bill {0} ({1})',
+    pur_sumJoinSoFar:'Bill so far',
+    pur_sumThisStock:'This stock (with GST)',
+    pur_sumBillAfter:'Bill total after adding',
+    pur_sumBillPaid:'Already paid on this bill',
+    pur_sumGstFollows:'GST follows the bill: {0}',
+    pur_gstFollowsReport:'counted in GST reports',
+    pur_gstFollowsNone:'kept out of GST reports',
+    pur_sumNewBill:'New bill {0}',
+    toast_purchaseMerged:'Added to bill {0} ({1}) of {2}',
+    pu_detailBillNo:'Supplier bill no.',
+    pu_billDate:'Bill date',
+    led_entered:'Entered',
+    led_by:'By',
+    led_details:'Details',
+    led_tagGst:'GST {0}',
+    led_tagNoGst:'Not GST',
+    led_tagGstBill:'GST bill',
+    led_tagNoGstBill:'Non-GST bill',
+    led_voidBtn:'Void',
+    led_voidTag:'VOID',
+    led_reversalTag:'Reversal',
+    led_showVoided:'Show voided entries',
+    led_gstFilter:'GST',
+    led_gstAll:'All',
+    led_gstOnly:'GST only',
+    led_gstNone:'Not GST only',
+    led_auditBtn:'Audit trail',
+    led_auditTitle:'Audit trail - {0}',
+    led_auditEmpty:'Nothing recorded yet.',
+    led_action:'Action',
+    led_legacy:'older entry',
+    void_title:'Void entry',
+    void_what:'You are voiding',
+    void_reasonLabel:'Reason for voiding (required)',
+    void_pinLabel:'Owner PIN',
+    void_confirmBtn:'Void it',
+    void_removeStock:'Also remove this stock from inventory',
+    void_paidNote:'{0} already paid on this bill stays in the ledger and becomes credit (advance) with the vendor.',
+    void_warn:'This cannot be undone. The original stays in the ledger marked VOID, and a reversal entry is added with the exact date and time now.',
+    void_enteredLine:'Entered {0} by {1}',
+    toast_voided:'Voided - recorded in the ledger',
+    toast_voidReasonShort:'Please write a reason (at least 4 letters)',
+    toast_voidPinWrong:'Wrong Owner PIN',
+    toast_voidAdvanceUsed:'Cannot void: the advance created by this entry has already been used',
+    toast_voidLegacy:'This older entry was made before time-stamping and cannot be voided. Use a manual adjustment instead.',
+    toast_cannotDeleteSupplierHistory:'This vendor has purchase or payment history, so it cannot be deleted. Untick Active to hide it.',
+    toast_dupBillNo:'This vendor already has a bill with that bill number',
+    inv_enteredAt:'Entered',
+    inv_billDate:'Bill date',
+    inv_gstStatus:'GST status',
+    inv_gstYes:'GST bill - counted in GST reports',
+    inv_gstNo:'Not GST - kept out of GST reports',
+    inv_voidBill:'Void bill',
+    inv_voidedBanner:'VOIDED on {0} by {1} - {2}',
+    inv_payEntered:'Entered',
+    st_voidTag:'Void',
+    void_restoreStock:'Also put the returned stock back into inventory',
+    toast_voidAlready:'This entry is already voided',
+    led_reasonLine:'Voided {0} by {1}: {2}',
+    led_csvStatus:'Status',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1525,6 +1589,70 @@ const I18N = {
     lb_rawHint:'थेट पद्धतीत तयार लेबलचे चित्र थेट प्रिंटरला जाते, त्यामुळे Windows चा पेपर साइज व ओरिएंटेशन लागत नाही. वर रुंदी/उंची तुमच्या स्टिकरएवढी ठेवा, मग "१ टेस्ट लेबल छापा" दाबा.',
     toast_labelSent:'{1} कडे {0} लेबल पाठवले',
     toast_labelSendFail:'लेबल छापता आले नाहीत: {0}',
+    pu_supplierBillNo:'विक्रेत्याचे बिल क्र.',
+    pu_billNoHint:'विक्रेत्याचा बिल क्रमांक टाका. एकाच विक्रेत्याचा व एकाच बिल क्रमांकाचा माल एकाच बिलात जातो.',
+    pu_billNoPlaceholder:'उदा. INV-4521 (ऐच्छिक)',
+    pur_sumJoin:'बिल {0} मध्ये जोडत आहे ({1})',
+    pur_sumJoinSoFar:'आतापर्यंतचे बिल',
+    pur_sumThisStock:'हा स्टॉक (GST सह)',
+    pur_sumBillAfter:'जोडल्यानंतर बिल एकूण',
+    pur_sumBillPaid:'या बिलावर आधी दिले',
+    pur_sumGstFollows:'GST बिलाप्रमाणे: {0}',
+    pur_gstFollowsReport:'GST रिपोर्टमध्ये धरले',
+    pur_gstFollowsNone:'GST रिपोर्टच्या बाहेर',
+    pur_sumNewBill:'नवीन बिल {0}',
+    toast_purchaseMerged:'{2} च्या बिल {0} मध्ये जोडले ({1})',
+    pu_detailBillNo:'विक्रेत्याचे बिल क्र.',
+    pu_billDate:'बिलाची तारीख',
+    led_entered:'नोंद वेळ',
+    led_by:'कोणी',
+    led_details:'तपशील',
+    led_tagGst:'GST {0}',
+    led_tagNoGst:'GST नाही',
+    led_tagGstBill:'GST बिल',
+    led_tagNoGstBill:'GST नसलेले बिल',
+    led_voidBtn:'रद्द करा',
+    led_voidTag:'रद्द',
+    led_reversalTag:'उलटी नोंद',
+    led_showVoided:'रद्द केलेल्या नोंदी दाखवा',
+    led_gstFilter:'GST',
+    led_gstAll:'सर्व',
+    led_gstOnly:'फक्त GST',
+    led_gstNone:'फक्त GST नाही',
+    led_auditBtn:'ऑडिट नोंदी',
+    led_auditTitle:'ऑडिट नोंदी - {0}',
+    led_auditEmpty:'अजून काही नोंदले नाही.',
+    led_action:'कृती',
+    led_legacy:'जुनी नोंद',
+    void_title:'नोंद रद्द करा',
+    void_what:'तुम्ही रद्द करत आहात',
+    void_reasonLabel:'रद्द करण्याचे कारण (आवश्यक)',
+    void_pinLabel:'मालकाचा PIN',
+    void_confirmBtn:'रद्द करा',
+    void_removeStock:'हा स्टॉकही इन्व्हेंटरीतून कमी करा',
+    void_paidNote:'या बिलावर आधी दिलेले {0} खात्यात राहतात आणि विक्रेत्याकडे जमा (ॲडव्हान्स) होतात.',
+    void_warn:'हे परत करता येणार नाही. मूळ नोंद रद्द म्हणून खात्यात राहते आणि आताच्या अचूक तारीख-वेळेसह उलटी नोंद जोडली जाते.',
+    void_enteredLine:'{0} रोजी {1} यांनी नोंदवले',
+    toast_voided:'रद्द केले - खात्यात नोंदवले',
+    toast_voidReasonShort:'कृपया कारण लिहा (किमान ४ अक्षरे)',
+    toast_voidPinWrong:'मालकाचा PIN चुकीचा',
+    toast_voidAdvanceUsed:'रद्द करता येत नाही: या नोंदीमुळे तयार झालेला ॲडव्हान्स आधीच वापरला गेला आहे',
+    toast_voidLegacy:'ही जुनी नोंद वेळ-नोंदीपूर्वीची आहे, ती रद्द करता येत नाही. मॅन्युअल ॲडजस्टमेंट वापरा.',
+    toast_cannotDeleteSupplierHistory:'या विक्रेत्याचा खरेदी/पेमेंट इतिहास आहे, म्हणून हटवता येत नाही. लपवण्यासाठी Active काढा.',
+    toast_dupBillNo:'या विक्रेत्याचे याच बिल क्रमांकाचे बिल आधीच आहे',
+    inv_enteredAt:'नोंद वेळ',
+    inv_billDate:'बिलाची तारीख',
+    inv_gstStatus:'GST स्थिती',
+    inv_gstYes:'GST बिल - GST रिपोर्टमध्ये धरले',
+    inv_gstNo:'GST नाही - GST रिपोर्टच्या बाहेर',
+    inv_voidBill:'बिल रद्द करा',
+    inv_voidedBanner:'{0} रोजी {1} यांनी रद्द केले - {2}',
+    inv_payEntered:'नोंद वेळ',
+    st_voidTag:'रद्द',
+    void_restoreStock:'परत केलेला स्टॉकही इन्व्हेंटरीत परत जोडा',
+    toast_voidAlready:'ही नोंद आधीच रद्द केली आहे',
+    led_reasonLine:'{0} रोजी {1} यांनी रद्द केले: {2}',
+    led_csvStatus:'स्थिती',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -3840,6 +3968,7 @@ async function openProductModalCore(product, productId, title){
   const suppliers = (await scopedGetAll('suppliers')).filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name));
   PUR_SUP_MAP = {}; suppliers.forEach(s=>{ PUR_SUP_MAP[s.id] = s; });
   PF_OLD_PRODUCT = productId ? product : null;
+  await loadPurchaseBills();
 
   const bodyHTML = `
     <div class="row">
@@ -3882,7 +4011,8 @@ async function openProductModalCore(product, productId, title){
       </select>
     </div>
     <div id="pf_purchaseBox" style="display:${product&&product.preferredSupplierId?'':'none'};background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-      <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="pf_recordPurchase" checked style="width:auto;"> ${t('prod_recordPurchaseLabel')}</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;margin-bottom:8px;"><input type="checkbox" id="pf_recordPurchase" checked style="width:auto;"> ${t('prod_recordPurchaseLabel')}</label>
+      ${billNoFieldHTML('pf')}
       <div class="row" style="margin-top:8px;">
         <div class="col field"><label>${t('pu_gstModeLabel')}</label>
           <select id="pf_purGst"><option value="none">${t('pu_gstModeNone')}</option><option value="report">${t('prod_purGstReportOpt')}</option></select>
@@ -3981,8 +4111,14 @@ async function openProductModalCore(product, productId, title){
       });
       ['pf_tax','pf_taxmode'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', updateProductTaxPreview); el.addEventListener('change', updateProductTaxPreview); });
       updateProductTaxPreview();
-      document.getElementById('pf_supplier').addEventListener('change', ()=>{ document.getElementById('pf_purchaseBox').style.display = document.getElementById('pf_supplier').value ? '' : 'none'; updatePfPurchaseSummary(); });
-      ['pf_tax','pf_purGst','pf_purPaid','pf_recordPurchase'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', updatePfPurchaseSummary); el.addEventListener('change', updatePfPurchaseSummary); });
+      document.getElementById('pf_supplier').addEventListener('change', ()=>{
+        const sv = document.getElementById('pf_supplier').value;
+        document.getElementById('pf_purchaseBox').style.display = sv ? '' : 'none';
+        syncBillNoField('pf', sv ? parseInt(sv) : null, true);
+        updatePfPurchaseSummary();
+      });
+      syncBillNoField('pf', document.getElementById('pf_supplier').value ? parseInt(document.getElementById('pf_supplier').value) : null, false);
+      ['pf_tax','pf_purGst','pf_purPaid','pf_recordPurchase','pf_billNo','pf_billDate'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', updatePfPurchaseSummary); el.addEventListener('change', updatePfPurchaseSummary); });
       document.getElementById('pf_payFull').addEventListener('click', ()=>{ document.getElementById('pf_purPaid').value = document.getElementById('pf_purSummary').dataset.total || 0; updatePfPurchaseSummary(); });
       updatePfPurchaseSummary();
       document.getElementById('saveProductBtn').addEventListener('click', ()=>saveProductFromModal(productId));
@@ -3992,6 +4128,30 @@ async function openProductModalCore(product, productId, title){
 
 // ---- Live "bill for this stock" shown inside the stock forms when a vendor is chosen ----
 let PUR_SUP_MAP = {};   // supplier id -> supplier (fresh when the form opened)
+let PUR_INV_LIST = [];  // stock-entry purchase bills, to spot "same supplier bill number"
+let LAST_STOCK_BILL = null;   // {supplierId, billNo, at}: lets the next product continue the same bill
+async function loadPurchaseBills(){ try{ PUR_INV_LIST = (await scopedGetAll('purchaseInvoices')).filter(i=>i.source==='stock-entry'); }catch(e){ PUR_INV_LIST = []; } }
+function findStockBill(supplierId, billNo){
+  const k = normBillNo(billNo); if(!k || !supplierId) return null;
+  return PUR_INV_LIST.find(i=>i.supplierId===supplierId && normBillNo(i.billNo)===k) || null;
+}
+// Bill-number box helpers shared by the product form ('pf') and Adjust Stock ('sa').
+function billNoFieldHTML(px){
+  return `<div class="row" style="margin-bottom:0;"><div class="col field" style="margin-bottom:8px;"><label>${t('pu_supplierBillNo')}</label>
+    <input id="${px}_billNo" list="${px}_billList" autocomplete="off" placeholder="${escapeHTML(t('pu_billNoPlaceholder'))}"><datalist id="${px}_billList"></datalist></div>
+    <div class="col field" style="margin-bottom:8px;max-width:170px;"><label>${t('pu_billDate')}</label><input type="date" id="${px}_billDate" value="${localISODate()}" max="${localISODate()}"></div></div>
+    <div class="muted" style="font-size:11.5px;margin:-4px 0 8px;">${t('pu_billNoHint')}</div>`;
+}
+function syncBillNoField(px, supplierId, prefill){
+  const inp = document.getElementById(px+'_billNo'), dl = document.getElementById(px+'_billList');
+  if(!inp || !dl) return;
+  const seen = new Set();
+  dl.innerHTML = PUR_INV_LIST.filter(i=>i.supplierId===supplierId && i.billNo).sort((a,b)=>String(b.date).localeCompare(String(a.date)))
+    .filter(i=>{ const k = normBillNo(i.billNo); if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,20)
+    .map(i=>`<option value="${escapeHTML(i.billNo)}"></option>`).join('');
+  // Continue the bill the last product was added to (same vendor, within the hour).
+  if(prefill && !inp.value && supplierId && LAST_STOCK_BILL && LAST_STOCK_BILL.supplierId===supplierId && Date.now()-LAST_STOCK_BILL.at < 3600000) inp.value = LAST_STOCK_BILL.billNo;
+}
 let PF_OLD_PRODUCT = null;
 function supplierOptionLabel(s){
   const due = Number(s.balanceDue)||0;
@@ -4007,18 +4167,28 @@ function purchaseSummaryRender(px, lines, gstRate){
   const sup = sid ? PUR_SUP_MAP[sid] : null;
   if(!sup){ box.innerHTML = ''; box.dataset.total = '0'; return; }
   const r2 = x=>Math.round(x*100)/100;
+  const billEl = document.getElementById(px+'_billNo');
+  const bill = findStockBill(sid, billEl ? billEl.value : '');
+  const bdEl = document.getElementById(px+'_billDate');
+  if(bdEl){ if(bill){ bdEl.value = localISODate(new Date(bill.date)); bdEl.disabled = true; } else bdEl.disabled = false; }
+  const gstSel = document.getElementById(ids.gst);
+  if(gstSel){ if(bill){ gstSel.value = bill.gstMode==='report' ? 'report' : 'none'; gstSel.disabled = true; } else gstSel.disabled = false; }
   const row = (l, v, strong, color)=>`<div style="display:flex;justify-content:space-between;gap:10px;${strong?'font-weight:700;':''}${color?'color:'+color+';':''}"><span>${l}</span><span style="white-space:nowrap;">${v}</span></div>`;
   const prevDue = r2(Number(sup.balanceDue)||0);
   const subtotal = r2(lines.reduce((s,l)=>s+l.qty*l.rate,0));
   const rate = document.getElementById(ids.gst).value==='report' ? Math.max(0, Number(gstRate)||0) : 0;
   const gst = r2(subtotal*rate/100);
   const total = r2(subtotal+gst);
-  box.dataset.total = String(total);
-  const paid = r2(Math.min(total, Math.max(0, parseFloat(document.getElementById(ids.paid).value)||0)));
-  const thisDue = r2(total-paid);
-  const newDue = r2(prevDue+thisDue);
+  const billPaidBefore = bill ? r2(invoicePaid(bill)) : 0;
+  const billTotalAfter = bill ? r2(bill.total + total) : total;
+  const payRoom = r2(billTotalAfter - billPaidBefore);     // most that can still be paid on this bill
+  box.dataset.total = String(Math.max(0, payRoom));
+  const paid = r2(Math.min(Math.max(0, payRoom), Math.max(0, parseFloat(document.getElementById(ids.paid).value)||0)));
+  const thisDue = r2(payRoom-paid);
+  const newDue = bill ? r2(prevDue + total - paid) : r2(prevDue+(total-paid));
   let h = `<div style="border-top:1px dashed var(--line);margin-top:8px;padding-top:8px;font-size:12.5px;display:flex;flex-direction:column;gap:3px;">`;
-  h += `<div style="font-weight:700;font-size:12px;letter-spacing:.3px;color:var(--ink-soft);text-transform:uppercase;">${t('pur_sumTitle')}</div>`;
+  h += `<div style="font-weight:700;font-size:12px;letter-spacing:.3px;color:var(--ink-soft);text-transform:uppercase;">${bill ? escapeHTML(fillTpl(t('pur_sumJoin'),[bill.billNo, bill.invoiceNumber])) : t('pur_sumTitle')}</div>`;
+  if(bill) h += `<div class="muted">${escapeHTML(fillTpl(t('pur_sumGstFollows'),[bill.gstMode==='report' ? t('pur_gstFollowsReport') : t('pur_gstFollowsNone')]))}</div>`;
   if(!lines.length){
     h += `<div class="muted">${t('pur_sumNoStock')}</div>`;
   } else {
@@ -4026,9 +4196,18 @@ function purchaseSummaryRender(px, lines, gstRate){
     if(lines.some(l=>!(l.rate>0))) h += `<div style="color:var(--red);">${t('pur_sumNoCost')}</div>`;
     h += row(t('pur_sumSubtotal'), fmtMoney(subtotal));
     if(rate>0) h += row(fillTpl(t('pur_sumGst'),[rate]), fmtMoney(gst));
-    h += row(t('pur_sumTotal'), fmtMoney(total), true);
-    h += row(t('pur_sumPaid'), '− '+fmtMoney(paid));
-    h += row(t('pur_sumThisDue'), fmtMoney(thisDue));
+    if(bill){
+      h += row(t('pur_sumThisStock'), fmtMoney(total), true);
+      h += row(t('pur_sumJoinSoFar'), fmtMoney(bill.total));
+      h += row(t('pur_sumBillAfter'), fmtMoney(billTotalAfter), true);
+      h += row(t('pur_sumBillPaid'), fmtMoney(billPaidBefore));
+      h += row(t('pur_sumPaid'), '− '+fmtMoney(paid));
+      h += row(t('pur_sumThisDue'), fmtMoney(thisDue));
+    } else {
+      h += row(t('pur_sumTotal'), fmtMoney(total), true);
+      h += row(t('pur_sumPaid'), '− '+fmtMoney(paid));
+      h += row(t('pur_sumThisDue'), fmtMoney(thisDue));
+    }
   }
   h += row(escapeHTML(fillTpl(t('pur_sumEarlier'),[sup.name])), fmtMoney(prevDue));
   h += `<div style="border-top:1px solid var(--line);margin-top:3px;padding-top:4px;">${row(escapeHTML(fillTpl(t('pur_sumNewDue'),[sup.name])), fmtMoney(newDue), true, newDue>0.005?'var(--red)':'var(--green)')}</div>`;
@@ -4175,11 +4354,12 @@ async function saveProductFromModal(productId){
       const inv = await recordStockPurchase({
         supplierId: vendorId, lines,
         gstMode: document.getElementById('pf_purGst').value, gstRate: record.taxRate,
-        paidNow: parseFloat(document.getElementById('pf_purPaid').value)||0, payMode:'Cash'
+        paidNow: parseFloat(document.getElementById('pf_purPaid').value)||0, payMode:'Cash',
+        billNo: document.getElementById('pf_billNo').value, billDate: document.getElementById('pf_billDate').value
       });
       if(inv){
         const sup = await dbGet('suppliers', vendorId);
-        toast(t('toast_purchaseFromStockRecorded').replace('{0}', inv.invoiceNumber).replace('{1}', sup?sup.name:''),'success');
+        toast(inv.__merged ? fillTpl(t('toast_purchaseMerged'), [inv.billNo, inv.invoiceNumber, sup?sup.name:'']) : t('toast_purchaseFromStockRecorded').replace('{0}', inv.invoiceNumber).replace('{1}', sup?sup.name:''),'success');
       } else {
         toast(t('toast_purchaseNeedsCost'),'error');
       }
@@ -4188,6 +4368,7 @@ async function saveProductFromModal(productId){
   closeModal();
   await renderInventoryTable();
   await refreshLowStockBadge();
+  await refreshSupplierSurfaces();
 }
 
 async function deleteProductConfirm(productId){
@@ -4646,6 +4827,7 @@ async function openStockAdjustModal(productId){
   }).join('');
   const saSuppliers = (await scopedGetAll('suppliers')).sort((a,b)=>a.name.localeCompare(b.name));
   PUR_SUP_MAP = {}; saSuppliers.forEach(s=>{ PUR_SUP_MAP[s.id] = s; });
+  await loadPurchaseBills();
   const firmNote = multiFirmInUse() ? `<p class="muted" style="font-size:12px;margin:-4px 0 8px;">${t('sa_adjustingPrefix')}${escapeHTML((firmById(product.firmId)||{}).name||'—')}'s stock of this product.</p>` : '';
 
   openModal({
@@ -4677,6 +4859,7 @@ async function openStockAdjustModal(productId){
           </select>
         </div>
         <div id="sa_vendorExtra" style="display:none;">
+          ${billNoFieldHTML('sa')}
           <div class="row">
             <div class="col field"><label>${t('sa_costPerPiece')}</label><input id="sa_cost" type="number" min="0" step="0.01" value="0"></div>
             <div class="col field"><label>${t('pu_gstModeLabel')}</label>
@@ -4744,7 +4927,8 @@ async function openStockAdjustModal(productId){
         }
         saSummary();
       };
-      ['sa_cost','sa_qty','sa_paid','sa_gst','sa_direction','sa_vendor','sa_variant'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', saSummary); el.addEventListener('change', saSummary); });
+      document.getElementById('sa_vendor').addEventListener('change', ()=>{ const sv = document.getElementById('sa_vendor').value; syncBillNoField('sa', sv ? parseInt(sv) : null, true); saSummary(); });
+      ['sa_cost','sa_qty','sa_paid','sa_gst','sa_direction','sa_vendor','sa_variant','sa_billNo'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', saSummary); el.addEventListener('change', saSummary); });
       document.getElementById('sa_payFull').addEventListener('click', ()=>{ document.getElementById('sa_paid').value = document.getElementById('sa_purSummary').dataset.total || 0; saSummary(); });
       document.getElementById('sa_cost').addEventListener('input', e=>{ e.target.dataset.touched = '1'; });
       document.getElementById('sa_variant').addEventListener('change', ()=>{ delete document.getElementById('sa_cost').dataset.touched; syncVendorBox(); });
@@ -4784,17 +4968,19 @@ async function openStockAdjustModal(productId){
           const inv = await recordStockPurchase({
             supplierId: vendorId, lines:[{productId, variantIndex:vi, qty, rate:vendorCost}],
             gstMode: document.getElementById('sa_gst').value, gstRate: fresh.taxRate,
-            paidNow: parseFloat(document.getElementById('sa_paid').value)||0, payMode:'Cash'
+            paidNow: parseFloat(document.getElementById('sa_paid').value)||0, payMode:'Cash',
+            billNo: document.getElementById('sa_billNo').value, billDate: document.getElementById('sa_billDate').value
           });
           if(inv){
             const sup = await dbGet('suppliers', vendorId);
-            toast(t('toast_purchaseFromStockRecorded').replace('{0}', inv.invoiceNumber).replace('{1}', sup?sup.name:''),'success');
+            toast(inv.__merged ? fillTpl(t('toast_purchaseMerged'), [inv.billNo, inv.invoiceNumber, sup?sup.name:'']) : t('toast_purchaseFromStockRecorded').replace('{0}', inv.invoiceNumber).replace('{1}', sup?sup.name:''),'success');
           }
         }
         closeModal();
         if(!vendorId) toast(t('toast_stockAdjusted'),'success');
         await renderInventoryTable();
         await refreshLowStockBadge();
+        if(vendorId) await refreshSupplierSurfaces();
       });
     }
   });
@@ -10988,13 +11174,81 @@ async function renderPurchaseInvoicesTab(){
 }
 
 // Backward-compatible helpers: invoices saved before the payment-tracking upgrade only have paidNow.
+
+/* ===== Strict supplier records =====
+   Every purchase / payment / adjustment / return is stamped with the exact time it was entered and who
+   entered it. Entries are never edited or deleted: a wrong one is VOIDED (Owner PIN + written reason),
+   which keeps the original, marks it VOID and adds a reversal row. */
+function r2m(x){ return Math.round((Number(x)||0)*100)/100; }
+function stampNow(){ return {at:new Date().toISOString(), by:(typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER.name : 'Owner'}; }
+function newEntryId(){ return 'E'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function localISODate(d){ d = d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// The supplier's bill date as a stored timestamp. Today (or blank) = the exact moment of entry.
+function billDateToISO(v){ if(!v || v>=localISODate()) return new Date().toISOString(); return new Date(v+'T12:00:00').toISOString(); }
+function fmtStamp(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString(localeTag(),{day:'2-digit',month:'short',year:'numeric'}) + ', ' + d.toLocaleTimeString(localeTag(),{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function supAudit(supplier, action, detail){
+  const s = stampNow();
+  supplier.audit = supplier.audit||[];
+  supplier.audit.push({at:s.at, by:s.by, action, detail});
+}
+// Posts one stamped ledger row and moves the vendor's balances. The effect is stored on the row
+// (bal / adv) so that a void can undo exactly what this row did.
+function supPost(supplier, row, dBal, dAdv){
+  const b0 = supplier.balanceDue||0, a0 = supplier.advanceBalance||0;
+  supplier.balanceDue = Math.max(0, r2m(b0 + (dBal||0)));
+  supplier.advanceBalance = Math.max(0, r2m(a0 + (dAdv||0)));
+  const s = stampNow();
+  const e = Object.assign({entryId:newEntryId(), at:s.at, by:s.by}, row, {bal:r2m(supplier.balanceDue-b0), adv:r2m(supplier.advanceBalance-a0)});
+  supplier.ledger = supplier.ledger||[];
+  supplier.ledger.push(e);
+  return e;
+}
+function isVoidable(l){ return !!(l && l.entryId && !l.voided && l.type!=='reversal' && l.type!=='opening' && l.bal!==undefined); }
+function ledgerTypeWord(l){
+  if(l.type==='purchase') return 'purchase';
+  if(l.type==='payment') return 'payment';
+  if(l.type==='return') return 'return';
+  if(l.type==='adjustment') return 'adjustment';
+  return l.type;
+}
+// Undoes a ledger row's effect and adds a reversal row. Throws if an advance it created was already used.
+function reverseLedgerRow(supplier, row, reason){
+  const b0 = supplier.balanceDue||0, a0 = supplier.advanceBalance||0;
+  let nb = r2m(b0 - (row.bal||0)), na = r2m(a0 - (row.adv||0));
+  if(na < -0.005) throw new Error(t('toast_voidAdvanceUsed'));
+  if(nb < 0){ na = r2m(na - nb); nb = 0; }      // paid more than is now owed: the surplus becomes the vendor's advance
+  if(nb > 0.004 && na > 0.004){ const m = Math.min(nb, na); nb = r2m(nb - m); na = r2m(na - m); }   // owed and advance cancel out
+  supplier.balanceDue = nb; supplier.advanceBalance = Math.max(0, na);
+  const s = stampNow();
+  const rev = {entryId:newEntryId(), at:s.at, by:s.by, date:s.at, type:'reversal', direction: isLedgerDebit(row) ? 'credit' : 'debit', amount:row.amount,
+    reversalOf:row.entryId, reversalType:ledgerTypeWord(row), invoiceId:row.invoiceId||null, invoiceNo:row.invoiceNo||'',
+    note:'VOID of '+ledgerTypeWord(row)+(row.invoiceNo?(' '+row.invoiceNo):'')+' — '+reason,
+    bal:r2m(supplier.balanceDue-b0), adv:r2m(supplier.advanceBalance-a0)};
+  supplier.ledger.push(rev);
+  row.voided = true; row.voidedAt = s.at; row.voidedBy = s.by; row.voidReason = reason; row.reversedBy = rev.entryId;
+  return rev;
+}
+// After anything that changes purchases / payments, re-draw whatever screen is open so it shows up everywhere at once.
+async function refreshSupplierSurfaces(){
+  try{
+    const act = document.querySelector('[id^="view-"].active');
+    if(act && typeof showView==='function') showView(act.id.slice(5));
+    if(typeof refreshLowStockBadge==='function') await refreshLowStockBadge();
+  }catch(e){}
+}
 function invoicePaid(inv){ return inv.paid!=null ? inv.paid : (inv.paidNow||0); }
 function invoiceStatus(inv){
+  if(inv.voided) return 'void';
   if(inv.status) return inv.status;
   const paid = invoicePaid(inv);
   return paid<=0.001 ? 'unpaid' : (paid+0.01>=inv.total ? 'paid' : 'partial');
 }
 function statusTag(status){
+  if(status==='void') return `<span class="tag tag-red" style="text-decoration:line-through;">${t('st_voidTag')}</span>`;
   if(status==='paid') return `<span class="tag tag-green">${t('vendor_tagPaidStatus')}</span>`;
   if(status==='partial') return `<span class="tag tag-amber">${t('vendor_tagPartialStatus')}</span>`;
   return `<span class="tag tag-red">${t('vendor_tagUnpaidStatus')}</span>`;
@@ -11015,9 +11269,9 @@ async function renderPurchaseInvoicesTable(){
         ${invoices.map(inv=>{
           const status = invoiceStatus(inv);
           return `
-          <tr>
-            <td>${escapeHTML(inv.invoiceNumber)}${inv.gstMode==='none'?` <span class="tag" style="font-size:10.5px;">${t('pu_tagNoGst')}</span>`:(inv.gstAmount>0?` <span class="tag tag-green" style="font-size:10.5px;">${t('pu_tagGst')}</span>`:'')}</td>
-            <td>${fmtDate(inv.date)}</td>
+          <tr${inv.voided?' style="opacity:.55;"':''}>
+            <td>${escapeHTML(inv.invoiceNumber)}${inv.billNo?` <span class="muted" style="font-size:11px;">(${escapeHTML(inv.billNo)})</span>`:''}${inv.gstMode==='none'?` <span class="tag" style="font-size:10.5px;">${t('pu_tagNoGst')}</span>`:(inv.gstAmount>0?` <span class="tag tag-green" style="font-size:10.5px;">${t('pu_tagGst')}</span>`:'')}</td>
+            <td>${fmtDate(inv.date)}${inv.enteredAt?`<br><span class="muted" style="font-size:10.5px;">${t('inv_enteredAt')} ${fmtStamp(inv.enteredAt)}${inv.enteredBy?' · '+escapeHTML(inv.enteredBy):''}</span>`:''}</td>
             <td>${escapeHTML(supplierName(inv.supplierId))}</td>
             <td class="num">${(inv.items||[]).reduce((s,it)=>s+it.qty,0)}</td>
             <td class="num">${fmtMoney(inv.total)}</td>
@@ -11025,7 +11279,7 @@ async function renderPurchaseInvoicesTable(){
             <td>${statusTag(status)}</td>
             <td>
               <button class="btn btn-outline btn-sm" onclick="viewPurchaseInvoiceDetail(${inv.id})">${t('sales_viewBtn')}</button>
-              ${(status!=='paid' && inv.supplierId) ? `<button class="btn btn-primary btn-sm" onclick="openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_payBtn')}</button>` : ''}
+              ${(status!=='paid' && status!=='void' && inv.supplierId) ? `<button class="btn btn-primary btn-sm" onclick="openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_payBtn')}</button>` : ''}
             </td>
           </tr>`;
         }).join('')}
@@ -11042,33 +11296,44 @@ function viewPurchaseInvoiceDetail(invId){
     const status = invoiceStatus(inv);
     const paid = invoicePaid(inv);
     const paymentsRows = (inv.payments||[]).map(p=>`
-      <tr><td>${fmtDate(p.date)}</td><td>${escapeHTML(p.mode||'')}</td><td>${escapeHTML(p.reference||'-')}</td><td class="num">${fmtMoney(p.amount)}</td></tr>
+      <tr${p.voided?' style="opacity:.6;"':''}><td>${fmtDate(p.date)}</td><td style="font-size:11.5px;">${p.at?fmtStamp(p.at):'—'}${p.by?'<div class="muted">'+escapeHTML(p.by)+'</div>':''}</td><td>${escapeHTML(p.mode||'')}</td><td>${escapeHTML(p.reference||'-')}</td>
+        <td class="num">${p.voided?'<s>':''}${fmtMoney(p.amount)}${p.voided?'</s><div style="color:var(--red);font-size:11px;">'+t('led_voidTag')+' · '+escapeHTML(p.voidReason||'')+'</div>':''}</td>
+        <td>${(!p.voided && p.entryId && inv.supplierId) ? `<button class="btn btn-outline btn-sm" onclick="closeModal();openVoidModal(${inv.supplierId},'${p.entryId}')">${t('led_voidBtn')}</button>` : ''}</td></tr>
     `).join('');
+    const gstLabel = inv.gstMode==='none' ? t('inv_gstNo') : ((inv.gstAmount||0)>0 ? t('inv_gstYes') : '—');
     openModal({
       title:t('modal_purchaseInvoicePrefix')+inv.invoiceNumber,
       bodyHTML:`
+        ${inv.voided?`<div style="border:1px solid var(--red);background:var(--red-soft);color:var(--red);border-radius:9px;padding:8px 10px;margin-bottom:10px;font-size:13px;font-weight:600;">${escapeHTML(fillTpl(t('inv_voidedBanner'),[fmtStamp(inv.voidedAt), inv.voidedBy||'', inv.voidReason||'']))}</div>`:''}
+        <div style="font-size:12.5px;line-height:1.7;margin-bottom:8px;">
+          ${inv.billNo?`<div><span class="muted">${t('pu_detailBillNo')}:</span> <strong>${escapeHTML(inv.billNo)}</strong></div>`:''}
+          <div><span class="muted">${t('inv_billDate')}:</span> ${fmtDate(inv.date)}</div>
+          ${inv.enteredAt?`<div><span class="muted">${t('inv_enteredAt')}:</span> ${fmtStamp(inv.enteredAt)}${inv.enteredBy?' · '+escapeHTML(inv.enteredBy):''}</div>`:''}
+          <div><span class="muted">${t('inv_gstStatus')}:</span> <strong>${escapeHTML(gstLabel)}</strong></div>
+        </div>
         <table><thead><tr><th>${t('th_item')}</th><th class="num">${t('th_qty')}</th><th class="num">${t('th_rate')}</th><th class="num">${t('th_amount')}</th></tr></thead><tbody>${rows}</tbody></table>
         <div style="margin-top:10px;font-size:13px;line-height:1.8;">
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_subtotal')}</span><span>${fmtMoney(inv.subtotal)}</span></div>
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('print_discountLabel')}</span><span>-${fmtMoney(inv.discount||0)}</span></div>
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('vendor_freightLabel')}</span><span>${fmtMoney(inv.freight||0)}</span></div>
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('vendor_otherExpensesLabel')}</span><span>${fmtMoney(inv.otherExpenses||0)}</span></div>
-          ${inv.gstAmount>0?`<div style="display:flex;justify-content:space-between;"><span class="muted">GST (${inv.gstRate}%)</span><span>${fmtMoney(inv.gstAmount)}</span></div>`:''}
+          ${inv.gstAmount>0 ? ((inv.gstSplits&&inv.gstSplits.length>1) ? inv.gstSplits.map(sp=>`<div style="display:flex;justify-content:space-between;"><span class="muted">GST (${sp.rate}%)</span><span>${fmtMoney(sp.tax)}</span></div>`).join('') : `<div style="display:flex;justify-content:space-between;"><span class="muted">GST (${inv.gstRate}%)</span><span>${fmtMoney(inv.gstAmount)}</span></div>`) : ''}
           ${inv.gstMode==='none'?`<div class="muted" style="font-size:12px;">${t('pu_detailNoGst')}</div>`:''}
           <div style="display:flex;justify-content:space-between;font-weight:700;"><span>${t('print_totalRowLabel')}</span><span>${fmtMoney(inv.total)}</span></div>
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('sales_tagPaid')}</span><span>${fmtMoney(paid)}</span></div>
-          <div style="display:flex;justify-content:space-between;"><span class="muted">Outstanding</span><span>${fmtMoney(Math.max(0,inv.total-paid))}</span></div>
-          ${inv.dueDate?`<div style="display:flex;justify-content:space-between;"><span class="muted">${t('vendor_dueDateLabel')}</span><span>${fmtDate(inv.dueDate)}</span></div>`:''}
+          <div style="display:flex;justify-content:space-between;"><span class="muted">Outstanding</span><span>${fmtMoney(inv.voided?0:Math.max(0,inv.total-paid))}</span></div>
+          ${(inv.dueDate && !inv.voided)?`<div style="display:flex;justify-content:space-between;"><span class="muted">${t('vendor_dueDateLabel')}</span><span>${fmtDate(inv.dueDate)}</span></div>`:''}
           <div style="display:flex;justify-content:space-between;"><span class="muted">${t('alter_statusLabel')}</span><span>${statusTag(status)}</span></div>
         </div>
         ${(inv.payments&&inv.payments.length) ? `
         <h3 class="sub-title">${t('vendor_paymentHistoryTitle')}</h3>
-        <table><thead><tr><th>${t('th_date')}</th><th>${t('th_mode')}</th><th>${t('th_reference')}</th><th class="num">${t('th_amount')}</th></tr></thead><tbody>${paymentsRows}</tbody></table>
+        <table><thead><tr><th>${t('th_date')}</th><th>${t('inv_payEntered')}</th><th>${t('th_mode')}</th><th>${t('th_reference')}</th><th class="num">${t('th_amount')}</th><th></th></tr></thead><tbody>${paymentsRows}</tbody></table>
         ` : ''}
       `,
       footerHTML:`
         <button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
-        ${(status!=='paid' && inv.supplierId) ? `<button class="btn btn-primary" onclick="closeModal();openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_recordPaymentBtn')}</button>` : ''}
+        ${!inv.voided ? `<button class="btn btn-outline" style="color:var(--red);" onclick="closeModal();openVoidInvoiceModal(${inv.id})">${t('inv_voidBill')}</button>` : ''}
+        ${(status!=='paid' && status!=='void' && inv.supplierId) ? `<button class="btn btn-primary" onclick="closeModal();openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_recordPaymentBtn')}</button>` : ''}
       `
     });
   });
@@ -11078,10 +11343,33 @@ function viewPurchaseInvoiceDetail(invId){
    product form or the Adjust Stock screen), so adding stock "from a vendor" always shows up under
    Purchases, in the vendor's ledger and in purchase price history — without adding the stock twice.
    lines: [{productId, variantIndex, qty, rate}] */
-async function recordStockPurchase({supplierId, lines, gstMode, gstRate, paidNow, payMode}){
+function normBillNo(s){ return String(s==null?'':s).trim().replace(/\s+/g,' ').toLowerCase(); }
+// Re-works an invoice's GST figures from its items (each item can have its own GST rate).
+function recomputeStockBill(inv){
+  const r2 = x=>Math.round(x*100)/100;
+  const report = inv.gstMode==='report';
+  const byRate = {};
+  let subtotal = 0;
+  (inv.items||[]).forEach(it=>{
+    const amt = it.qty*it.rate; subtotal += amt;
+    const rate = report ? (it.gstRate!=null ? Number(it.gstRate) : Number(inv.gstRate)||0) : 0;
+    byRate[rate] = (byRate[rate]||0) + amt;
+  });
+  subtotal = r2(subtotal);
+  const rates = Object.keys(byRate).map(Number).sort((a,b)=>a-b);
+  const splits = rates.map(rt=>({rate:rt, taxable:r2(byRate[rt]), tax:r2(byRate[rt]*rt/100)}));
+  const gstAmount = r2(splits.reduce((s,x)=>s+x.tax,0));
+  inv.subtotal = subtotal; inv.taxableValue = subtotal; inv.gstAmount = gstAmount;
+  inv.gstRate = splits.length ? splits[splits.length-1].rate : 0;
+  if(splits.length>1) inv.gstSplits = splits; else delete inv.gstSplits;
+  inv.total = r2(subtotal - (inv.discount||0) + (inv.freight||0) + (inv.otherExpenses||0) + gstAmount);
+  return inv;
+}
+async function recordStockPurchase({supplierId, lines, gstMode, gstRate, paidNow, payMode, billNo, billDate}){
   const supplier = await dbGet('suppliers', supplierId);
   if(!supplier || !lines.length) return null;
-  const invoiceDate = new Date().toISOString();
+  const stamp = stampNow();
+  const invoiceDate = billDateToISO(billDate);
   const items = [];
   let firmId = null;
   for(const l of lines){
@@ -11090,42 +11378,78 @@ async function recordStockPurchase({supplierId, lines, gstMode, gstRate, paidNow
     const v = product.variants[l.variantIndex];
     if(firmId==null) firmId = product.firmId;
     items.push({productId:l.productId, variantIndex:l.variantIndex, productName:product.name,
-      variantLabel:[v.size,v.color].filter(Boolean).join('/') || v.sku || '', qty:l.qty, rate:l.rate});
+      variantLabel:[v.size,v.color].filter(Boolean).join('/') || v.sku || '', qty:l.qty, rate:l.rate, at:stamp.at, by:stamp.by});
   }
   if(!items.length) return null;
-  const r2 = x=>Math.round(x*100)/100;
+  const r2 = r2m;
   const subtotal = r2(items.reduce((s,it)=>s+it.qty*it.rate,0));
   if(subtotal<=0) return null;
+  const billKey = normBillNo(billNo);
+  const billText = String(billNo==null?'':billNo).trim().replace(/\s+/g,' ');
+  const mode2 = payMode || 'Cash';
+  const histRows = (invId)=>items.map(it=>({
+    productId:it.productId, variantIndex:it.variantIndex, productName:it.productName, variantLabel:it.variantLabel,
+    price:it.rate, qty:it.qty, supplierId, supplierName:supplier.name, invoiceId:invId, date:stamp.at}));
+  // Same vendor + same supplier bill number = the SAME bill: add these items to it.
+  if(billKey){
+    const existing = (await dbGetAll('purchaseInvoices')).find(i=>!i.voided && i.supplierId===supplierId && i.source==='stock-entry' && normBillNo(i.billNo)===billKey);
+    if(existing){
+      const rate0 = existing.gstMode==='report' ? Math.max(0, Number(gstRate)||0) : 0;
+      existing.items = (existing.items||[]).map(it=>it.gstRate!=null ? it : Object.assign({}, it, {gstRate: Number(existing.gstRate)||0}));
+      items.forEach(it=>{ it.gstRate = rate0; existing.items.push(it); });
+      const oldTotal = existing.total, oldPaid = invoicePaid(existing), oldGst = existing.gstAmount||0;
+      recomputeStockBill(existing);
+      const addedTotal = r2(existing.total - oldTotal), addedGst = r2((existing.gstAmount||0) - oldGst);
+      const paid = r2(Math.min(Math.max(0, existing.total - oldPaid), Math.max(0, Number(paidNow)||0)));
+      existing.payments = existing.payments || [];
+      supPost(supplier, {type:'purchase', date:stamp.at, amount:addedTotal, invoiceId:existing.id, invoiceNo:existing.invoiceNumber, billNo:existing.billNo||'',
+        gst:{mode:existing.gstMode, amount:addedGst},
+        note:'Added to bill '+(existing.billNo||'')+' ('+existing.invoiceNumber+') — '+items.length+' item line'+(items.length>1?'s':'')}, addedTotal, 0);
+      if(paid>0){
+        const pr = supPost(supplier, {type:'payment', mode:mode2, date:stamp.at, amount:paid, invoiceId:existing.id, invoiceNo:existing.invoiceNumber,
+          note:mode2+' paid at purchase — '+existing.invoiceNumber}, -paid, 0);
+        existing.payments.push({entryId:pr.entryId, at:stamp.at, by:stamp.by, date:stamp.at, amount:paid, mode:mode2, reference:'', note:'Paid at purchase'});
+      }
+      existing.paid = r2(oldPaid + paid); existing.paidNow = existing.paid;
+      existing.status = existing.paid<=0.001 ? 'unpaid' : (existing.paid+0.01>=existing.total ? 'paid' : 'partial');
+      existing.lastAddedAt = stamp.at; existing.lastAddedBy = stamp.by;
+      await dbPut('purchaseInvoices', existing);
+      for(const h of histRows(existing.id)) await dbAdd('purchasePriceHistory', h);
+      await dbPut('suppliers', supplier);
+      existing.__merged = true;
+      LAST_STOCK_BILL = {supplierId, billNo:billText, at:Date.now()};
+      return existing;
+    }
+  }
   const mode = gstMode==='report' ? 'report' : 'none';
   const rate = mode==='report' ? Math.max(0, Number(gstRate)||0) : 0;
+  items.forEach(it=>{ it.gstRate = rate; });
   const gstAmount = r2(subtotal*rate/100);
   const total = r2(subtotal + gstAmount);
   const paid = r2(Math.min(total, Math.max(0, Number(paidNow)||0)));
-  const mode2 = payMode || 'Cash';
   const dueDays = paymentTermsDays(supplier.paymentTerms);
-  const payments = paid>0 ? [{date:invoiceDate, amount:paid, mode:mode2, reference:'', note:'Paid at purchase'}] : [];
   const newId = await dbAdd('purchaseInvoices', {
     supplierId, poId:null, items, discount:0, freight:0, otherExpenses:0,
     gstMode:mode, gstRate:rate, taxableValue:subtotal, gstAmount,
-    subtotal, total, paidNow:paid, paid, payments,
+    subtotal, total, paidNow:paid, paid, payments:[],
     status: paid<=0.001 ? 'unpaid' : (paid+0.01>=total ? 'paid' : 'partial'),
-    dueDate: new Date(Date.now()+dueDays*86400000).toISOString(), date:invoiceDate,
-    firmId: firmId!=null ? firmId : firmIdForStockOps(), source:'stock-entry'
+    dueDate: new Date(Date.now()+dueDays*86400000).toISOString(), date:invoiceDate, enteredAt:stamp.at, enteredBy:stamp.by,
+    firmId: firmId!=null ? firmId : firmIdForStockOps(), source:'stock-entry', billNo: billText
   });
   const fresh = await dbGet('purchaseInvoices', newId);
   fresh.invoiceNumber = 'PINV-' + String(newId).padStart(4,'0');
-  await dbPut('purchaseInvoices', fresh);
-  for(const it of items){
-    await dbAdd('purchasePriceHistory', {
-      productId:it.productId, variantIndex:it.variantIndex, productName:it.productName, variantLabel:it.variantLabel,
-      price:it.rate, qty:it.qty, supplierId, supplierName:supplier.name, invoiceId:newId, date:invoiceDate
-    });
+  supPost(supplier, {type:'purchase', date:invoiceDate, amount:total, invoiceId:newId, invoiceNo:fresh.invoiceNumber, billNo:billText,
+    gst:{mode, rate, amount:gstAmount},
+    note:'Invoice '+fresh.invoiceNumber+(billText?(' (bill '+billText+')'):'')+' ('+items.length+' item line'+(items.length>1?'s':'')+')'}, total, 0);
+  if(paid>0){
+    const pr = supPost(supplier, {type:'payment', mode:mode2, date:stamp.at, amount:paid, invoiceId:newId, invoiceNo:fresh.invoiceNumber,
+      note:mode2+' paid at purchase — '+fresh.invoiceNumber}, -paid, 0);
+    fresh.payments.push({entryId:pr.entryId, at:stamp.at, by:stamp.by, date:stamp.at, amount:paid, mode:mode2, reference:'', note:'Paid at purchase'});
   }
-  supplier.balanceDue = r2((supplier.balanceDue||0) + (total - paid));
-  supplier.ledger = supplier.ledger||[];
-  supplier.ledger.push({date:invoiceDate, type:'purchase', amount:total, note:'Invoice '+fresh.invoiceNumber+' ('+items.length+' item line'+(items.length>1?'s':'')+')'});
-  if(paid>0) supplier.ledger.push({date:invoiceDate, type:'payment', amount:paid, mode:mode2, note:mode2+' paid at purchase — '+fresh.invoiceNumber});
+  await dbPut('purchaseInvoices', fresh);
+  for(const h of histRows(newId)) await dbAdd('purchasePriceHistory', h);
   await dbPut('suppliers', supplier);
+  if(billKey) LAST_STOCK_BILL = {supplierId, billNo:billText, at:Date.now()};
   return fresh;
 }
 
@@ -11169,6 +11493,10 @@ async function openPurchaseInvoiceModal(prefill){
           <option value="">${t('vendor_cashPurchaseOptionLabel')}</option>
           ${suppliers.map(s=>`<option value="${s.id}" ${prefill.supplierId===s.id?'selected':''}>${escapeHTML(s.name)}</option>`).join('')}
         </select>
+      </div>
+      <div class="row">
+        <div class="col field"><label>${t('pu_supplierBillNo')}</label><input id="pinv_billno" autocomplete="off" placeholder="${escapeHTML(t('pu_billNoPlaceholder'))}"></div>
+        <div class="col field" style="max-width:190px;"><label>${t('pu_billDate')}</label><input type="date" id="pinv_date" value="${localISODate()}" max="${localISODate()}"></div>
       </div>
       <div id="pinvRowsWrap"></div>
       <button type="button" class="btn btn-outline btn-sm" id="pinv_addRow">${t('inv_addItemBtn')}</button>
@@ -11305,7 +11633,13 @@ async function openPurchaseInvoiceModal(prefill){
         const paidNow = Math.max(0, parseFloat(document.getElementById('pinv_paidnow').value)||0);
         const payMode = document.getElementById('pinv_paymode').value;
         const supplierId = document.getElementById('pinv_supplier').value ? parseInt(document.getElementById('pinv_supplier').value) : null;
-        const invoiceDate = new Date().toISOString();
+        const stamp = stampNow();
+        const invoiceDate = billDateToISO((document.getElementById('pinv_date')||{}).value);
+        const billNoText = ((document.getElementById('pinv_billno')||{}).value||'').trim().replace(/\s+/g,' ');
+        if(billNoText && supplierId){
+          const dup = (await dbGetAll('purchaseInvoices')).find(i=>!i.voided && i.supplierId===supplierId && normBillNo(i.billNo)===normBillNo(billNoText));
+          if(dup){ toast(t('toast_dupBillNo'),'error'); return; }
+        }
 
         const doSave = async ()=>{
           let supplierName = '';
@@ -11325,15 +11659,17 @@ async function openPurchaseInvoiceModal(prefill){
           const dueDays = supplierId ? paymentTermsDays((suppliers.find(s=>s.id===supplierId)||{}).paymentTerms) : 0;
           const dueDate = new Date(Date.now() + dueDays*86400000).toISOString();
           const payments = [];
-          if(paidNow>0) payments.push({date:invoiceDate, amount:paidNow, mode:payMode, reference:'', note:'Paid at purchase'});
-          if(advanceUse>0) payments.push({date:invoiceDate, amount:advanceUse, mode:'Advance', reference:'', note:'Applied from advance balance'});
+          // Cash purchases have no vendor ledger, so their payment is recorded on the bill itself.
+          if(!supplierId){
+            if(paidNow>0) payments.push({at:stamp.at, by:stamp.by, date:stamp.at, amount:paidNow, mode:payMode, reference:'', note:'Paid at purchase'});
+          }
 
           const newId = await dbAdd('purchaseInvoices', {
             supplierId, poId: prefill.poId||null, items, discount, freight, otherExpenses:other,
             gstRate, gstMode, taxableValue, gstAmount,
             subtotal, total, paidNow, paid:paidTotal, payments,
             status: paidTotal<=0.001 ? 'unpaid' : (paidTotal+0.01>=total ? 'paid' : 'partial'),
-            dueDate, date:invoiceDate, firmId: firmIdForStockOps()
+            dueDate, date:invoiceDate, enteredAt:stamp.at, enteredBy:stamp.by, billNo:billNoText, firmId: firmIdForStockOps()
           });
           const fresh = await dbGet('purchaseInvoices', newId);
           fresh.invoiceNumber = 'PINV-' + String(newId).padStart(4,'0');
@@ -11348,15 +11684,21 @@ async function openPurchaseInvoiceModal(prefill){
 
           if(supplierId){
             const supplier = await dbGet('suppliers', supplierId);
-            const due = total - paidTotal;
-            supplier.balanceDue = (supplier.balanceDue||0) + due;
-            supplier.ledger = supplier.ledger||[];
-            supplier.ledger.push({date:invoiceDate, type:'purchase', amount:total, note:'Invoice '+fresh.invoiceNumber+' ('+items.length+' item line'+(items.length>1?'s':'')+')'});
-            if(paidNow>0) supplier.ledger.push({date:invoiceDate, type:'payment', amount:paidNow, mode:payMode, note:payMode+' paid at purchase — '+fresh.invoiceNumber});
-            if(advanceUse>0){
-              supplier.advanceBalance = Math.max(0, Math.round(((supplier.advanceBalance||0)-advanceUse)*100)/100);
-              supplier.ledger.push({date:invoiceDate, type:'payment', amount:advanceUse, mode:'Advance', source:'advance', note:'Advance applied to '+fresh.invoiceNumber});
+            supPost(supplier, {type:'purchase', date:invoiceDate, amount:total, invoiceId:newId, invoiceNo:fresh.invoiceNumber, billNo:billNoText,
+              gst:{mode:gstMode, rate:gstRate, amount:gstAmount},
+              note:'Invoice '+fresh.invoiceNumber+(billNoText?(' (bill '+billNoText+')'):'')+' ('+items.length+' item line'+(items.length>1?'s':'')+')'}, total, 0);
+            fresh.payments = fresh.payments||[];
+            if(paidNow>0){
+              const pr = supPost(supplier, {type:'payment', mode:payMode, date:stamp.at, amount:paidNow, invoiceId:newId, invoiceNo:fresh.invoiceNumber,
+                note:payMode+' paid at purchase — '+fresh.invoiceNumber}, -paidNow, 0);
+              fresh.payments.push({entryId:pr.entryId, at:stamp.at, by:stamp.by, date:stamp.at, amount:paidNow, mode:payMode, reference:'', note:'Paid at purchase'});
             }
+            if(advanceUse>0){
+              const ar = supPost(supplier, {type:'payment', mode:'Advance', source:'advance', date:stamp.at, amount:advanceUse, invoiceId:newId, invoiceNo:fresh.invoiceNumber,
+                note:'Advance applied to '+fresh.invoiceNumber}, -advanceUse, -advanceUse);
+              fresh.payments.push({entryId:ar.entryId, at:stamp.at, by:stamp.by, date:stamp.at, amount:advanceUse, mode:'Advance', reference:'', note:'Applied from advance balance'});
+            }
+            await dbPut('purchaseInvoices', fresh);
             await dbPut('suppliers', supplier);
           }
 
@@ -11368,8 +11710,7 @@ async function openPurchaseInvoiceModal(prefill){
           closeModal();
           toast(t('toast_purchaseInvoiceRecorded').replace('{0}', fresh.invoiceNumber),'success');
           await refreshLowStockBadge();
-          if(REQ_STATE.subtab==='pinvoices') await renderPurchaseInvoicesTable();
-          else if(REQ_STATE.subtab==='po') await renderPOTable();
+          await refreshSupplierSurfaces();
         };
 
         const threshold = SETTINGS.purchaseApprovalThreshold||0;
@@ -11566,21 +11907,20 @@ async function openPurchaseReturnModal(){
           }
         }
 
-        const newId = await dbAdd('purchaseReturns', {supplierId, items, reason, note, total, date, firmId: firmIdForStockOps()});
+        const rStamp = stampNow();
+        const newId = await dbAdd('purchaseReturns', {supplierId, items, reason, note, total, date, enteredAt:rStamp.at, enteredBy:rStamp.by, firmId: firmIdForStockOps()});
         const fresh = await dbGet('purchaseReturns', newId);
         fresh.returnNumber = 'PRET-' + String(newId).padStart(4,'0');
         await dbPut('purchaseReturns', fresh);
 
         const supplier = await dbGet('suppliers', supplierId);
-        supplier.balanceDue = Math.max(0, (supplier.balanceDue||0) - total);
-        supplier.ledger = supplier.ledger||[];
-        supplier.ledger.push({date, type:'return', amount:total, note:'Return '+fresh.returnNumber+(reason?' — '+reason:'')});
+        supPost(supplier, {date, type:'return', amount:total, returnId:newId, invoiceNo:fresh.returnNumber, note:'Return '+fresh.returnNumber+(reason?' — '+reason:'')}, -total, 0);
         await dbPut('suppliers', supplier);
 
         closeModal();
         toast(t('toast_purchaseReturnRecorded'),'success');
         await refreshLowStockBadge();
-        await renderPurchaseReturnsTable();
+        await refreshSupplierSurfaces();
       });
     }
   });
@@ -11596,14 +11936,15 @@ function invoiceDueDate(inv, supplier){
 }
 async function renderPurchaseReportsTab(){
   const wrap = document.getElementById('reqSubtabContent');
-  const [suppliers, invoices, returns] = await Promise.all([scopedGetAll('suppliers'), scopedGetAll('purchaseInvoices'), scopedGetAll('purchaseReturns')]);
+  const [suppliers, invoicesAll, returnsAll] = await Promise.all([scopedGetAll('suppliers'), scopedGetAll('purchaseInvoices'), scopedGetAll('purchaseReturns')]);
+  const invoices = invoicesAll.filter(i=>!i.voided), returns = returnsAll.filter(r=>!r.voided);
   suppliers.sort((a,b)=>a.name.localeCompare(b.name));
   const now = Date.now();
   const rows = suppliers.map(s=>{
     const invForS = invoices.filter(i=>i.supplierId===s.id);
     const retForS = returns.filter(r=>r.supplierId===s.id);
     const totalPurchased = invForS.reduce((sum,i)=>sum+i.total,0);
-    const totalPaid = (s.ledger||[]).filter(l=>l.type==='payment').reduce((sum,l)=>sum+l.amount,0);
+    const totalPaid = (s.ledger||[]).filter(l=>l.type==='payment' && !l.voided).reduce((sum,l)=>sum+l.amount,0);
     const totalReturned = retForS.reduce((sum,r)=>sum+r.total,0);
     const returnRate = totalPurchased>0 ? Math.round((totalReturned/totalPurchased)*1000)/10 : 0;
     return {supplier:s, totalPurchased, totalPaid, totalReturned, returnRate, outstanding:s.balanceDue||0, invoiceCount:invForS.length};
@@ -12556,13 +12897,19 @@ function openSupplierModal(supplierId){
             vendorNotes: document.getElementById('sf_notes').value.trim()
           };
           if(supplier){
+            const before = JSON.parse(JSON.stringify(supplier));
             Object.assign(supplier, common);
             supplier.active = document.getElementById('sf_active').checked;
+            const changed = Object.keys(common).filter(k=>String(before[k]==null?'':before[k])!==String(common[k]==null?'':common[k]));
+            if(before.active!==false !== supplier.active) changed.push('active');
+            if(changed.length) supAudit(supplier, 'details edited', changed.map(k=>k+': "'+(k==='active'?(before.active!==false):(before[k]==null?'':before[k]))+'" → "'+(k==='active'?supplier.active:common[k])+'"').join('; '));
             await dbPut('suppliers', supplier);
           } else {
             const openingBalance = Math.max(0, parseFloat(document.getElementById('sf_opening').value)||0);
-            const ledger = openingBalance>0 ? [{date:new Date().toISOString(), type:'opening', amount:openingBalance, note:'Opening balance'}] : [];
-            await dbAdd('suppliers', {name, ...common, firmId: firmIdForStockOps(), openingBalance, balanceDue:openingBalance, advanceBalance:0, active:true, ledger});
+            const oStamp = stampNow();
+            const ledger = openingBalance>0 ? [{entryId:newEntryId(), at:oStamp.at, by:oStamp.by, date:oStamp.at, type:'opening', amount:openingBalance, note:'Opening balance'}] : [];
+            await dbAdd('suppliers', {name, ...common, firmId: firmIdForStockOps(), openingBalance, balanceDue:openingBalance, advanceBalance:0, active:true, ledger,
+              audit:[{at:oStamp.at, by:oStamp.by, action:'vendor created', detail:name+(openingBalance>0?(' — opening balance '+openingBalance):'')}]});
           }
           closeModal(); toast(t('toast_saved'),'success'); await renderSuppliersTable();
         });
@@ -12573,6 +12920,8 @@ function openSupplierModal(supplierId){
 async function deleteSupplierConfirm(supplierId){
   const supplier = await dbGet('suppliers', supplierId);
   if((supplier.balanceDue||0)>0){ toast(t('toast_cannotDeleteSupplierBalance'),'error'); return; }
+  const hasHistory = (supplier.ledger||[]).some(l=>l.type!=='opening') || (await dbGetAll('purchaseInvoices')).some(i=>i.supplierId===supplierId);
+  if(hasHistory){ toast(t('toast_cannotDeleteSupplierHistory'),'error'); return; }
   openModal({
     title:t('modal_deleteSupplierQ'),
     bodyHTML:`<p>${t('acct_deleteBtn')} <strong>${escapeHTML(supplier.name)}</strong>?</p>`,
@@ -12655,14 +13004,199 @@ async function renderVendorLedgerOverview(){
 
 /* ---- Advanced vendor ledger (debit/credit/running balance statement) ---- */
 function isLedgerDebit(l){
-  return l.type==='purchase' || l.type==='opening' || (l.type==='adjustment' && l.direction==='debit');
+  return l.type==='purchase' || l.type==='opening' || (l.type==='adjustment' && l.direction==='debit') || (l.type==='reversal' && l.direction==='debit');
 }
 function ledgerTypeTag(l){
+  const v = l.voided ? ' <span class="tag tag-red">'+t('led_voidTag')+'</span>' : '';
+  if(l.type==='reversal') return '<span class="tag tag-amber">'+t('led_reversalTag')+'</span>';
+  if(l.voided){ const base = ledgerTypeTag(Object.assign({}, l, {voided:false})); return base + v; }
   if(l.type==='purchase') return '<span class="tag tag-red">Purchase</span>';
   if(l.type==='return') return '<span class="tag tag-amber">Return</span>';
   if(l.type==='opening') return '<span class="tag tag-amber">Opening Balance</span>';
   if(l.type==='adjustment') return l.direction==='debit' ? '<span class="tag tag-red">Adjustment (Dr)</span>' : '<span class="tag tag-green">Adjustment (Cr)</span>';
   return '<span class="tag tag-green">Payment</span>';
+}
+
+let LEDGER_INV_MAP = {};
+// Is this ledger row (or the bill it belongs to) GST or Not GST?  {kind:'gst'|'none'|null, amount, own}
+function ledgerGstInfo(l){
+  const inv = l.invoiceId ? LEDGER_INV_MAP[l.invoiceId] : null;
+  const fromInv = inv ? {kind: inv.gstMode==='none' ? 'none' : ((inv.gstAmount||0)>0 ? 'gst' : null), amount: inv.gstAmount||0} : {kind:null, amount:0};
+  if(l.type==='purchase'){
+    if(l.gst) return {kind: l.gst.mode==='report' ? 'gst' : 'none', amount: l.gst.amount||0, own:true};
+    return Object.assign({own:true}, fromInv);
+  }
+  if(l.type==='payment' || l.type==='reversal') return Object.assign({own:false}, fromInv);
+  return {kind:null, amount:0};
+}
+function ledgerGstTag(l){
+  const g = ledgerGstInfo(l);
+  if(!g.kind) return '';
+  if(g.own) return g.kind==='gst' ? `<span class="tag tag-green" style="font-size:10.5px;">${escapeHTML(fillTpl(t('led_tagGst'),[g.amount>0?fmtMoney(g.amount):'']).trim())}</span>` : `<span class="tag" style="font-size:10.5px;">${t('led_tagNoGst')}</span>`;
+  return g.kind==='gst' ? `<span class="tag tag-green" style="font-size:10.5px;">${t('led_tagGstBill')}</span>` : `<span class="tag" style="font-size:10.5px;">${t('led_tagNoGstBill')}</span>`;
+}
+function ledgerGstText(l){
+  const g = ledgerGstInfo(l);
+  if(!g.kind) return '';
+  if(g.own) return g.kind==='gst' ? ('GST'+(g.amount>0?' '+g.amount:'')) : 'Not GST';
+  return g.kind==='gst' ? 'GST bill' : 'Non-GST bill';
+}
+function ledgerVoidLine(l){
+  return l.voided ? fillTpl(t('led_reasonLine'), [fmtStamp(l.voidedAt), l.voidedBy||'', l.voidReason||'']) : '';
+}
+function ledgerDetailsHTML(l){
+  let h = escapeHTML(l.note||'');
+  const tag = ledgerGstTag(l); if(tag) h += ' ' + tag;
+  if(l.billNo) h += ` <span class="muted" style="font-size:11px;">[${escapeHTML(l.billNo)}]</span>`;
+  if(l.voided) h = `<span style="text-decoration:line-through;">${h}</span><div style="color:var(--red);font-size:11.5px;">${escapeHTML(ledgerVoidLine(l))}</div>`;
+  return h;
+}
+
+/* ---- Voiding (Owner PIN + reason): the only way to correct a purchase / payment / adjustment / return ---- */
+async function voidInvoiceRecord(inv, reason, removeStock, stamp){
+  inv.voided = true; inv.voidedAt = stamp.at; inv.voidedBy = stamp.by; inv.voidReason = reason; inv.status = 'void';
+  if(removeStock){
+    for(const it of (inv.items||[])){
+      const product = await dbGet('products', it.productId);
+      if(!product || !product.variants[it.variantIndex]) continue;
+      const v = product.variants[it.variantIndex];
+      const prev = Number(v.stock||0), take = Math.min(prev, it.qty);
+      if(take<=0) continue;
+      adjustFirmStock(v, product.firmId, -take);
+      await dbPut('products', product);
+      await dbAdd('stockAdjustments', {productId:it.productId, variantIndex:it.variantIndex, productName:product.name,
+        variantLabel:[v.size,v.color].filter(Boolean).join('/') || v.sku || '', sku:v.sku||'', firmId:product.firmId,
+        delta:v.stock-prev, previousStock:prev, newStock:v.stock, reason:'Purchase voided', note:(inv.invoiceNumber||'')+' — '+reason, date:stamp.at, user:stamp.by});
+    }
+    inv.stockRemoved = true;
+  }
+  for(const h of (await dbGetAll('purchasePriceHistory'))){ if(h.invoiceId===inv.id) await dbDelete('purchasePriceHistory', h.id); }
+  await dbPut('purchaseInvoices', inv);
+}
+async function openVoidInvoiceModal(invId){
+  const inv = await dbGet('purchaseInvoices', invId);
+  if(!inv || inv.voided){ toast(t('toast_voidAlready'),'error'); return; }
+  if(!inv.supplierId){ openVoidModal(null, null, {invId}); return; }
+  const supplier = await dbGet('suppliers', inv.supplierId);
+  const row = (supplier.ledger||[]).find(l=>l.type==='purchase' && l.invoiceId===invId && isVoidable(l));
+  if(!row){ toast(t('toast_voidLegacy'),'error'); return; }
+  openVoidModal(inv.supplierId, row.entryId);
+}
+async function openVoidModal(supplierId, entryId, opts){
+  opts = opts||{};
+  let supplier = null, row = null, inv = null, ret = null;
+  if(supplierId){
+    supplier = await dbGet('suppliers', supplierId);
+    row = (supplier.ledger||[]).find(l=>l.entryId===entryId);
+    if(!row){ toast(t('toast_voidLegacy'),'error'); return; }
+    if(row.voided){ toast(t('toast_voidAlready'),'error'); return; }
+    if(!isVoidable(row)){ toast(t('toast_voidLegacy'),'error'); return; }
+    if(row.invoiceId) inv = await dbGet('purchaseInvoices', row.invoiceId);
+    if(row.returnId) ret = await dbGet('purchaseReturns', row.returnId);
+  } else if(opts.invId){
+    inv = await dbGet('purchaseInvoices', opts.invId);
+    if(!inv || inv.voided){ toast(t('toast_voidAlready'),'error'); return; }
+  }
+  const isPurchase = (row && row.type==='purchase') || (!row && inv);
+  const isReturn = !!(row && row.type==='return' && ret);
+  const amount = isPurchase && inv ? inv.total : (row ? row.amount : 0);
+  const title = isPurchase && inv ? ('Purchase '+(inv.invoiceNumber||'')+(inv.billNo?(' ['+inv.billNo+']'):'')) : (row ? (ledgerTypeWord(row)+(row.invoiceNo?(' '+row.invoiceNo):'')) : '');
+  const enteredAt = row ? row.at : (inv && inv.enteredAt);
+  const enteredBy = row ? row.by : (inv && inv.enteredBy);
+  const paidOnBill = isPurchase && inv ? invoicePaid(inv) : 0;
+  openModal({
+    title: t('void_title'),
+    bodyHTML: `
+      <div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--paper-soft);">
+        <div style="font-weight:700;">${t('void_what')}: ${escapeHTML(title)} — ${fmtMoney(amount)}</div>
+        <div class="muted" style="font-size:12px;">${enteredAt ? escapeHTML(fillTpl(t('void_enteredLine'),[fmtStamp(enteredAt), enteredBy||'—'])) : ''}</div>
+        ${paidOnBill>0 ? `<div style="font-size:12.5px;margin-top:6px;">${escapeHTML(fillTpl(t('void_paidNote'),[fmtMoney(paidOnBill)]))}</div>` : ''}
+      </div>
+      <div class="field"><label>${t('void_reasonLabel')}</label><textarea id="vd_reason" rows="2" style="width:100%;"></textarea></div>
+      ${(isPurchase && inv && (inv.items||[]).length) ? `<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:10px;"><input type="checkbox" id="vd_stock" checked style="width:auto;"> ${t('void_removeStock')}</label>` : ''}
+      ${isReturn ? `<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:10px;"><input type="checkbox" id="vd_stock" checked style="width:auto;"> ${t('void_restoreStock')}</label>` : ''}
+      <div class="field" style="max-width:220px;"><label>${t('void_pinLabel')}</label><input id="vd_pin" class="pin-input" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+      <p class="muted" style="font-size:12px;">${t('void_warn')}</p>
+    `,
+    footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-danger" id="vd_go">${t('void_confirmBtn')}</button>`,
+    onMount: ()=>{
+      document.getElementById('vd_go').addEventListener('click', async ()=>{
+        const reason = document.getElementById('vd_reason').value.trim();
+        if(reason.length<4){ toast(t('toast_voidReasonShort'),'error'); return; }
+        const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
+        if(ownerPin && document.getElementById('vd_pin').value.trim()!==ownerPin){ toast(t('toast_voidPinWrong'),'error'); return; }
+        const stockEl = document.getElementById('vd_stock');
+        const ok = await executeVoid(supplierId, entryId, opts.invId||null, reason, stockEl ? stockEl.checked : false);
+        if(!ok) return;
+        closeModal();
+        toast(t('toast_voided'),'success');
+        await refreshSupplierSurfaces();
+        if(supplierId && opts.reopenLedger!==false && document.querySelector('#ledgerRowsBody')) { /* ledger was replaced by this modal */ }
+      });
+    }
+  });
+}
+async function executeVoid(supplierId, entryId, invId, reason, stockFlag){
+  const stamp = stampNow();
+  if(supplierId){
+    const supplier = await dbGet('suppliers', supplierId);
+    const work = JSON.parse(JSON.stringify(supplier));      // all-or-nothing: only saved if every step works
+    const row = work.ledger.find(l=>l.entryId===entryId);
+    if(!isVoidable(row)){ toast(t('toast_voidAlready'),'error'); return false; }
+    let targets = [row];
+    if(row.type==='purchase' && row.invoiceId) targets = work.ledger.filter(l=>l.type==='purchase' && l.invoiceId===row.invoiceId && isVoidable(l));
+    try{ targets.forEach(tg=>reverseLedgerRow(work, tg, reason)); }
+    catch(e){ toast(String(e.message||e),'error'); return false; }
+    if(row.type==='payment' && row.invoiceId){
+      const inv = await dbGet('purchaseInvoices', row.invoiceId);
+      const pay = inv && (inv.payments||[]).find(x=>x.entryId===row.entryId);
+      if(pay){
+        pay.voided = true; pay.voidedAt = stamp.at; pay.voidedBy = stamp.by; pay.voidReason = reason;
+        inv.paid = r2m(Math.max(0, (inv.paid||0) - pay.amount)); inv.paidNow = inv.paid;
+        inv.status = inv.voided ? 'void' : (inv.paid<=0.001 ? 'unpaid' : (inv.paid+0.01>=inv.total ? 'paid' : 'partial'));
+        await dbPut('purchaseInvoices', inv);
+      }
+    }
+    if(row.type==='purchase' && row.invoiceId){
+      const inv = await dbGet('purchaseInvoices', row.invoiceId);
+      if(inv) await voidInvoiceRecord(inv, reason, stockFlag, stamp);
+    }
+    if(row.type==='return' && row.returnId){
+      const ret = await dbGet('purchaseReturns', row.returnId);
+      if(ret){
+        ret.voided = true; ret.voidedAt = stamp.at; ret.voidedBy = stamp.by; ret.voidReason = reason;
+        if(stockFlag){
+          for(const it of (ret.items||[])){
+            const product = await dbGet('products', it.productId);
+            if(!product || !product.variants[it.variantIndex]) continue;
+            const v = product.variants[it.variantIndex], prev = Number(v.stock||0);
+            adjustFirmStock(v, product.firmId, it.qty); await dbPut('products', product);
+            await dbAdd('stockAdjustments', {productId:it.productId, variantIndex:it.variantIndex, productName:product.name,
+              variantLabel:[v.size,v.color].filter(Boolean).join('/') || v.sku || '', sku:v.sku||'', firmId:product.firmId,
+              delta:v.stock-prev, previousStock:prev, newStock:v.stock, reason:'Purchase return voided', note:(ret.returnNumber||'')+' — '+reason, date:stamp.at, user:stamp.by});
+          }
+        }
+        await dbPut('purchaseReturns', ret);
+      }
+    }
+    supAudit(work, 'void', ledgerTypeWord(row)+(row.invoiceNo?(' '+row.invoiceNo):'')+' '+row.amount+' — '+reason);
+    await dbPut('suppliers', work);
+    return true;
+  }
+  const inv = await dbGet('purchaseInvoices', invId);
+  if(!inv || inv.voided) return false;
+  await voidInvoiceRecord(inv, reason, stockFlag, stamp);
+  return true;
+}
+async function openSupplierAudit(supplierId){
+  const supplier = await dbGet('suppliers', supplierId);
+  const rows = (supplier.audit||[]).slice().reverse();
+  openModal({
+    title: fillTpl(t('led_auditTitle'),[supplier.name]),
+    wide: true,
+    bodyHTML: rows.length ? `<table><thead><tr><th>${t('led_entered')}</th><th>${t('led_by')}</th><th>${t('led_action')}</th><th>${t('led_details')}</th></tr></thead><tbody>${rows.map(a=>`<tr><td style="white-space:nowrap;font-size:12px;">${fmtStamp(a.at)}</td><td>${escapeHTML(a.by||'')}</td><td>${escapeHTML(a.action||'')}</td><td style="font-size:12.5px;">${escapeHTML(a.detail||'')}</td></tr>`).join('')}</tbody></table>` : `<div class="empty-state">${t('led_auditEmpty')}</div>`,
+    footerHTML: `<button class="btn btn-outline" onclick="viewSupplierLedger(${supplierId})">${t('print_closeBtn')}</button>`
+  });
 }
 function computeLedgerRows(supplier){
   // Sort by calendar day, then by original recording order within the same day — entries are
@@ -12689,15 +13223,16 @@ function buildVendorLedgerStatementDocument(supplier, rows, periodLabel){
   const totalCredit = Math.round(rows.reduce((s,r)=>s+r.credit,0)*100)/100;
   const closingBalance = rows.length ? rows[rows.length-1].balanceAfter : (supplier.balanceDue||0);
   const rowsHTML = rows.length ? rows.map(r=>`
-    <tr>
+    <tr${r.voided?' style="color:#888;"':''}>
       <td>${fmtDate(r.date)}</td>
-      <td>${r.type==='adjustment' ? 'Adjustment ('+(r.direction==='debit'?'Dr':'Cr')+')' : r.type.charAt(0).toUpperCase()+r.type.slice(1)}</td>
-      <td>${escapeHTML(r.note||'')}</td>
+      <td style="font-size:10.5px;">${r.at ? fmtStamp(r.at) : ''}${r.by?'<br>'+escapeHTML(r.by):''}</td>
+      <td>${r.type==='adjustment' ? 'Adjustment ('+(r.direction==='debit'?'Dr':'Cr')+')' : (r.type==='reversal' ? 'Reversal' : r.type.charAt(0).toUpperCase()+r.type.slice(1))}${r.voided?' (VOID)':''}</td>
+      <td>${r.voided?'<s>':''}${escapeHTML(r.note||'')}${r.voided?'</s>':''}${ledgerGstText(r)?' <b>['+escapeHTML(ledgerGstText(r))+']</b>':''}${r.billNo?' ['+escapeHTML(r.billNo)+']':''}${r.voided?'<br><i>'+escapeHTML(ledgerVoidLine(r))+'</i>':''}</td>
       <td class="num">${r.debit>0?fmtMoney(r.debit):''}</td>
       <td class="num">${r.credit>0?fmtMoney(r.credit):''}</td>
       <td class="num">${fmtMoney(r.balanceAfter)}</td>
     </tr>
-  `).join('') : `<tr><td colspan="6" class="muted">No entries in this period</td></tr>`;
+  `).join('') : `<tr><td colspan="7" class="muted">No entries in this period</td></tr>`;
   return `<!DOCTYPE html><html><head><title>${t('print_ledgerTitlePrefix')}${escapeHTML(supplier.name)}</title>
     <style>
       @page{ size:A4; margin:14mm; }
@@ -12724,7 +13259,7 @@ function buildVendorLedgerStatementDocument(supplier, rows, periodLabel){
       <div><strong>${t('print_generatedLabelColon')}</strong> ${fmtDate(new Date().toISOString())}</div>
     </div>
     <table>
-      <thead><tr><th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_note')}</th><th class="num">${t('th_debit')}</th><th class="num">${t('th_credit')}</th><th class="num">${t('th_balance')}</th></tr></thead>
+      <thead><tr><th>${t('th_date')}</th><th>${t('led_entered')} / ${t('led_by')}</th><th>${t('th_type')}</th><th>${t('led_details')}</th><th class="num">${t('th_debit')}</th><th class="num">${t('th_credit')}</th><th class="num">${t('th_balance')}</th></tr></thead>
       <tbody>${rowsHTML}</tbody>
     </table>
     <div class="totals">
@@ -12741,9 +13276,10 @@ function shareVendorLedgerOnWhatsApp(supplier, rows){
   openExternal(buildWhatsAppLink(supplier.phone, text), '_blank');
 }
 function exportVendorLedgerCSV(supplier, rows){
-  const lines = [toCSVRow(['Date','Type','Note','Debit','Credit','Balance'])];
+  const lines = [toCSVRow(['Date','Entered at','Entered by','Type','Invoice','Supplier bill no','GST','Note','Debit','Credit','Balance','Status','Void reason'])];
   rows.forEach(r=>{
-    lines.push(toCSVRow([fmtDate(r.date), r.type==='adjustment'?('adjustment-'+(r.direction||'')):r.type, r.note||'', r.debit||0, r.credit||0, r.balanceAfter]));
+    lines.push(toCSVRow([fmtDate(r.date), r.at ? new Date(r.at).toLocaleString(localeTag()) : '', r.by||'', r.type==='adjustment'?('adjustment-'+(r.direction||'')):r.type, r.invoiceNo||'', r.billNo||'', ledgerGstText(r), r.note||'', r.debit||0, r.credit||0, r.balanceAfter,
+      r.voided ? ('VOIDED '+(r.voidedAt?new Date(r.voidedAt).toLocaleString(localeTag()):'')+' by '+(r.voidedBy||'')) : (r.type==='reversal'?'reversal':''), r.voidReason||'']));
   });
   const blob = new Blob([lines.join('\r\n')], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
@@ -12783,19 +13319,18 @@ function openLedgerAdjustmentModal(supplierId){
         if(!note){ toast(t('toast_enterAdjustmentReason'),'error'); return; }
         requireOwnerApproval('Adding a manual ledger adjustment', async ()=>{
           const fresh = await dbGet('suppliers', supplierId);
-          fresh.ledger = fresh.ledger||[];
-          fresh.ledger.push({date, type:'adjustment', direction, amount, note});
           if(direction==='debit'){
-            fresh.balanceDue = Math.round(((fresh.balanceDue||0)+amount)*100)/100;
+            supPost(fresh, {date, type:'adjustment', direction, amount, note}, amount, 0);
           } else {
             const fromBalance = Math.min(amount, fresh.balanceDue||0);
-            const toAdvance = Math.round((amount-fromBalance)*100)/100;
-            fresh.balanceDue = Math.max(0, Math.round(((fresh.balanceDue||0)-fromBalance)*100)/100);
-            if(toAdvance>0) fresh.advanceBalance = Math.round(((fresh.advanceBalance||0)+toAdvance)*100)/100;
+            const toAdvance = r2m(amount-fromBalance);
+            supPost(fresh, {date, type:'adjustment', direction, amount, note}, -fromBalance, toAdvance);
           }
+          supAudit(fresh, 'adjustment', (direction==='debit'?'Dr ':'Cr ')+amount+' — '+note);
           await dbPut('suppliers', fresh);
           toast(t('toast_adjustmentRecorded'),'success');
           await viewSupplierLedger(supplierId);
+          refreshSupplierSurfaces();
         });
       });
     }
@@ -12804,7 +13339,9 @@ function openLedgerAdjustmentModal(supplierId){
 async function viewSupplierLedger(supplierId){
   const supplier = await dbGet('suppliers', supplierId);
   const allRows = computeLedgerRows(supplier);
-  const lifetimeBusiness = Math.round(allRows.filter(r=>r.type==='purchase').reduce((s,r)=>s+r.amount,0)*100)/100;
+  const lifetimeBusiness = Math.round(allRows.filter(r=>r.type==='purchase' && !r.voided).reduce((s,r)=>s+r.amount,0)*100)/100;
+  LEDGER_INV_MAP = {};
+  (await scopedGetAll('purchaseInvoices')).filter(i=>i.supplierId===supplierId).forEach(i=>{ LEDGER_INV_MAP[i.id] = i; });
 
   openModal({
     title:t('modal_ledgerPrefix')+supplier.name,
@@ -12822,6 +13359,7 @@ async function viewSupplierLedger(supplierId){
         <button class="btn btn-outline btn-sm" id="sp_printStatement">Print Statement</button>
         ${supplier.phone ? `<button class="btn btn-whatsapp btn-sm" id="sp_shareStatement">${iconSVG('whatsapp',14)} Share Statement</button>` : ''}
         <button class="btn btn-outline btn-sm" id="sp_exportCsv">${t('inv_exportCsvBtn')}</button>
+        <button class="btn btn-outline btn-sm" onclick="openSupplierAudit(${supplierId})">${t('led_auditBtn')}</button>
       </div>
       <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:flex-end;">
         <div class="col field" style="max-width:150px;margin-bottom:0;"><label style="font-size:11px;">${t('staff_fromLabel')}</label><input type="date" id="lf_from"></div>
@@ -12837,7 +13375,12 @@ async function viewSupplierLedger(supplierId){
             <option value="opening">Opening</option>
           </select>
         </div>
+        <div class="col field" style="max-width:150px;margin-bottom:0;">
+          <label style="font-size:11px;">${t('led_gstFilter')}</label>
+          <select id="lf_gst"><option value="all">${t('led_gstAll')}</option><option value="gst">${t('led_gstOnly')}</option><option value="none">${t('led_gstNone')}</option></select>
+        </div>
         <div class="col field" style="min-width:140px;margin-bottom:0;flex:1;"><label style="font-size:11px;">Search note</label><input type="text" id="lf_q" placeholder="e.g. invoice number"></div>
+        <label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:6px;"><input type="checkbox" id="lf_voided" checked style="width:auto;"> ${t('led_showVoided')}</label>
         <div class="col" style="flex:0 0 auto;display:flex;gap:6px;">
           <button type="button" class="btn btn-outline btn-sm" id="lf_thisMonth">${t('acct_thisMonthBtn')}</button>
           <button type="button" class="btn btn-outline btn-sm" id="lf_lastMonth">${t('acct_lastMonthBtn')}</button>
@@ -12845,7 +13388,7 @@ async function viewSupplierLedger(supplierId){
         </div>
       </div>
       <div style="max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:9px;">
-        <table><thead><tr><th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_note')}</th><th class="num">${t('th_debit')}</th><th class="num">${t('th_credit')}</th><th class="num">${t('th_balance')}</th></tr></thead><tbody id="ledgerRowsBody"></tbody></table>
+        <table><thead><tr><th>${t('th_date')}</th><th>${t('led_entered')} / ${t('led_by')}</th><th>${t('th_type')}</th><th>${t('led_details')}</th><th class="num">${t('th_debit')}</th><th class="num">${t('th_credit')}</th><th class="num">${t('th_balance')}</th><th></th></tr></thead><tbody id="ledgerRowsBody"></tbody></table>
       </div>
       <div id="ledgerTotalsWrap" style="margin-top:8px;font-size:12.5px;font-weight:600;text-align:right;"></div>
     `,
@@ -12859,26 +13402,32 @@ async function viewSupplierLedger(supplierId){
         const q = (document.getElementById('lf_q').value||'').trim().toLowerCase();
         const fromTs = from ? new Date(from+'T00:00:00').getTime() : null;
         const toTs = to ? new Date(to+'T23:59:59').getTime() : null;
+        const gstFilter = document.getElementById('lf_gst').value;
+        const showVoided = document.getElementById('lf_voided').checked;
         const filtered = allRows.filter(r=>{
           const ts = new Date(r.date).getTime();
           if(fromTs!=null && ts < fromTs) return false;
           if(toTs!=null && ts > toTs) return false;
-          if(typeFilter!=='all' && r.type!==typeFilter) return false;
-          if(q && !(r.note||'').toLowerCase().includes(q)) return false;
+          if(typeFilter!=='all' && r.type!==typeFilter && !(typeFilter==='payment' && false)) return false;
+          if(q && !((r.note||'')+' '+(r.billNo||'')+' '+(r.invoiceNo||'')).toLowerCase().includes(q)) return false;
+          if(!showVoided && (r.voided || r.type==='reversal')) return false;
+          if(gstFilter!=='all' && ledgerGstInfo(r).kind!==gstFilter) return false;
           return true;
         });
         lastFiltered = filtered;
         const body = document.getElementById('ledgerRowsBody');
         body.innerHTML = filtered.length ? filtered.map(r=>`
-          <tr>
-            <td>${fmtDate(r.date)}</td>
+          <tr${r.voided?' style="opacity:.75;"':''}>
+            <td style="white-space:nowrap;">${fmtDate(r.date)}</td>
+            <td style="font-size:11.5px;white-space:nowrap;">${r.at ? fmtStamp(r.at) : '<span class="muted">'+t('led_legacy')+'</span>'}${r.by?`<div class="muted">${escapeHTML(r.by)}</div>`:''}</td>
             <td>${ledgerTypeTag(r)}</td>
-            <td>${escapeHTML(r.note||'')}</td>
+            <td>${ledgerDetailsHTML(r)}</td>
             <td class="num">${r.debit>0?fmtMoney(r.debit):''}</td>
             <td class="num">${r.credit>0?fmtMoney(r.credit):''}</td>
             <td class="num" style="font-weight:600;">${fmtMoney(r.balanceAfter)}</td>
+            <td>${isVoidable(r) ? `<button class="btn btn-outline btn-sm" onclick="openVoidModal(${supplierId},'${r.entryId}')">${t('led_voidBtn')}</button>` : ''}</td>
           </tr>
-        `).join('') : `<tr><td colspan="6" class="muted" style="text-align:center;padding:16px;">No entries match this filter</td></tr>`;
+        `).join('') : `<tr><td colspan="8" class="muted" style="text-align:center;padding:16px;">No entries match this filter</td></tr>`;
         const totalDebit = Math.round(filtered.reduce((s,r)=>s+r.debit,0)*100)/100;
         const totalCredit = Math.round(filtered.reduce((s,r)=>s+r.credit,0)*100)/100;
         document.getElementById('ledgerTotalsWrap').innerHTML = filtered.length
@@ -12886,7 +13435,7 @@ async function viewSupplierLedger(supplierId){
           : '';
         return filtered;
       };
-      ['lf_from','lf_to','lf_type'].forEach(id=>document.getElementById(id).addEventListener('change', renderRows));
+      ['lf_from','lf_to','lf_type','lf_gst','lf_voided'].forEach(id=>document.getElementById(id).addEventListener('change', renderRows));
       document.getElementById('lf_q').addEventListener('input', renderRows);
       document.getElementById('lf_thisMonth').addEventListener('click', ()=>{
         const now = new Date();
@@ -12939,7 +13488,7 @@ async function viewSupplierLedger(supplierId){
 async function openVendorPaymentModal(supplierId, prefillInvoiceId, returnToLedger){
   const supplier = await dbGet('suppliers', supplierId);
   const allInvoices = await scopedGetAll('purchaseInvoices');
-  const openInvoices = allInvoices.filter(inv=>inv.supplierId===supplierId && (inv.status||'unpaid')!=='paid')
+  const openInvoices = allInvoices.filter(inv=>inv.supplierId===supplierId && !inv.voided && (inv.status||'unpaid')!=='paid')
     .sort((a,b)=>new Date(a.date)-new Date(b.date));
 
   const invoiceOptionsHTML = openInvoices.map(inv=>{
@@ -13003,46 +13552,41 @@ async function openVendorPaymentModal(supplierId, prefillInvoiceId, returnToLedg
         const refSuffix = reference ? ' (Ref: '+reference+')' : '';
 
         const fresh = await dbGet('suppliers', supplierId);
-        fresh.ledger = fresh.ledger||[];
+        const pStamp = stampNow();
 
         if(type==='invoice'){
           const invId = parseInt(document.getElementById('vp_invoice').value);
           if(!invId){ toast(t('toast_selectInvoice'),'error'); return; }
           const inv = await dbGet('purchaseInvoices', invId);
-          const outstanding = Math.round((inv.total-(inv.paid||0))*100)/100;
+          const outstanding = r2m(inv.total-(inv.paid||0));
           const applied = Math.min(amount, outstanding);
+          const row = supPost(fresh, {date, type:'payment', amount:applied, mode, reference, invoiceId:inv.id, invoiceNo:inv.invoiceNumber,
+            note: mode+' payment for '+inv.invoiceNumber+refSuffix+(note?' — '+note:'')}, -applied, 0);
           inv.payments = inv.payments||[];
-          inv.payments.push({date, amount:applied, mode, reference, note});
-          inv.paid = Math.round(((inv.paid||0)+applied)*100)/100;
+          inv.payments.push({entryId:row.entryId, at:pStamp.at, by:pStamp.by, date, amount:applied, mode, reference, note});
+          inv.paid = r2m((inv.paid||0)+applied);
           inv.status = inv.paid+0.01>=inv.total ? 'paid' : (inv.paid>0 ? 'partial' : 'unpaid');
           await dbPut('purchaseInvoices', inv);
-          fresh.balanceDue = Math.max(0, Math.round(((fresh.balanceDue||0)-applied)*100)/100);
-          fresh.ledger.push({date, type:'payment', amount:applied, mode, note: mode+' payment for '+inv.invoiceNumber+refSuffix+(note?' — '+note:'')});
           if(amount>applied){
-            const leftover = Math.round((amount-applied)*100)/100;
-            fresh.advanceBalance = Math.round(((fresh.advanceBalance||0)+leftover)*100)/100;
-            fresh.ledger.push({date, type:'payment', amount:leftover, mode, note: mode+' — extra beyond invoice due, kept as advance'+refSuffix});
+            const leftover = r2m(amount-applied);
+            supPost(fresh, {date, type:'payment', amount:leftover, mode, reference, source:'advance_extra', invoiceNo:inv.invoiceNumber,
+              note: mode+' — extra beyond invoice due, kept as advance'+refSuffix}, 0, leftover);
           }
         } else {
           const fromBalance = Math.min(amount, fresh.balanceDue||0);
-          const toAdvance = Math.round((amount-fromBalance)*100)/100;
-          if(fromBalance>0){
-            fresh.balanceDue = Math.max(0, Math.round(((fresh.balanceDue||0)-fromBalance)*100)/100);
-          }
-          if(toAdvance>0){
-            fresh.advanceBalance = Math.round(((fresh.advanceBalance||0)+toAdvance)*100)/100;
-          }
-          fresh.ledger.push({date, type:'payment', amount, mode, note: mode+' advance/on-account payment'+refSuffix+(note?' — '+note:'')});
+          const toAdvance = r2m(amount-fromBalance);
+          supPost(fresh, {date, type:'payment', amount, mode, reference, note: mode+' advance/on-account payment'+refSuffix+(note?' — '+note:'')}, -fromBalance, toAdvance);
         }
 
         await dbPut('suppliers', fresh);
+        toast(t('toast_paymentRecorded'),'success');        await dbPut('suppliers', fresh);
         toast(t('toast_paymentRecorded'),'success');
         if(returnToLedger){
           await viewSupplierLedger(supplierId);
+          refreshSupplierSurfaces();
         } else {
           closeModal();
-          if(REQ_STATE.subtab==='suppliers') await renderSuppliersTable();
-          else if(REQ_STATE.subtab==='pinvoices') await renderPurchaseInvoicesTable();
+          await refreshSupplierSurfaces();
         }
       });
     }
@@ -13141,11 +13685,10 @@ async function openPurchaseModal(presetProductId, presetVariantIndex, presetQty)
         if(supplierId){
           const supplier = await dbGet('suppliers', supplierId);
           supplierName = supplier.name;
-          supplier.balanceDue = (supplier.balanceDue||0) + due;
-          supplier.ledger = supplier.ledger||[];
-          supplier.ledger.push({date:new Date().toISOString(), type:'purchase', amount: total, note:`${qty} x ${product.name}${variantLabel?' ('+variantLabel+')':''}`});
+          const nowIso = new Date().toISOString();
+          supPost(supplier, {type:'purchase', date:nowIso, amount: total, gst:{mode:'none', amount:0}, note:`${qty} x ${product.name}${variantLabel?' ('+variantLabel+')':''}`}, total, 0);
           const puMode = (document.getElementById('pu_mode')||{}).value || 'Cash';
-          if(paidNow>0) supplier.ledger.push({date:new Date().toISOString(), type:'payment', amount: paidNow, mode:puMode, note:'Paid at purchase'});
+          if(paidNow>0) supPost(supplier, {type:'payment', date:nowIso, amount: paidNow, mode:puMode, note:'Paid at purchase'}, -paidNow, 0);
           await dbPut('suppliers', supplier);
         }
         await dbAdd('purchasePriceHistory', {
@@ -13155,8 +13698,7 @@ async function openPurchaseModal(presetProductId, presetVariantIndex, presetQty)
         closeModal();
         toast(t('toast_purchaseRecorded'),'success');
         await refreshLowStockBadge();
-        if(REQ_STATE.subtab==='reorder') await renderReorderSuggestions();
-        else if(REQ_STATE.subtab==='suppliers') await renderSuppliersTable();
+        await refreshSupplierSurfaces();
       });
     }
   });
@@ -13613,13 +14155,16 @@ async function renderTaxRateSummary(){
     const totalSalesTaxable = Math.round(salesRates.reduce((s,r)=>s+r.taxable,0)*100)/100;
     lastSalesRates = salesRates;
 
-    const filteredInv = invoices.filter(inv=>inRange(inv.date, from, to) && (inv.gstAmount||0)>0);
+    const filteredInv = invoices.filter(inv=>!inv.voided && inRange(inv.date, from, to) && (inv.gstAmount||0)>0);
     const purchMap = {};
     filteredInv.forEach(inv=>{
-      const rate = Number(inv.gstRate)||0;
-      if(!purchMap[rate]) purchMap[rate] = {rate, taxable:0, tax:0};
-      purchMap[rate].taxable += (inv.taxableValue||0);
-      purchMap[rate].tax += (inv.gstAmount||0);
+      const parts = (inv.gstSplits && inv.gstSplits.length) ? inv.gstSplits : [{rate:Number(inv.gstRate)||0, taxable:(inv.taxableValue||0), tax:(inv.gstAmount||0)}];
+      parts.forEach(sp=>{
+        const rate = Number(sp.rate)||0;
+        if(!purchMap[rate]) purchMap[rate] = {rate, taxable:0, tax:0};
+        purchMap[rate].taxable += (sp.taxable||0);
+        purchMap[rate].tax += (sp.tax||0);
+      });
     });
     const purchRates = Object.values(purchMap).map(r=>({rate:r.rate, taxable:Math.round(r.taxable*100)/100, tax:Math.round(r.tax*100)/100})).sort((a,b)=>a.rate-b.rate);
     lastPurchRates = purchRates;
@@ -13683,7 +14228,7 @@ async function renderGSTR3B(){
     outputTaxable = Math.round(outputTaxable*100)/100; outputCgst = Math.round(outputCgst*100)/100;
     outputSgst = Math.round(outputSgst*100)/100; outputTax = Math.round(outputTax*100)/100;
 
-    const filteredInv = invoices.filter(inv=>inRange(inv.date, from, to) && (inv.gstAmount||0)>0);
+    const filteredInv = invoices.filter(inv=>!inv.voided && inRange(inv.date, from, to) && (inv.gstAmount||0)>0);
     const inputTaxable = Math.round(filteredInv.reduce((s,inv)=>s+(inv.taxableValue||0),0)*100)/100;
     const inputTax = Math.round(filteredInv.reduce((s,inv)=>s+(inv.gstAmount||0),0)*100)/100;
     const inputCgst = Math.round(inputTax/2*100)/100;
@@ -14416,7 +14961,7 @@ async function collectMoneyMovements(from, to){
   });
 
   suppliers.forEach(sup=>{
-    (sup.ledger||[]).filter(l=>l.type==='payment' && inRange(l.date, from, to) && countsAsMoney(l)).forEach(l=>{
+    (sup.ledger||[]).filter(l=>l.type==='payment' && !l.voided && inRange(l.date, from, to) && countsAsMoney(l)).forEach(l=>{
       movements.push({date:l.date, type:'Vendor Payment', description:sup.name+' — '+(l.note||''),
         mode:l.mode||'', source:l.source||'', amountIn:0, amountOut:l.amount});
     });

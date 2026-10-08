@@ -10,7 +10,7 @@
   var IS_TAURI = !!(window.__TAURI__ && window.__TAURI__.core);
   window.IS_TAURI = IS_TAURI;
 
-  var APP_VERSION = '0.1.9';
+  var APP_VERSION = '0.1.11';
   var PRODUCT_ID = 'cloth-pos';
   var LICENSE_API_BASE = 'https://licensing-platform.pages.dev';
   var LICENSE_STORAGE_KEY = 'clothBillLicense_v1';
