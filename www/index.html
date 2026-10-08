@@ -906,7 +906,7 @@ const DEFAULT_SETTINGS = {
   logo:'',
   paperSize:'thermal80',
   upiId:'',
-  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2,   // barcode label printer
+  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0,   // barcode label printer
   billQrMode:'always',   // always | due | never
   loyaltyEnabled:false,
   loyaltyEarnPerRupee:100,
@@ -1211,6 +1211,16 @@ const I18N = {
     lb_across:'Labels across',
     lb_gapMm:'Gap (mm)',
     lb_hint:'Set these to your sticker size (common: 50 × 25). In the print window choose your label printer, set paper size to the same size, margins None and scale 100%. One label prints per page so each one lines up with its sticker.',
+    lb_preset:'Common size',
+    lb_custom:'Custom',
+    lb_shiftX:'Shift right (mm)',
+    lb_shiftY:'Shift down (mm)',
+    lb_rotate:'Rotate',
+    lb_previewLabel:'Preview',
+    lb_testBtn:'Print 1 test label',
+    lb_testLine1:'TEST LABEL',
+    lb_testLine2:'box = sticker edge',
+    lb_hintV2:'Pick your sticker size. In the print window choose your label printer, set paper to the same size, margins None, scale 100%. Press "Print 1 test label": the black box should sit exactly on the sticker edges. If it is off, use Shift; if it prints sideways, change Rotate.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1457,6 +1467,16 @@ const I18N = {
     lb_across:'एका ओळीत लेबल',
     lb_gapMm:'अंतर (मिमी)',
     lb_hint:'हे तुमच्या स्टिकरच्या आकारानुसार ठेवा (सामान्य: 50 × 25). प्रिंट विंडोमध्ये तुमचा लेबल प्रिंटर निवडा, कागदाचा आकार तोच ठेवा, मार्जिन None आणि स्केल 100%. प्रत्येक पानावर एकच लेबल छापले जाते, म्हणजे ते स्टिकरशी जुळते.',
+    lb_preset:'सामान्य आकार',
+    lb_custom:'कस्टम',
+    lb_shiftX:'उजवीकडे सरकवा (मिमी)',
+    lb_shiftY:'खाली सरकवा (मिमी)',
+    lb_rotate:'फिरवा',
+    lb_previewLabel:'पूर्वावलोकन',
+    lb_testBtn:'१ टेस्ट लेबल छापा',
+    lb_testLine1:'टेस्ट लेबल',
+    lb_testLine2:'चौकट = स्टिकरची कड',
+    lb_hintV2:'तुमच्या स्टिकरचा आकार निवडा. प्रिंट विंडोमध्ये तुमचा लेबल प्रिंटर निवडा, कागद तोच आकार, मार्जिन None, स्केल 100%. "१ टेस्ट लेबल छापा" दाबा: काळी चौकट स्टिकरच्या कडांवर बसली पाहिजे. नसल्यास सरकवा वापरा; आडवे छापल्यास फिरवा बदला.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -4101,15 +4121,30 @@ async function openBarcodeModal(productId){
     title: t('modal_barcodeLabelsPrefix') + escapeHTML(product.name),
     bodyHTML: `
       <div style="background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
-        <div class="row">
-          <div class="col field"><label>${t('lb_paperLabel')}</label>
+        <div class="row" style="flex-wrap:wrap;">
+          <div class="col field" style="min-width:190px;"><label>${t('lb_paperLabel')}</label>
             <select id="lb_paper"><option value="roll" ${labelConfig().paper==='roll'?'selected':''}>${t('lb_paperRoll')}</option><option value="a4" ${labelConfig().paper==='a4'?'selected':''}>${t('lb_paperA4')}</option></select></div>
-          <div class="col field"><label>${t('lb_widthMm')}</label><input id="lb_w" type="number" min="20" step="1" value="${labelConfig().w}"></div>
-          <div class="col field"><label>${t('lb_heightMm')}</label><input id="lb_h" type="number" min="15" step="1" value="${labelConfig().h}"></div>
-          <div class="col field"><label>${t('lb_across')}</label><input id="lb_cols" type="number" min="1" max="4" step="1" value="${labelConfig().cols}"></div>
-          <div class="col field"><label>${t('lb_gapMm')}</label><input id="lb_gap" type="number" min="0" step="0.5" value="${labelConfig().gap}"></div>
+          <div class="col field" style="min-width:120px;"><label>${t('lb_preset')}</label>
+            <select id="lb_preset"><option value="">${t('lb_custom')}</option>${LABEL_PRESETS.map(([k,w,h])=>`<option value="${k}" ${(labelConfig().w===w&&labelConfig().h===h)?'selected':''}>${w} × ${h} mm</option>`).join('')}</select></div>
+          <div class="col field" style="min-width:90px;"><label>${t('lb_widthMm')}</label><input id="lb_w" type="number" min="20" step="1" value="${labelConfig().w}"></div>
+          <div class="col field" style="min-width:90px;"><label>${t('lb_heightMm')}</label><input id="lb_h" type="number" min="15" step="1" value="${labelConfig().h}"></div>
         </div>
-        <p class="muted" style="font-size:11.5px;margin:0;">${t('lb_hint')}</p>
+        <div class="row" style="flex-wrap:wrap;">
+          <div class="col field" style="min-width:90px;"><label>${t('lb_across')}</label><input id="lb_cols" type="number" min="1" max="4" step="1" value="${labelConfig().cols}"></div>
+          <div class="col field" style="min-width:90px;"><label>${t('lb_gapMm')}</label><input id="lb_gap" type="number" min="0" step="0.5" value="${labelConfig().gap}"></div>
+          <div class="col field" style="min-width:100px;"><label>${t('lb_shiftX')}</label><input id="lb_offx" type="number" step="0.5" value="${labelConfig().offX}"></div>
+          <div class="col field" style="min-width:100px;"><label>${t('lb_shiftY')}</label><input id="lb_offy" type="number" step="0.5" value="${labelConfig().offY}"></div>
+          <div class="col field" style="min-width:90px;"><label>${t('lb_rotate')}</label>
+            <select id="lb_rot">${[0,90,180,270].map(r=>`<option value="${r}" ${labelConfig().rot===r?'selected':''}>${r}°</option>`).join('')}</select></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+          <div><div class="muted" style="font-size:11px;margin-bottom:3px;">${t('lb_previewLabel')}</div>
+            <div id="lb_previewWrap" style="background:#fff;border:1px solid var(--line);overflow:hidden;"><iframe id="lb_preview" style="border:0;display:block;transform-origin:0 0;background:#fff;"></iframe></div></div>
+          <div style="flex:1;min-width:200px;">
+            <button type="button" class="btn btn-outline btn-sm" id="lb_testBtn">${t('lb_testBtn')}</button>
+            <p class="muted" style="font-size:11.5px;margin:8px 0 0;">${t('lb_hintV2')}</p>
+          </div>
+        </div>
       </div>
       <p class="muted" style="font-size:12.5px;">${t('inv_barcodeModalHint')}</p>
       <div id="labelRowsWrap">${rowsHTML}</div>
@@ -4124,83 +4159,135 @@ async function openBarcodeModal(productId){
           LABEL_QTY[e.target.dataset.vi] = Math.max(1, parseInt(e.target.value)||1);
         });
       });
+      const refreshPreview = ()=>{
+        const cfg = readLabelCfgFromModal();
+        const v = (product.variants||[])[0] || {};
+        const items = [labelItemHTML(product, productId, v, 0)];
+        const parts = buildLabelPage(items, cfg);
+        const pageW = labelPageSize(cfg).w, pageH = labelPageSize(cfg).h;
+        const px = 3.7795, fr = document.getElementById('lb_preview');
+        const scale = Math.min(1.6, 250/(pageW*px));
+        fr.style.width = (pageW*px)+'px'; fr.style.height = (pageH*px)+'px';
+        fr.style.transform = 'scale('+scale+')';
+        const wrap = document.getElementById('lb_previewWrap');
+        wrap.style.width = (pageW*px*scale)+'px'; wrap.style.height = (pageH*px*scale)+'px';
+        fr.srcdoc = '<!DOCTYPE html><html><head><style>'+parts.style+' html,body{overflow:hidden}</style></head><body>'+parts.body+'</body></html>';
+      };
+      document.getElementById('lb_preset').addEventListener('change', e=>{
+        const hit = LABEL_PRESETS.find(x=>x[0]===e.target.value);
+        if(hit){ document.getElementById('lb_w').value = hit[1]; document.getElementById('lb_h').value = hit[2]; }
+        refreshPreview();
+      });
+      ['lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot'].forEach(id=>{
+        const el = document.getElementById(id);
+        el.addEventListener('input', ()=>{ if(id==='lb_w'||id==='lb_h') document.getElementById('lb_preset').value=''; refreshPreview(); });
+        el.addEventListener('change', refreshPreview);
+      });
+      refreshPreview();
+      const saveLabelCfg = async ()=>{
+        const c = readLabelCfgFromModal();
+        // Remember the label setup so it only has to be done once per printer.
+        await saveSettings({labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot});
+      };
+      document.getElementById('lb_testBtn').addEventListener('click', async ()=>{ await saveLabelCfg(); printTestLabel(); });
       document.getElementById('printLabelsBtn').addEventListener('click', async ()=>{
-        // Remember the label size so it only has to be set once per printer.
-        await saveSettings({
-          labelPaper: document.getElementById('lb_paper').value==='a4' ? 'a4' : 'roll',
-          labelWidthMm: Math.max(20, parseFloat(document.getElementById('lb_w').value)||50),
-          labelHeightMm: Math.max(15, parseFloat(document.getElementById('lb_h').value)||25),
-          labelCols: Math.min(4, Math.max(1, parseInt(document.getElementById('lb_cols').value)||1)),
-          labelGapMm: Math.max(0, parseFloat(document.getElementById('lb_gap').value)||0)
-        });
+        await saveLabelCfg();
         printBarcodeLabels(product, productId);
       });
     }
   });
 }
 
-// Label size for the barcode printer. Defaults match the common 50 x 25 mm roll labels.
-function labelConfig(){
-  const gapRaw = SETTINGS.labelGapMm;
+// ---- Barcode label printing -------------------------------------------------------
+// Every label printer behaves a little differently (paper size, feed direction, offset), so the
+// label setup is fully adjustable here: size presets, shift, rotation, a live preview and a test label.
+const LABEL_PRESETS = [['50x25',50,25],['38x25',38,25],['40x30',40,30],['50x30',50,30],['58x40',58,40],['75x50',75,50],['100x50',100,50],['100x150',100,150]];
+function labelConfig(src){
+  src = src || SETTINGS;
+  const num = (x, d)=>{ const n = Number(x); return (x==null || x==='' || isNaN(n)) ? d : n; };
+  const rot = [0,90,180,270].includes(Number(src.labelRot)) ? Number(src.labelRot) : 0;
   return {
-    paper: SETTINGS.labelPaper==='a4' ? 'a4' : 'roll',
-    w: Math.max(20, Number(SETTINGS.labelWidthMm)||50),
-    h: Math.max(15, Number(SETTINGS.labelHeightMm)||25),
-    cols: Math.min(4, Math.max(1, parseInt(SETTINGS.labelCols)||1)),
-    gap: (gapRaw==null || gapRaw==='' || isNaN(Number(gapRaw))) ? 2 : Math.max(0, Number(gapRaw))
+    paper: src.labelPaper==='a4' ? 'a4' : 'roll',
+    w: Math.max(20, num(src.labelWidthMm, 50) || 50),
+    h: Math.max(15, num(src.labelHeightMm, 25) || 25),
+    cols: (rot===90||rot===270) ? 1 : Math.min(4, Math.max(1, parseInt(src.labelCols)||1)),
+    gap: Math.max(0, num(src.labelGapMm, 2)),
+    offX: num(src.labelOffX, 0), offY: num(src.labelOffY, 0), rot
   };
+}
+function readLabelCfgFromModal(){
+  const g = id=>document.getElementById(id).value;
+  return labelConfig({labelPaper:g('lb_paper'), labelWidthMm:g('lb_w'), labelHeightMm:g('lb_h'), labelCols:g('lb_cols'), labelGapMm:g('lb_gap'), labelOffX:g('lb_offx'), labelOffY:g('lb_offy'), labelRot:g('lb_rot')});
+}
+// The physical page the printer receives (swapped when the label is fed sideways).
+function labelPageSize(cfg){
+  if(cfg.paper==='a4') return {w:210, h:297};
+  if(cfg.rot===90 || cfg.rot===270) return {w:cfg.h, h:cfg.w};
+  return {w: cfg.w*cfg.cols + cfg.gap*(cfg.cols-1), h: cfg.h};
+}
+function labelItemHTML(product, productId, v, i, extra){
+  const sku = v.sku || autoSKU(productId, i);
+  const label = [v.size,v.color].filter(Boolean).join(' / ');
+  const onSale = isVariantOnSale(v);
+  // Bars are stretched to the label width (never in height) so the quiet zone stays and the code scans.
+  const bars = renderBarcodeSVG(sku,{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
+  return `
+    <div class="lbl${extra||''}">
+      ${SETTINGS.name?`<div class="lbl-shop">${escapeHTML(SETTINGS.name)}</div>`:''}
+      ${bars}
+      <div class="lbl-name">${escapeHTML(product.name)}${label?(' — '+escapeHTML(label)):''}</div>
+      <div class="lbl-price">${onSale
+        ? `<span class="lbl-mrp">${fmtMoney(v.sellPrice)}</span> <span class="lbl-sale">${fmtMoney(variantSalePrice(v))}</span>`
+        : fmtMoney(v.sellPrice)}</div>
+    </div>`;
+}
+// CSS + markup for a roll of labels: each row of labels is exactly ONE page of the label's own
+// size, so the printer's gap sensor lines every page up with a physical sticker.
+function buildLabelPage(items, cfg){
+  const s = Math.min(cfg.w/50, cfg.h/25);            // scale text with the label size
+  const pt = n => (Math.round(n*s*10)/10)+'pt';
+  const pg = labelPageSize(cfg);
+  const bh = Math.round(cfg.h*0.34*10)/10;
+  const sideways = cfg.rot===90 || cfg.rot===270;
+  const move = `translate(${cfg.offX}mm,${cfg.offY}mm)`;
+  let place;
+  if(sideways){
+    place = cfg.rot===90 ? `${move} translate(${cfg.h}mm,0) rotate(90deg)` : `${move} translate(0,${cfg.w}mm) rotate(-90deg)`;
+  } else {
+    place = cfg.rot===180 ? `${move} rotate(180deg)` : move;
+  }
+  const style = `
+    @page{ size:${pg.w}mm ${pg.h}mm; margin:0; }
+    html,body{ margin:0; padding:0; width:${pg.w}mm; background:#fff; }
+    body{ font-family:Arial,Helvetica,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .prow{ position:relative; display:flex; gap:${cfg.gap}mm; width:${pg.w}mm; height:${pg.h-0.3}mm; break-after:page; page-break-after:always; }
+    .prow:last-child{ break-after:auto; page-break-after:auto; }
+    .lbl{ box-sizing:border-box; width:${cfg.w}mm; height:${cfg.h-0.3}mm; flex:none; padding:${(cfg.h*0.05).toFixed(1)}mm ${(cfg.w*0.05).toFixed(1)}mm; overflow:hidden;
+          display:flex; flex-direction:column; justify-content:center; align-items:stretch; text-align:center; gap:${(cfg.h*0.012).toFixed(2)}mm;
+          transform:${place}; transform-origin:${sideways?'0 0':'50% 50%'}; ${sideways?'position:absolute; left:0; top:0;':''} }
+    .lbl.test{ border:0.35mm solid #000; }
+    .lbl-shop{ font-size:${pt(6)}; letter-spacing:.2px; text-transform:uppercase; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.1; }
+    .lbl svg{ display:block; width:90%; height:${bh}mm; flex:none; margin:0 auto; }
+    .lbl-name{ font-size:${pt(7.5)}; font-weight:700; line-height:1.15; max-height:2.35em; overflow:hidden; }
+    .lbl-price{ font-size:${pt(9.5)}; font-weight:800; line-height:1.1; }
+    .lbl-mrp{ text-decoration:line-through; font-weight:400; font-size:${pt(7.5)}; margin-right:2px; }
+    .lbl-sale{ font-size:${pt(10)}; font-weight:800; }`;
+  const rows = [];
+  for(let i=0;i<items.length;i+=cfg.cols) rows.push(items.slice(i,i+cfg.cols).join(''));
+  return {style, body: rows.map(r=>`<div class="prow">${r}</div>`).join('')};
 }
 
 function printBarcodeLabels(product, productId){
   const cfg = labelConfig();
-  const roll = cfg.paper==='roll';
-  const s = Math.min(cfg.w/50, cfg.h/25);            // scale text with the label size
-  const pt = n => (Math.round(n*s*10)/10)+'pt';
   const items = [];
   (product.variants||[]).forEach((v,i)=>{
     const qty = LABEL_QTY[i] || 1;
-    const sku = v.sku || autoSKU(productId, i);
-    const label = [v.size,v.color].filter(Boolean).join(' / ');
-    const onSale = isVariantOnSale(v);
-    const salePrice = variantSalePrice(v);
-    // Bars are stretched to the label width (never in height) so the quiet zone stays and the code scans.
-    const bars = renderBarcodeSVG(sku,{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
-    for(let n=0;n<qty;n++){
-      items.push(`
-        <div class="lbl">
-          ${SETTINGS.name?`<div class="lbl-shop">${escapeHTML(SETTINGS.name)}</div>`:''}
-          ${bars}
-          <div class="lbl-name">${escapeHTML(product.name)}${label?(' — '+escapeHTML(label)):''}</div>
-          <div class="lbl-price">${onSale
-            ? `<span class="lbl-mrp">${fmtMoney(v.sellPrice)}</span> <span class="lbl-sale">${fmtMoney(salePrice)}</span>`
-            : fmtMoney(v.sellPrice)}</div>
-        </div>`);
-    }
+    for(let n=0;n<qty;n++) items.push(labelItemHTML(product, productId, v, i));
   });
-
   let style, body;
-  if(roll){
-    // Label printer: every row of labels is exactly ONE page of the label's own size, so the
-    // printer's gap sensor lines each page up with a physical label (no drifting / split labels).
-    const pageW = cfg.w*cfg.cols + cfg.gap*(cfg.cols-1);
-    const rows = [];
-    for(let i=0;i<items.length;i+=cfg.cols) rows.push(items.slice(i,i+cfg.cols).join(''));
-    const bh = Math.round(cfg.h*0.34*10)/10;
-    style = `
-      @page{ size:${pageW}mm ${cfg.h}mm; margin:0; }
-      html,body{ margin:0; padding:0; width:${pageW}mm; background:#fff; }
-      body{ font-family:Arial,Helvetica,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-      .prow{ display:flex; gap:${cfg.gap}mm; width:${pageW}mm; height:${cfg.h-0.3}mm; overflow:hidden; break-after:page; page-break-after:always; }
-      .prow:last-child{ break-after:auto; page-break-after:auto; }
-      .lbl{ box-sizing:border-box; width:${cfg.w}mm; height:100%; padding:${(cfg.h*0.05).toFixed(1)}mm ${(cfg.w*0.05).toFixed(1)}mm; overflow:hidden;
-            display:flex; flex-direction:column; justify-content:center; align-items:stretch; text-align:center; gap:${(cfg.h*0.012).toFixed(2)}mm; }
-      .lbl-shop{ font-size:${pt(6)}; letter-spacing:.2px; text-transform:uppercase; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.1; }
-      .lbl svg{ display:block; width:90%; height:${bh}mm; flex:none; margin:0 auto; }
-      .lbl-name{ font-size:${pt(7.5)}; font-weight:700; line-height:1.15; max-height:2.35em; overflow:hidden; }
-      .lbl-price{ font-size:${pt(9.5)}; font-weight:800; line-height:1.1; }
-      .lbl-mrp{ text-decoration:line-through; font-weight:400; font-size:${pt(7.5)}; margin-right:2px; }
-      .lbl-sale{ font-size:${pt(10)}; font-weight:800; }`;
-    body = rows.map(r=>`<div class="prow">${r}</div>`).join('');
+  if(cfg.paper==='roll'){
+    const parts = buildLabelPage(items, cfg);
+    style = parts.style; body = parts.body;
   } else {
     style = `
       @page{ margin:8mm; }
@@ -4216,7 +4303,7 @@ function printBarcodeLabels(product, productId){
       .lbl-sale{ font-size:12px; font-weight:800; }`;
     body = `<div class="sheet">${items.join('')}</div>`;
   }
-
+  
   const win = openPrintWindow();
   win.document.write(`
     <!DOCTYPE html><html><head><title>${t('inv_barcodeLabelsPageTitle')}</title>
@@ -4226,6 +4313,17 @@ function printBarcodeLabels(product, productId){
       <script>window.onload = ()=>{ window.print(); }<\/script>
     </body></html>
   `);
+  win.document.close();
+}
+
+// One outlined test label: shows exactly where the sticker edges fall, so the shift/size can be tuned.
+function printTestLabel(){
+  const cfg = labelConfig();
+  const bars = renderBarcodeSVG('TEST-123',{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
+  const item = `<div class="lbl test"><div class="lbl-shop">${t('lb_testLine1')}</div>${bars}<div class="lbl-name">${cfg.w} × ${cfg.h} mm</div><div class="lbl-price">${t('lb_testLine2')}</div></div>`;
+  const parts = buildLabelPage([item], cfg);
+  const win = openPrintWindow();
+  win.document.write(`<!DOCTYPE html><html><head><title>Test label</title><style>${parts.style}</style></head><body>${parts.body}<script>window.onload = ()=>{ window.print(); }<\/script></body></html>`);
   win.document.close();
 }
 </script>
