@@ -4400,7 +4400,7 @@ function printBarcodeLabels(product, productId){
     body = `<div class="sheet">${items.join('')}</div>`;
   }
   
-  const win = openPrintWindow();
+  const win = (window.openLabelPrintWindow||openPrintWindow)();
   win.document.write(`
     <!DOCTYPE html><html><head><title>${t('inv_barcodeLabelsPageTitle')}</title>
     <style>${style}</style>
@@ -4418,7 +4418,7 @@ function printTestLabel(){
   const bars = renderBarcodeSVG('TEST-123',{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
   const item = `<div class="lbl test"><div class="lbl-shop">${t('lb_testLine1')}</div>${bars}<div class="lbl-name">${cfg.w} × ${cfg.h} mm</div><div class="lbl-price">${t('lb_testLine2')}</div></div>`;
   const parts = buildLabelPage([item], cfg);
-  const win = openPrintWindow();
+  const win = (window.openLabelPrintWindow||openPrintWindow)();
   win.document.write(`<!DOCTYPE html><html><head><title>Test label</title><style>${parts.style}</style></head><body>${parts.body}<script>window.onload = ()=>{ window.print(); }<\/script></body></html>`);
   win.document.close();
 }

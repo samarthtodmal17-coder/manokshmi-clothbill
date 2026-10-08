@@ -10,7 +10,7 @@
   var IS_TAURI = !!(window.__TAURI__ && window.__TAURI__.core);
   window.IS_TAURI = IS_TAURI;
 
-  var APP_VERSION = '0.1.7';
+  var APP_VERSION = '0.1.8';
   var PRODUCT_ID = 'cloth-pos';
   var LICENSE_API_BASE = 'https://licensing-platform.pages.dev';
   var LICENSE_STORAGE_KEY = 'clothBillLicense_v1';
@@ -65,6 +65,89 @@
           catch(e){ plog('print failed: ' + e); msg('Could not open the print dialog', 'error'); }
         });
       }
+    };
+  };
+
+  /* ---------- barcode-label printing ----------
+   * (bills keep using openPrintWindow below.) window.open() is blocked inside Tauri, and printing from a hidden iframe makes WebView2 print the
+   * WHOLE APP window (wrong page, landscape, app title + "tauri.localhost" in the header). So the page
+   * to print is placed in an isolated (shadow-DOM) block inside the main document, everything else is
+   * hidden for print, and the page margins are set to 0 (which also removes the browser's header/footer;
+   * the real margins become padding inside the page). */
+  function splitPrintDoc(html){
+    var styles = '', title = '';
+    var m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
+    if(m) title = m[1].replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").trim();
+    html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(_, css){ styles += css + '\n'; return ''; });
+    var bm = /<body[^>]*>([\s\S]*)<\/body>/i.exec(html);
+    var body = bm ? bm[1] : html.replace(/<head[\s\S]*?<\/head>/i, '').replace(/<\/?(html|body)[^>]*>/gi, '');
+    var autoPrint = /window\.print\s*\(/.test(body);
+    body = body.replace(/<script[\s\S]*?<\/script>/gi, '');
+    // @page rules (also inside @media print) become global; their margin turns into padding.
+    var size = '', margin = '';
+    styles = styles.replace(/@page\s*\{([^}]*)\}/gi, function(_, inner){
+      var s = /size\s*:\s*([^;}]+)/i.exec(inner), mg = /margin\s*:\s*([^;}]+)/i.exec(inner);
+      if(s) size = s[1].trim();
+      if(mg) margin = mg[1].trim();
+      return '';
+    });
+    // html / body selectors do not exist inside the isolated block: point them at its wrapper.
+    styles = styles.replace(/([^{}]+)\{/g, function(all, sel){
+      if(sel.trim().charAt(0) === '@') return all;
+      return sel.replace(/\bhtml\b/g, '.__b').replace(/\bbody\b/g, '.__b') + '{';
+    });
+    return {title: title, styles: styles, body: body, size: size || 'portrait', margin: margin || '10mm', autoPrint: autoPrint};
+  }
+  function cleanupPrint(){
+    var r = document.getElementById('__printRoot'); if(r) r.remove();
+    var s = document.getElementById('__printStyle'); if(s) s.remove();
+    if(window.__printSavedTitle != null){ document.title = window.__printSavedTitle; window.__printSavedTitle = null; }
+  }
+  window.openLabelPrintWindow = function(features){
+    if(!IS_TAURI) return window.open('', '_blank', features);
+    var buf = '', prepared = null, autoPrint = false;
+    function render(){
+      cleanupPrint();
+      var d = splitPrintDoc(buf);
+      autoPrint = d.autoPrint;
+      var gs = document.createElement('style');
+      gs.id = '__printStyle';
+      gs.textContent =
+        '#__printRoot{display:none;}' +
+        '@page{size:' + d.size + ';margin:0;}' +
+        '@media print{' +
+          'html,body{height:auto!important;min-height:0!important;overflow:visible!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;}' +
+          'body>*:not(#__printRoot){display:none!important;}' +
+          '#__printRoot{display:block!important;width:100%;}' +
+        '}';
+      document.head.appendChild(gs);
+      var root = document.createElement('div');
+      root.id = '__printRoot';
+      var sh = root.attachShadow({mode: 'open'});
+      sh.innerHTML =
+        '<style>.__pg{box-sizing:border-box;padding:' + d.margin + ';font:16px/normal Arial,sans-serif;color:#000;text-align:left;font-weight:400;}' +
+        d.styles + '</style><div class="__pg"><div class="__b">' + d.body + '</div></div>';
+      document.body.appendChild(root);
+      prepared = d;
+    }
+    function doPrint(){
+      if(!prepared) render();
+      var imgs = Array.prototype.slice.call(document.getElementById('__printRoot').shadowRoot.querySelectorAll('img'));
+      var waits = imgs.filter(function(i){ return !i.complete; }).map(function(i){ return new Promise(function(r){ i.onload = i.onerror = r; }); });
+      Promise.all(waits).then(function(){ return sleep(200); }).then(function(){
+        window.__printSavedTitle = document.title;
+        document.title = prepared.title || document.title;
+        var done = function(){ window.removeEventListener('afterprint', done); cleanupPrint(); };
+        window.addEventListener('afterprint', done);
+        try{ window.print(); }
+        catch(e){ plog('print failed: ' + e); msg('Could not open the print dialog', 'error'); done(); }
+      });
+    }
+    return {
+      document: { write: function(s){ buf += s; }, close: function(){ render(); if(autoPrint) setTimeout(doPrint, 50); } },
+      focus: function(){},
+      close: function(){},
+      print: function(){ if(!autoPrint) doPrint(); }
     };
   };
 
