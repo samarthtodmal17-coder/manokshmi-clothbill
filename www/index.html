@@ -1221,6 +1221,18 @@ const I18N = {
     lb_testLine1:'TEST LABEL',
     lb_testLine2:'box = sticker edge',
     lb_hintV2:'Pick your sticker size. In the print window choose your label printer, set paper to the same size, margins None, scale 100%. Press "Print 1 test label": the black box should sit exactly on the sticker edges. If it is off, use Shift; if it prints sideways, change Rotate.',
+    pur_outstandingTag:'owed {0}',
+    pur_sumTitle:'Bill for this stock',
+    pur_sumSubtotal:'Stock value',
+    pur_sumGst:'GST @{0}%',
+    pur_sumTotal:'Total bill',
+    pur_sumPaid:'Paid now',
+    pur_sumThisDue:'Unpaid on this bill',
+    pur_sumEarlier:'Earlier outstanding with {0}',
+    pur_sumNewDue:'Total you will owe {0}',
+    pur_sumNoStock:'Increase the stock to see this bill.',
+    pur_sumNoCost:'Enter the cost price to calculate the bill.',
+    pur_payFull:'Paid in full',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1477,6 +1489,18 @@ const I18N = {
     lb_testLine1:'टेस्ट लेबल',
     lb_testLine2:'चौकट = स्टिकरची कड',
     lb_hintV2:'तुमच्या स्टिकरचा आकार निवडा. प्रिंट विंडोमध्ये तुमचा लेबल प्रिंटर निवडा, कागद तोच आकार, मार्जिन None, स्केल 100%. "१ टेस्ट लेबल छापा" दाबा: काळी चौकट स्टिकरच्या कडांवर बसली पाहिजे. नसल्यास सरकवा वापरा; आडवे छापल्यास फिरवा बदला.',
+    pur_outstandingTag:'देणे {0}',
+    pur_sumTitle:'या स्टॉकचे बिल',
+    pur_sumSubtotal:'स्टॉकची किंमत',
+    pur_sumGst:'GST @{0}%',
+    pur_sumTotal:'एकूण बिल',
+    pur_sumPaid:'आता दिले',
+    pur_sumThisDue:'या बिलावर बाकी',
+    pur_sumEarlier:'{0} कडे आधीची बाकी',
+    pur_sumNewDue:'{0} ला एकूण द्यायचे',
+    pur_sumNoStock:'हे बिल पाहण्यासाठी स्टॉक वाढवा.',
+    pur_sumNoCost:'बिल काढण्यासाठी खरेदी किंमत भरा.',
+    pur_payFull:'पूर्ण दिले',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -3790,6 +3814,8 @@ async function openProductModalCore(product, productId, title){
   // product (product===null) gets stamped with the current working firm on save instead.
   CURRENT_PRODUCT_FIRM_ID = (product && product.firmId!=null) ? product.firmId : null;
   const suppliers = (await scopedGetAll('suppliers')).filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  PUR_SUP_MAP = {}; suppliers.forEach(s=>{ PUR_SUP_MAP[s.id] = s; });
+  PF_OLD_PRODUCT = productId ? product : null;
 
   const bodyHTML = `
     <div class="row">
@@ -3828,7 +3854,7 @@ async function openProductModalCore(product, productId, title){
       <label>${t('prod_preferredSupplierLabel')}</label>
       <select id="pf_supplier">
         <option value="">${t('prod_noneOption')}</option>
-        ${suppliers.map(s=>`<option value="${s.id}" ${product&&product.preferredSupplierId===s.id?'selected':''}>${escapeHTML(s.name)}</option>`).join('')}
+        ${suppliers.map(s=>`<option value="${s.id}" ${product&&product.preferredSupplierId===s.id?'selected':''}>${supplierOptionLabel(s)}</option>`).join('')}
       </select>
     </div>
     <div id="pf_purchaseBox" style="display:${product&&product.preferredSupplierId?'':'none'};background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
@@ -3837,9 +3863,12 @@ async function openProductModalCore(product, productId, title){
         <div class="col field"><label>${t('pu_gstModeLabel')}</label>
           <select id="pf_purGst"><option value="none">${t('pu_gstModeNone')}</option><option value="report">${t('prod_purGstReportOpt')}</option></select>
         </div>
-        <div class="col field"><label>${t('prod_purPaidNow')}</label><input id="pf_purPaid" type="number" min="0" step="0.01" value="0"></div>
+        <div class="col field"><label>${t('prod_purPaidNow')}</label>
+          <div style="display:flex;gap:6px;"><input id="pf_purPaid" type="number" min="0" step="0.01" value="0" style="min-width:0;"><button type="button" class="btn btn-outline btn-sm" id="pf_payFull" style="white-space:nowrap;">${t('pur_payFull')}</button></div>
+        </div>
       </div>
-      <p class="muted" style="font-size:11.5px;margin:0;">${t('prod_recordPurchaseHint')}</p>
+      <div id="pf_purSummary" data-total="0"></div>
+      <p class="muted" style="font-size:11.5px;margin:8px 0 0;">${t('prod_recordPurchaseHint')}</p>
     </div>
     <div class="field">
       <label>${t('prod_photoLabel')}</label>
@@ -3928,10 +3957,75 @@ async function openProductModalCore(product, productId, title){
       });
       ['pf_tax','pf_taxmode'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', updateProductTaxPreview); el.addEventListener('change', updateProductTaxPreview); });
       updateProductTaxPreview();
-      document.getElementById('pf_supplier').addEventListener('change', ()=>{ document.getElementById('pf_purchaseBox').style.display = document.getElementById('pf_supplier').value ? '' : 'none'; });
+      document.getElementById('pf_supplier').addEventListener('change', ()=>{ document.getElementById('pf_purchaseBox').style.display = document.getElementById('pf_supplier').value ? '' : 'none'; updatePfPurchaseSummary(); });
+      ['pf_tax','pf_purGst','pf_purPaid','pf_recordPurchase'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', updatePfPurchaseSummary); el.addEventListener('change', updatePfPurchaseSummary); });
+      document.getElementById('pf_payFull').addEventListener('click', ()=>{ document.getElementById('pf_purPaid').value = document.getElementById('pf_purSummary').dataset.total || 0; updatePfPurchaseSummary(); });
+      updatePfPurchaseSummary();
       document.getElementById('saveProductBtn').addEventListener('click', ()=>saveProductFromModal(productId));
     }
   });
+}
+
+// ---- Live "bill for this stock" shown inside the stock forms when a vendor is chosen ----
+let PUR_SUP_MAP = {};   // supplier id -> supplier (fresh when the form opened)
+let PF_OLD_PRODUCT = null;
+function supplierOptionLabel(s){
+  const due = Number(s.balanceDue)||0;
+  return escapeHTML(s.name) + (due>0.005 ? ' — ' + escapeHTML(fillTpl(t('pur_outstandingTag'),[fmtMoney(due)])) : '');
+}
+// px: 'pf' (product form) or 'sa' (adjust stock). lines: [{label, qty, rate}]
+function purchaseSummaryRender(px, lines, gstRate){
+  const box = document.getElementById(px+'_purSummary');
+  if(!box) return;
+  const ids = px==='pf' ? {sup:'pf_supplier', gst:'pf_purGst', paid:'pf_purPaid'} : {sup:'sa_vendor', gst:'sa_gst', paid:'sa_paid'};
+  const supSel = document.getElementById(ids.sup);
+  const sid = supSel && supSel.value ? parseInt(supSel.value) : null;
+  const sup = sid ? PUR_SUP_MAP[sid] : null;
+  if(!sup){ box.innerHTML = ''; box.dataset.total = '0'; return; }
+  const r2 = x=>Math.round(x*100)/100;
+  const row = (l, v, strong, color)=>`<div style="display:flex;justify-content:space-between;gap:10px;${strong?'font-weight:700;':''}${color?'color:'+color+';':''}"><span>${l}</span><span style="white-space:nowrap;">${v}</span></div>`;
+  const prevDue = r2(Number(sup.balanceDue)||0);
+  const subtotal = r2(lines.reduce((s,l)=>s+l.qty*l.rate,0));
+  const rate = document.getElementById(ids.gst).value==='report' ? Math.max(0, Number(gstRate)||0) : 0;
+  const gst = r2(subtotal*rate/100);
+  const total = r2(subtotal+gst);
+  box.dataset.total = String(total);
+  const paid = r2(Math.min(total, Math.max(0, parseFloat(document.getElementById(ids.paid).value)||0)));
+  const thisDue = r2(total-paid);
+  const newDue = r2(prevDue+thisDue);
+  let h = `<div style="border-top:1px dashed var(--line);margin-top:8px;padding-top:8px;font-size:12.5px;display:flex;flex-direction:column;gap:3px;">`;
+  h += `<div style="font-weight:700;font-size:12px;letter-spacing:.3px;color:var(--ink-soft);text-transform:uppercase;">${t('pur_sumTitle')}</div>`;
+  if(!lines.length){
+    h += `<div class="muted">${t('pur_sumNoStock')}</div>`;
+  } else {
+    lines.forEach(l=>{ h += row(`${escapeHTML(l.label)}: +${l.qty} × ${fmtMoney(l.rate)}`, fmtMoney(l.qty*l.rate)); });
+    if(lines.some(l=>!(l.rate>0))) h += `<div style="color:var(--red);">${t('pur_sumNoCost')}</div>`;
+    h += row(t('pur_sumSubtotal'), fmtMoney(subtotal));
+    if(rate>0) h += row(fillTpl(t('pur_sumGst'),[rate]), fmtMoney(gst));
+    h += row(t('pur_sumTotal'), fmtMoney(total), true);
+    h += row(t('pur_sumPaid'), '− '+fmtMoney(paid));
+    h += row(t('pur_sumThisDue'), fmtMoney(thisDue));
+  }
+  h += row(escapeHTML(fillTpl(t('pur_sumEarlier'),[sup.name])), fmtMoney(prevDue));
+  h += `<div style="border-top:1px solid var(--line);margin-top:3px;padding-top:4px;">${row(escapeHTML(fillTpl(t('pur_sumNewDue'),[sup.name])), fmtMoney(newDue), true, newDue>0.005?'var(--red)':'var(--green)')}</div>`;
+  h += `</div>`;
+  box.innerHTML = h;
+}
+// Product form: added units = new stock minus what the saved product had (matched by SKU, same as saving does).
+function pfPurchaseLines(){
+  const lines = [];
+  (typeof VARIANT_ROWS!=='undefined' ? VARIANT_ROWS : []).forEach((v,i)=>{
+    const prev = PF_OLD_PRODUCT ? (PF_OLD_PRODUCT.variants||[]).find(x=>x.sku && x.sku===(v.sku||'').trim()) : null;
+    const added = (parseInt(v.stock)||0) - (prev ? Number(prev.stock||0) : 0);
+    if(added>0) lines.push({label:[v.size,v.color].filter(Boolean).join('/') || (v.sku||'').trim() || (t('inv_variantFallbackPrefix')+(i+1)), qty:added, rate:parseFloat(v.costPrice)||0});
+  });
+  return lines;
+}
+function updatePfPurchaseSummary(){
+  if(!document.getElementById('pf_purSummary')) return;
+  const rec = document.getElementById('pf_recordPurchase');
+  const lines = (rec && !rec.checked) ? [] : pfPurchaseLines();
+  purchaseSummaryRender('pf', lines, parseFloat(document.getElementById('pf_tax').value)||0);
 }
 // Fills {0},{1}… in a translated sentence (every occurrence, not just the first).
 function fillTpl(str, args){ return args.reduce((s,a,i)=>s.split('{'+i+'}').join(String(a)), str); }
@@ -3977,8 +4071,10 @@ function renderVariantRows(){
       const f = e.target.dataset.f;
       VARIANT_ROWS[i][f] = e.target.value;
       if(f==='sellPrice') updateProductTaxPreview();
+      updatePfPurchaseSummary();
     });
   });
+  updatePfPurchaseSummary();
 }
 function removeVariantRow(i){
   VARIANT_ROWS.splice(i,1);
@@ -4339,6 +4435,7 @@ async function openStockAdjustModal(productId){
     return `<option value="${i}">${escapeHTML(label)} — ${t('sa_skuPrefix')}${escapeHTML(v.sku||'-')} ${t('sa_currentPrefix')}${v.stock})</option>`;
   }).join('');
   const saSuppliers = (await scopedGetAll('suppliers')).sort((a,b)=>a.name.localeCompare(b.name));
+  PUR_SUP_MAP = {}; saSuppliers.forEach(s=>{ PUR_SUP_MAP[s.id] = s; });
   const firmNote = multiFirmInUse() ? `<p class="muted" style="font-size:12px;margin:-4px 0 8px;">${t('sa_adjustingPrefix')}${escapeHTML((firmById(product.firmId)||{}).name||'—')}'s stock of this product.</p>` : '';
 
   openModal({
@@ -4366,7 +4463,7 @@ async function openStockAdjustModal(productId){
         <div class="field"><label>${t('sa_vendorLabel')}</label>
           <select id="sa_vendor">
             <option value="">${t('sa_noVendorOption')}</option>
-            ${saSuppliers.map(s=>`<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('')}
+            ${saSuppliers.map(s=>`<option value="${s.id}">${supplierOptionLabel(s)}</option>`).join('')}
           </select>
         </div>
         <div id="sa_vendorExtra" style="display:none;">
@@ -4375,10 +4472,13 @@ async function openStockAdjustModal(productId){
             <div class="col field"><label>${t('pu_gstModeLabel')}</label>
               <select id="sa_gst"><option value="none">${t('pu_gstModeNone')}</option><option value="report">${t('prod_purGstReportOpt')}</option></select>
             </div>
-            <div class="col field"><label>${t('prod_purPaidNow')}</label><input id="sa_paid" type="number" min="0" step="0.01" value="0"></div>
+            <div class="col field"><label>${t('prod_purPaidNow')}</label>
+              <div style="display:flex;gap:6px;"><input id="sa_paid" type="number" min="0" step="0.01" value="0" style="min-width:0;"><button type="button" class="btn btn-outline btn-sm" id="sa_payFull" style="white-space:nowrap;">${t('pur_payFull')}</button></div>
+            </div>
           </div>
-          <p class="muted" style="font-size:11.5px;margin:0;">${t('sa_vendorHint')}</p>
         </div>
+        <div id="sa_purSummary" data-total="0"></div>
+        <p class="muted" style="font-size:11.5px;margin:8px 0 0;">${t('sa_vendorHint')}</p>
       </div>
       <div class="field">
         <label>${t('sa_reasonLabel')}</label>
@@ -4410,6 +4510,14 @@ async function openStockAdjustModal(productId){
       };
       ['sa_variant','sa_qty','sa_direction'].forEach(id=>document.getElementById(id).addEventListener('input', recalc));
       recalc();
+      const saSummary = ()=>{
+        const vi = parseInt(document.getElementById('sa_variant').value);
+        const v = product.variants[vi] || {};
+        const adding = document.getElementById('sa_direction').value==='add';
+        const qty = Math.max(1, parseInt(document.getElementById('sa_qty').value)||1);
+        const label = [v.size,v.color].filter(Boolean).join('/') || v.sku || (t('inv_variantFallbackPrefix')+(vi+1));
+        purchaseSummaryRender('sa', adding ? [{label, qty, rate:parseFloat(document.getElementById('sa_cost').value)||0}] : [], product.taxRate);
+      };
       // Vendor purchase fields only make sense when stock is being ADDED.
       const syncVendorBox = ()=>{
         const adding = document.getElementById('sa_direction').value==='add';
@@ -4424,7 +4532,10 @@ async function openStockAdjustModal(productId){
           const costEl = document.getElementById('sa_cost');
           if(!costEl.dataset.touched) costEl.value = (v && v.costPrice) || 0;
         }
+        saSummary();
       };
+      ['sa_cost','sa_qty','sa_paid','sa_gst','sa_direction','sa_vendor','sa_variant'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', saSummary); el.addEventListener('change', saSummary); });
+      document.getElementById('sa_payFull').addEventListener('click', ()=>{ document.getElementById('sa_paid').value = document.getElementById('sa_purSummary').dataset.total || 0; saSummary(); });
       document.getElementById('sa_cost').addEventListener('input', e=>{ e.target.dataset.touched = '1'; });
       document.getElementById('sa_variant').addEventListener('change', ()=>{ delete document.getElementById('sa_cost').dataset.touched; syncVendorBox(); });
       ['sa_direction','sa_vendor'].forEach(id=>document.getElementById(id).addEventListener('change', syncVendorBox));
