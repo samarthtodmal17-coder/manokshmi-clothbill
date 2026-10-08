@@ -1309,6 +1309,8 @@ const I18N = {
     toast_voidAlready:'This entry is already voided',
     led_reasonLine:'Voided {0} by {1}: {2}',
     led_csvStatus:'Status',
+    lb_inStock:'In stock',
+    lb_noCopies:'Nothing to print: every size has 0 copies. Type how many labels you want.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1653,6 +1655,8 @@ const I18N = {
     toast_voidAlready:'ही नोंद आधीच रद्द केली आहे',
     led_reasonLine:'{0} रोजी {1} यांनी रद्द केले: {2}',
     led_csvStatus:'स्थिती',
+    lb_inStock:'स्टॉकमध्ये',
+    lb_noCopies:'छापण्यासाठी काही नाही: प्रत्येक साइजसाठी 0 प्रती आहेत. किती लेबल हवेत ते टाका.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -4398,7 +4402,7 @@ async function openBarcodeModal(productId){
   const product = await dbGet('products', productId);
   if(!product) return;
   LABEL_QTY = {};
-  (product.variants||[]).forEach((v,i)=>{ LABEL_QTY[i] = 1; });
+  (product.variants||[]).forEach((v,i)=>{ LABEL_QTY[i] = Math.max(0, Math.floor(sellableStock(v))); });   // one label per piece in stock, by default
 
   const rowsHTML = (product.variants||[]).map((v,i)=>{
     const label = [v.size,v.color].filter(Boolean).join(' / ') || t('inv_defaultVariant');
@@ -4408,11 +4412,12 @@ async function openBarcodeModal(productId){
         <div class="col" style="flex:0 0 auto;">${renderBarcodeSVG(sku,{barWidth:1.6,height:36})}</div>
         <div class="col" style="min-width:120px;">
           <strong style="font-size:12.5px;">${escapeHTML(label)}</strong><br>
-          <span class="muted" style="font-size:11px;">SKU: ${escapeHTML(sku)}</span>
+          <span class="muted" style="font-size:11px;">SKU: ${escapeHTML(sku)}</span><br>
+          <span class="muted" style="font-size:11px;">${t('lb_inStock')}: ${Math.max(0, Math.floor(sellableStock(v)))}</span>
         </div>
         <div class="col field" style="max-width:90px;">
           <label style="font-size:11px;">${t('inv_copiesLabel')}</label>
-          <input type="number" min="1" value="1" data-vi="${i}" class="labelQtyInput">
+          <input type="number" min="0" value="${LABEL_QTY[i]}" data-vi="${i}" class="labelQtyInput">
         </div>
       </div>
     `;
@@ -4474,7 +4479,7 @@ async function openBarcodeModal(productId){
     onMount: ()=>{
       document.querySelectorAll('.labelQtyInput').forEach(inp=>{
         inp.addEventListener('input', (e)=>{
-          LABEL_QTY[e.target.dataset.vi] = Math.max(1, parseInt(e.target.value)||1);
+          LABEL_QTY[e.target.dataset.vi] = Math.max(0, parseInt(e.target.value)||0);
         });
       });
       const refreshPreview = ()=>{
@@ -4520,6 +4525,7 @@ async function openBarcodeModal(productId){
       };
       document.getElementById('lb_testBtn').addEventListener('click', async ()=>{ await saveLabelCfg(); printTestLabel(); });
       document.getElementById('printLabelsBtn').addEventListener('click', async ()=>{
+        if(!Object.values(LABEL_QTY).some(q=>q>0)){ toast(t('lb_noCopies'),'error'); return; }
         await saveLabelCfg();
         printBarcodeLabels(product, productId);
       });
@@ -4758,14 +4764,14 @@ function printBarcodeLabels(product, productId){
   if(labelRawActive(cfg)){
     const data = [];
     (product.variants||[]).forEach((v,i)=>{
-      const qty = LABEL_QTY[i] || 1;
+      const qty = LABEL_QTY[i] || 0;
       for(let n=0;n<qty;n++) data.push(labelItemData(product, productId, v, i));
     });
     return printLabelsRaw(data, cfg);
   }
   const items = [];
   (product.variants||[]).forEach((v,i)=>{
-    const qty = LABEL_QTY[i] || 1;
+    const qty = LABEL_QTY[i] || 0;
     for(let n=0;n<qty;n++) items.push(labelItemHTML(product, productId, v, i));
   });
   let style, body;
