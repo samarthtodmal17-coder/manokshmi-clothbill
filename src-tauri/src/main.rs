@@ -9,6 +9,9 @@
 
 use tauri_plugin_sql::{Migration, MigrationKind};
 
+#[cfg(windows)]
+mod rawprint;
+
 fn migrations() -> Vec<Migration> {
     vec![Migration {
         version: 1,
@@ -53,6 +56,40 @@ fn open_external(url: String) -> Result<(), String> {
     }
 }
 
+#[derive(serde::Serialize)]
+struct PrinterList {
+    printers: Vec<String>,
+    default: String,
+}
+
+/// Printers installed in Windows (for the direct label-printing choice).
+#[tauri::command]
+fn list_printers() -> Result<PrinterList, String> {
+    #[cfg(windows)]
+    {
+        let (printers, default) = rawprint::list_printers()?;
+        Ok(PrinterList { printers, default })
+    }
+    #[cfg(not(windows))]
+    {
+        Err("printer list is only implemented for Windows".into())
+    }
+}
+
+/// Sends label commands (TSPL / ZPL) straight to a printer, bypassing the Windows driver layout.
+#[tauri::command]
+fn print_raw(printer: String, data: Vec<u8>) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        rawprint::print_raw(&printer, &data)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (printer, data);
+        Err("direct printing is only implemented for Windows".into())
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(
@@ -63,7 +100,7 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![get_device_fingerprint, open_external])
+        .invoke_handler(tauri::generate_handler![get_device_fingerprint, open_external, list_printers, print_raw])
         .run(tauri::generate_context!())
         .expect("error while running Manokshmi ClothBill");
 }

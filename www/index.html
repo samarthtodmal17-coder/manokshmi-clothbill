@@ -906,7 +906,7 @@ const DEFAULT_SETTINGS = {
   logo:'',
   paperSize:'thermal80',
   upiId:'',
-  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0,   // barcode label printer
+  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false,   // barcode label printer
   billQrMode:'always',   // always | due | never
   loyaltyEnabled:false,
   loyaltyEarnPerRupee:100,
@@ -1233,6 +1233,18 @@ const I18N = {
     pur_sumNoStock:'Increase the stock to see this bill.',
     pur_sumNoCost:'Enter the cost price to calculate the bill.',
     pur_payFull:'Paid in full',
+    lb_method:'Print method',
+    lb_methodDriver:'Windows printer driver (normal)',
+    lb_methodTspl:'Direct to label printer - TSPL (TSC, Xprinter, Gprinter...)',
+    lb_methodZpl:'Direct to label printer - ZPL (Zebra)',
+    lb_printerSel:'Printer',
+    lb_printerDefault:'Windows default printer',
+    lb_dpi:'Printer dots per inch',
+    lb_rawGap:'Gap between stickers (mm)',
+    lb_invert:'Print is inverted (black/white swapped) - tick to fix',
+    lb_rawHint:'Direct mode sends the finished label picture straight to the printer, so Windows paper size and orientation no longer matter. Set Width/Height above to your sticker size, then press "Print 1 test label".',
+    toast_labelSent:'Sent {0} label(s) to {1}',
+    toast_labelSendFail:'Could not print labels: {0}',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1501,6 +1513,18 @@ const I18N = {
     pur_sumNoStock:'हे बिल पाहण्यासाठी स्टॉक वाढवा.',
     pur_sumNoCost:'बिल काढण्यासाठी खरेदी किंमत भरा.',
     pur_payFull:'पूर्ण दिले',
+    lb_method:'प्रिंट पद्धत',
+    lb_methodDriver:'Windows प्रिंटर ड्रायव्हर (नेहमीची)',
+    lb_methodTspl:'थेट लेबल प्रिंटरला - TSPL (TSC, Xprinter, Gprinter...)',
+    lb_methodZpl:'थेट लेबल प्रिंटरला - ZPL (Zebra)',
+    lb_printerSel:'प्रिंटर',
+    lb_printerDefault:'Windows डिफॉल्ट प्रिंटर',
+    lb_dpi:'प्रिंटर डॉट्स प्रति इंच',
+    lb_rawGap:'स्टिकरमधील अंतर (मिमी)',
+    lb_invert:'प्रिंट उलटे (काळे/पांढरे) येत आहे - दुरुस्तीसाठी टिक करा',
+    lb_rawHint:'थेट पद्धतीत तयार लेबलचे चित्र थेट प्रिंटरला जाते, त्यामुळे Windows चा पेपर साइज व ओरिएंटेशन लागत नाही. वर रुंदी/उंची तुमच्या स्टिकरएवढी ठेवा, मग "१ टेस्ट लेबल छापा" दाबा.',
+    toast_labelSent:'{1} कडे {0} लेबल पाठवले',
+    toast_labelSendFail:'लेबल छापता आले नाहीत: {0}',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -4233,6 +4257,23 @@ async function openBarcodeModal(productId){
           <div class="col field" style="min-width:90px;"><label>${t('lb_rotate')}</label>
             <select id="lb_rot">${[0,90,180,270].map(r=>`<option value="${r}" ${labelConfig().rot===r?'selected':''}>${r}°</option>`).join('')}</select></div>
         </div>
+        <div id="lb_rawBox" style="display:${window.IS_TAURI?'':'none'};border-top:1px dashed var(--line);margin:4px 0 10px;padding-top:8px;">
+          <div class="row" style="flex-wrap:wrap;">
+            <div class="col field" style="min-width:260px;"><label>${t('lb_method')}</label>
+              <select id="lb_method">${[['driver','lb_methodDriver'],['tspl','lb_methodTspl'],['zpl','lb_methodZpl']].map(([k,tk])=>`<option value="${k}" ${labelConfig().method===k?'selected':''}>${t(tk)}</option>`).join('')}</select></div>
+          </div>
+          <div id="lb_rawOpts" style="display:${labelConfig().method==='driver'?'none':''};">
+            <div class="row" style="flex-wrap:wrap;">
+              <div class="col field" style="min-width:220px;"><label>${t('lb_printerSel')}</label>
+                <select id="lb_printer"><option value="">${t('lb_printerDefault')}</option>${labelConfig().printer?`<option value="${escapeHTML(labelConfig().printer)}" selected>${escapeHTML(labelConfig().printer)}</option>`:''}</select></div>
+              <div class="col field" style="min-width:110px;"><label>${t('lb_dpi')}</label>
+                <select id="lb_dpi">${[203,300,200,600].map(d=>`<option value="${d}" ${labelConfig().dpi===d?'selected':''}>${d}</option>`).join('')}</select></div>
+              <div class="col field" style="min-width:110px;"><label>${t('lb_rawGap')}</label><input id="lb_rawgap" type="number" min="0" step="0.5" value="${labelConfig().rawGap}"></div>
+            </div>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;"><input type="checkbox" id="lb_invert" style="width:auto;" ${labelConfig().invert?'checked':''}> ${t('lb_invert')}</label>
+            <p class="muted" style="font-size:11.5px;margin:6px 0 0;">${t('lb_rawHint')}</p>
+          </div>
+        </div>
         <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
           <div><div class="muted" style="font-size:11px;margin-bottom:3px;">${t('lb_previewLabel')}</div>
             <div id="lb_previewWrap" style="background:#fff;border:1px solid var(--line);overflow:hidden;"><iframe id="lb_preview" style="border:0;display:block;transform-origin:0 0;background:#fff;"></iframe></div></div>
@@ -4280,10 +4321,21 @@ async function openBarcodeModal(productId){
         el.addEventListener('change', refreshPreview);
       });
       refreshPreview();
+      if(window.IS_TAURI){
+        const mEl = document.getElementById('lb_method');
+        mEl.addEventListener('change', ()=>{ document.getElementById('lb_rawOpts').style.display = mEl.value==='driver' ? 'none' : ''; });
+        // Fill the printer list from Windows (keeps the saved choice selected).
+        window.__TAURI__.core.invoke('list_printers').then(r=>{
+          const sel = document.getElementById('lb_printer'); if(!sel) return;
+          const cur = labelConfig().printer;
+          sel.innerHTML = `<option value="">${t('lb_printerDefault')}${r.default?' ('+escapeHTML(r.default)+')':''}</option>` + (r.printers||[]).map(n=>`<option value="${escapeHTML(n)}" ${n===cur?'selected':''}>${escapeHTML(n)}</option>`).join('');
+        }).catch(()=>{});
+      }
       const saveLabelCfg = async ()=>{
         const c = readLabelCfgFromModal();
         // Remember the label setup so it only has to be done once per printer.
-        await saveSettings({labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot});
+        await saveSettings({labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot,
+          labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert});
       };
       document.getElementById('lb_testBtn').addEventListener('click', async ()=>{ await saveLabelCfg(); printTestLabel(); });
       document.getElementById('printLabelsBtn').addEventListener('click', async ()=>{
@@ -4308,12 +4360,20 @@ function labelConfig(src){
     h: Math.max(15, num(src.labelHeightMm, 25) || 25),
     cols: (rot===90||rot===270) ? 1 : Math.min(4, Math.max(1, parseInt(src.labelCols)||1)),
     gap: Math.max(0, num(src.labelGapMm, 2)),
-    offX: num(src.labelOffX, 0), offY: num(src.labelOffY, 0), rot
+    offX: num(src.labelOffX, 0), offY: num(src.labelOffY, 0), rot,
+    method: ['tspl','zpl'].includes(src.labelMethod) ? src.labelMethod : 'driver',
+    printer: String(src.labelPrinter||''),
+    dpi: [200,203,300,600].includes(Number(src.labelDpi)) ? Number(src.labelDpi) : 203,
+    rawGap: Math.max(0, num(src.labelRawGapMm, 2)),
+    invert: src.labelRawInvert===true || src.labelRawInvert==='1' || src.labelRawInvert==='true'
   };
 }
 function readLabelCfgFromModal(){
   const g = id=>document.getElementById(id).value;
-  return labelConfig({labelPaper:g('lb_paper'), labelWidthMm:g('lb_w'), labelHeightMm:g('lb_h'), labelCols:g('lb_cols'), labelGapMm:g('lb_gap'), labelOffX:g('lb_offx'), labelOffY:g('lb_offy'), labelRot:g('lb_rot')});
+  const has = id=>!!document.getElementById(id);
+  return labelConfig({labelPaper:g('lb_paper'), labelWidthMm:g('lb_w'), labelHeightMm:g('lb_h'), labelCols:g('lb_cols'), labelGapMm:g('lb_gap'), labelOffX:g('lb_offx'), labelOffY:g('lb_offy'), labelRot:g('lb_rot'),
+    labelMethod: has('lb_method')?g('lb_method'):'driver', labelPrinter: has('lb_printer')?g('lb_printer'):'', labelDpi: has('lb_dpi')?g('lb_dpi'):203,
+    labelRawGapMm: has('lb_rawgap')?g('lb_rawgap'):2, labelRawInvert: has('lb_invert') ? document.getElementById('lb_invert').checked : false});
 }
 // The physical page the printer receives (swapped when the label is fed sideways).
 function labelPageSize(cfg){
@@ -4373,8 +4433,155 @@ function buildLabelPage(items, cfg){
   return {style, body: rows.map(r=>`<div class="prow">${r}</div>`).join('')};
 }
 
+
+// ---- Direct label-printer mode (TSPL / ZPL) --------------------------------------------------
+// The whole label is drawn as a picture at the printer's own resolution and sent straight to the
+// printer as a RAW job, so the Windows driver's paper size / orientation / margins cannot matter.
+function labelRawActive(cfg){ return !!(window.IS_TAURI && cfg && cfg.method!=='driver' && cfg.paper==='roll'); }
+function labelItemData(product, productId, v, i){
+  const onSale = isVariantOnSale(v);
+  const label = [v.size,v.color].filter(Boolean).join(' / ');
+  return {
+    shop: SETTINGS.name || '', sku: v.sku || autoSKU(productId, i),
+    name: String(product.name||'') + (label ? (' — '+label) : ''),
+    mrp: onSale ? fmtMoney(v.sellPrice) : '', priceText: fmtMoney(onSale ? variantSalePrice(v) : v.sellPrice)
+  };
+}
+// Draws one upright label into ctx at (x0,y0) inside a box of wd x hd dots.
+function drawRawLabel(ctx, d, x0, y0, wd, hd, cfg){
+  const dpmm = cfg.dpi/25.4, s = Math.min(cfg.w/50, cfg.h/25), pxPt = cfg.dpi/72;
+  const padX = Math.round(cfg.w*0.05*dpmm), padY = Math.round(cfg.h*0.05*dpmm);
+  const innerW = wd - 2*padX;
+  const FONT = '"Nirmala UI","Segoe UI",Arial,sans-serif';
+  const font = (pt,bold)=>`${bold?'700 ':''}${Math.max(6,Math.round(pt*s*pxPt))}px ${FONT}`;
+  ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+  if(d.test){ const bw = Math.max(2, Math.round(0.35*dpmm)); ctx.lineWidth = bw; ctx.strokeRect(x0+bw/2, y0+bw/2, wd-bw, hd-bw); }
+  const fit = (txt, f, maxW)=>{ ctx.font = f; if(ctx.measureText(txt).width<=maxW) return txt; let a = txt; while(a.length>1 && ctx.measureText(a+'…').width>maxW) a = a.slice(0,-1); return a+'…'; };
+  const wrap = (txt, f, maxW, maxLines)=>{
+    ctx.font = f; const words = txt.split(/\s+/), lines = []; let cur = '';
+    for(const w of words){ const tst = cur ? cur+' '+w : w; if(ctx.measureText(tst).width<=maxW || !cur) cur = tst; else { lines.push(cur); cur = w; } }
+    if(cur) lines.push(cur);
+    if(lines.length>maxLines){ const keep = lines.slice(0,maxLines); keep[maxLines-1] = fit(lines.slice(maxLines-1).join(' '), f, maxW); return keep; }
+    return lines.map(l=>fit(l,f,maxW));
+  };
+  const gap = Math.max(1, Math.round(cfg.h*0.012*dpmm));
+  const shopF = font(6,false), nameF = font(7.5,true), priceF = font(9.5,true), mrpF = font(7.5,false);
+  const shopTxt = d.shop ? fit(String(d.shop).toUpperCase(), shopF, innerW) : '';
+  const lh = f=>Math.round(parseInt(f.match(/(\d+)px/)[1])*1.15);
+  const nameLines = wrap(d.name||'', nameF, innerW, 2);
+  const bh = Math.round(cfg.h*0.34*dpmm);
+  const parts = [];
+  if(shopTxt) parts.push({k:'shop', h:lh(shopF)});
+  parts.push({k:'bar', h:bh});
+  nameLines.forEach(()=>parts.push({k:'name', h:lh(nameF)}));
+  parts.push({k:'price', h:lh(priceF)});
+  const total = parts.reduce((a,b)=>a+b.h,0) + gap*(parts.length-1);
+  let y = y0 + Math.max(padY, Math.round((hd-total)/2));
+  let nameIdx = 0; const cx = x0 + wd/2;
+  for(const pt of parts){
+    if(pt.k==='shop'){ ctx.font = shopF; ctx.fillText(shopTxt, cx, y); }
+    else if(pt.k==='name'){ ctx.font = nameF; ctx.fillText(nameLines[nameIdx++], cx, y); }
+    else if(pt.k==='price'){
+      if(d.mrp){
+        ctx.font = mrpF; const mw = ctx.measureText(d.mrp).width; ctx.font = priceF; const pw = ctx.measureText(d.priceText).width, g = Math.round(6*pxPt/2);
+        const startX = cx - (mw+g+pw)/2;
+        ctx.textAlign = 'left'; ctx.font = mrpF; ctx.fillText(d.mrp, startX, y+2);
+        ctx.fillRect(startX, y+Math.round(lh(mrpF)/2), mw, Math.max(1,Math.round(dpmm*0.2)));
+        ctx.font = priceF; ctx.fillText(d.priceText, startX+mw+g, y); ctx.textAlign = 'center';
+      } else { ctx.font = priceF; ctx.fillText(fit(d.priceText, priceF, innerW), cx, y); }
+    } else if(pt.k==='bar'){
+      const bin = code39Encode(d.sku).bin, availW = Math.floor(innerW*0.92);
+      const m = Math.max(0.5, Math.min(6, Math.floor(availW/bin.length) || availW/bin.length));
+      const bwTot = bin.length*m, bx = Math.round(cx - bwTot/2);
+      for(let i=0;i<bin.length;i++){ if(bin[i]==='1'){ const xa = Math.round(bx+i*m), xb = Math.round(bx+(i+1)*m); ctx.fillRect(xa, y, Math.max(1,xb-xa), bh); } }
+    }
+    y += pt.h + gap;
+  }
+}
+// One printed sticker row -> final page canvas (rotation + shift applied).
+function renderRawPage(rowItems, cfg){
+  const dpmm = cfg.dpi/25.4, mm = x=>Math.round(x*dpmm);
+  const rowWmm = cfg.w*cfg.cols + cfg.gap*(cfg.cols-1);
+  const rw = mm(rowWmm), rh = mm(cfg.h);
+  const row = document.createElement('canvas'); row.width = rw; row.height = rh;
+  const rc = row.getContext('2d'); rc.fillStyle = '#fff'; rc.fillRect(0,0,rw,rh);
+  rowItems.forEach((it,i)=>{ drawRawLabel(rc, it, mm(i*(cfg.w+cfg.gap)), 0, mm(cfg.w), rh, cfg); });
+  const sideways = cfg.rot===90 || cfg.rot===270;
+  const pw = sideways ? rh : rw, ph = sideways ? rw : rh;
+  const page = document.createElement('canvas'); page.width = pw; page.height = ph;
+  const pc = page.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0,0,pw,ph);
+  pc.save();
+  pc.translate(mm(cfg.offX), mm(cfg.offY));
+  if(cfg.rot===90){ pc.translate(pw,0); pc.rotate(Math.PI/2); }
+  else if(cfg.rot===270){ pc.translate(0,ph); pc.rotate(-Math.PI/2); }
+  else if(cfg.rot===180){ pc.translate(pw,ph); pc.rotate(Math.PI); }
+  pc.drawImage(row, 0, 0);
+  pc.restore();
+  return {canvas:page, w:pw, h:ph, wmm:(sideways?cfg.h:rowWmm), hmm:(sideways?rowWmm:cfg.h)};
+}
+// 1 bit per dot, MSB first, rows padded to whole bytes. black=true -> bit 1 for black.
+function canvasToBits(canvas, blackIsOne){
+  const w = canvas.width, h = canvas.height, wb = Math.ceil(w/8);
+  const px = canvas.getContext('2d').getImageData(0,0,w,h).data;
+  const out = new Uint8Array(wb*h);
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i = (y*w+x)*4;
+      const lum = px[i]*0.299 + px[i+1]*0.587 + px[i+2]*0.114;
+      const black = px[i+3]>20 && lum<150;
+      const bit = blackIsOne ? black : !black;
+      if(bit) out[y*wb + (x>>3)] |= (0x80 >> (x&7));
+    }
+    // padding bits beyond the width must be "white"
+    if(w%8){ for(let x=w;x<wb*8;x++){ if(!blackIsOne) out[y*wb+(x>>3)] |= (0x80>>(x&7)); } }
+  }
+  return {bytes:out, wb, h};
+}
+function buildRawLabelJob(dataItems, cfg){
+  const out = [];
+  const push = s=>{ for(const ch of s) out.push(ch.charCodeAt(0)&255); };
+  const pages = [];
+  for(let i=0;i<dataItems.length;i+=cfg.cols) pages.push(dataItems.slice(i,i+cfg.cols));
+  const nm = x=>String(Math.round(x*10)/10);
+  pages.forEach((rowItems, pi)=>{
+    const pg = renderRawPage(rowItems, cfg);
+    if(cfg.method==='tspl'){
+      const b = canvasToBits(pg.canvas, cfg.invert);       // TSPL BITMAP: 1 = white (unless inverted by the user)
+      if(pi===0) push(`SIZE ${nm(pg.wmm)} mm,${nm(pg.hmm)} mm\r\nGAP ${nm(cfg.rawGap)} mm,0 mm\r\nDIRECTION 0,0\r\nREFERENCE 0,0\r\n`);
+      push(`CLS\r\nBITMAP 0,0,${b.wb},${b.h},0,`);
+      b.bytes.forEach(v=>out.push(v));
+      push(`\r\nPRINT 1,1\r\n`);
+    } else {
+      const b = canvasToBits(pg.canvas, !cfg.invert);       // ZPL ^GFA: 1 = black
+      let hex = ''; const H = '0123456789ABCDEF';
+      for(let i=0;i<b.bytes.length;i++){ hex += H[b.bytes[i]>>4] + H[b.bytes[i]&15]; }
+      const total = b.bytes.length;
+      push(`^XA^CI28^PW${pg.w}^LL${pg.h}^LH0,0^FO0,0^GFA,${total},${total},${b.wb},${hex}^FS^PQ1^XZ\r\n`);
+    }
+  });
+  return Uint8Array.from(out);
+}
+async function printLabelsRaw(dataItems, cfg){
+  if(!dataItems.length) return;
+  try{
+    const bytes = buildRawLabelJob(dataItems, cfg);
+    await window.__TAURI__.core.invoke('print_raw', {printer: cfg.printer, data: Array.from(bytes)});
+    toast(fillTpl(t('toast_labelSent'), [dataItems.length, cfg.printer || t('lb_printerDefault')]), 'success');
+  }catch(e){
+    toast(fillTpl(t('toast_labelSendFail'), [String(e && e.message || e)]), 'error');
+  }
+}
+
 function printBarcodeLabels(product, productId){
   const cfg = labelConfig();
+  if(labelRawActive(cfg)){
+    const data = [];
+    (product.variants||[]).forEach((v,i)=>{
+      const qty = LABEL_QTY[i] || 1;
+      for(let n=0;n<qty;n++) data.push(labelItemData(product, productId, v, i));
+    });
+    return printLabelsRaw(data, cfg);
+  }
   const items = [];
   (product.variants||[]).forEach((v,i)=>{
     const qty = LABEL_QTY[i] || 1;
@@ -4415,6 +4622,9 @@ function printBarcodeLabels(product, productId){
 // One outlined test label: shows exactly where the sticker edges fall, so the shift/size can be tuned.
 function printTestLabel(){
   const cfg = labelConfig();
+  if(labelRawActive(cfg)){
+    return printLabelsRaw([{shop:t('lb_testLine1'), sku:'TEST-123', name:cfg.w+' × '+cfg.h+' mm', priceText:t('lb_testLine2'), test:true}], cfg);
+  }
   const bars = renderBarcodeSVG('TEST-123',{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
   const item = `<div class="lbl test"><div class="lbl-shop">${t('lb_testLine1')}</div>${bars}<div class="lbl-name">${cfg.w} × ${cfg.h} mm</div><div class="lbl-price">${t('lb_testLine2')}</div></div>`;
   const parts = buildLabelPage([item], cfg);

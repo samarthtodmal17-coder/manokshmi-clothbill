@@ -1,6 +1,6 @@
 [package]
 name = "manokshmi-clothbill"
-version = "0.1.8"
+version = "0.1.9"
 description = "Manokshmi ClothBill - billing & management for cloth shops (Tauri desktop, SQLite)"
 edition = "2021"
 
@@ -17,3 +17,7 @@ serde_json = "1"
 machine-uid = "0.6"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+
+# Direct (raw) label printing on Windows.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Printing", "Win32_Graphics_Gdi"] }
