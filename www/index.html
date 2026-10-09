@@ -1478,6 +1478,18 @@ const I18N = {
     sc_noProducts:'No products to count.',
     sc_acceptNote:'Stock count {0}',
     sc_warnTime:'Count when no one is billing, or the system number may move while you count.',
+    wa_imgBtn:'Send bill as image',
+    wa_imgTitle:'Send bill as image on WhatsApp',
+    wa_imgMaking:'Making the bill image...',
+    wa_imgPhone:'Customer WhatsApp number',
+    wa_imgHow:'Press the green button. The bill image is copied and the customer chat opens in WhatsApp. Click the message box, press Ctrl+V, then Send.',
+    wa_imgCopyOpen:'Copy image and open WhatsApp',
+    wa_imgSave:'Save image',
+    wa_imgShare:'Share...',
+    wa_imgCopied:'Bill image copied. In WhatsApp press Ctrl+V and Send.',
+    wa_imgCopyFail:'Could not copy the image here. Press Save image, then attach the file in WhatsApp.',
+    wa_imgFail:'Could not make the bill image.',
+    wa_imgSaved:'Bill image saved',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1990,6 +2002,18 @@ const I18N = {
     sc_noProducts:'मोजण्यासाठी उत्पादने नाहीत.',
     sc_acceptNote:'स्टॉक मोजणी {0}',
     sc_warnTime:'कोणी बिलिंग करत नसताना मोजणी करा, नाहीतर मोजताना सिस्टीममधील संख्या बदलू शकते.',
+    wa_imgBtn:'बिल इमेज म्हणून पाठवा',
+    wa_imgTitle:'व्हॉट्सअॅपवर बिल इमेज म्हणून पाठवा',
+    wa_imgMaking:'बिलाची इमेज तयार होत आहे...',
+    wa_imgPhone:'ग्राहकाचा व्हॉट्सअॅप नंबर',
+    wa_imgHow:'हिरवे बटण दाबा. बिलाची इमेज कॉपी होते आणि ग्राहकाची चॅट व्हॉट्सअॅपमध्ये उघडते. मेसेज बॉक्समध्ये क्लिक करा, Ctrl+V दाबा, मग Send करा.',
+    wa_imgCopyOpen:'इमेज कॉपी करा आणि व्हॉट्सअॅप उघडा',
+    wa_imgSave:'इमेज सेव्ह करा',
+    wa_imgShare:'शेअर करा...',
+    wa_imgCopied:'बिलाची इमेज कॉपी झाली. व्हॉट्सअॅपमध्ये Ctrl+V दाबा आणि Send करा.',
+    wa_imgCopyFail:'येथे इमेज कॉपी करता आली नाही. इमेज सेव्ह करा आणि व्हॉट्सअॅपमध्ये फाइल जोडा.',
+    wa_imgFail:'बिलाची इमेज तयार करता आली नाही.',
+    wa_imgSaved:'बिलाची इमेज सेव्ह झाली',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -10400,6 +10424,7 @@ async function showInvoiceModal(bill){
       <button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
       <button class="btn btn-outline" id="emailInvoiceBtn">${iconSVG('mail',15)} ${t('vendor_emailLabel')}</button>
       <button class="btn btn-whatsapp" id="waInvoiceBtn">${iconSVG('whatsapp',15)} ${t('print_sendViaWhatsAppBtn')}</button>
+      <button class="btn btn-whatsapp" id="waImgBtn">${iconSVG('whatsapp',15)} ${t('wa_imgBtn')}</button>
       <button class="btn btn-primary" id="printInvoiceBtn">${t('print_printBtn')}</button>
     `,
     onMount:()=>{
@@ -10415,6 +10440,9 @@ async function showInvoiceModal(bill){
       });
       document.getElementById('waInvoiceBtn').addEventListener('click', ()=>{
         sendInvoiceOnWhatsApp(bill, customerPhone, customerName);
+      });
+      document.getElementById('waImgBtn').addEventListener('click', ()=>{
+        openBillImageModal(bill, customerName, customerPhone, document.getElementById('invoicePaperFormat').value);
       });
       document.getElementById('emailInvoiceBtn').addEventListener('click', ()=>{
         sendInvoiceByEmail(bill, customerName);
@@ -13097,6 +13125,78 @@ function buildInvoiceMessageText(bill, plain){
   lines.push(t('print_thankYouShopping'));
   return lines.join('\n');
 }
+
+/* ---- Bill as a picture (for WhatsApp) ----
+   The bill is drawn in a hidden frame, turned into a PNG, then copied to the clipboard / saved / shared.
+   WhatsApp has no link that attaches a picture, so on a computer the picture is copied and the owner pastes it (Ctrl+V). */
+async function renderBillImage(bill, customerName, format){
+  const isThermal = format!=='a4';
+  const W = format==='thermal58' ? 384 : (format==='thermal80' ? 576 : 794);
+  const css = `html,body{margin:0;padding:0;background:#fff;} #bill{box-sizing:border-box;width:${W}px;padding:${isThermal?'8px':'24px'};background:#fff;color:#000;font-family:Arial,Helvetica,'Noto Sans Devanagari','Nirmala UI',sans-serif;font-size:${format==='thermal58'?'13px':(isThermal?'15px':'14px')};}
+    #bill table{width:100%;border-collapse:collapse;} #bill th,#bill td{font-size:inherit;text-align:left;} #bill .num{text-align:right;font-variant-numeric:tabular-nums;} #bill .muted{color:${isThermal?'#000':'#555'};} #bill *{box-sizing:border-box;}`;
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = `position:fixed;left:-10000px;top:0;width:${W}px;height:200px;border:0;visibility:hidden;`;
+  document.body.appendChild(iframe);
+  try{
+    const doc = iframe.contentDocument;
+    doc.open(); doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body><div id="bill">${buildInvoiceContentHTML(bill, customerName, format)}</div></body></html>`); doc.close();
+    await new Promise(r=>setTimeout(r,200));
+    const el = doc.getElementById('bill');
+    const H = Math.ceil(el.getBoundingClientRect().height) + 2;
+    const xhtml = new XMLSerializer().serializeToString(el);
+    const style = `<style xmlns="http://www.w3.org/1999/xhtml">${css}</style>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject x="0" y="0" width="${W}" height="${H}"><div xmlns="http://www.w3.org/1999/xhtml">${style}${xhtml}</div></foreignObject></svg>`;
+    const img = new Image();
+    await new Promise((res,rej)=>{ img.onload = res; img.onerror = ()=>rej(new Error('image')); img.src = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg); });
+    const scale = 2, canvas = document.createElement('canvas');
+    canvas.width = W*scale; canvas.height = H*scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('blob')), 'image/png'));
+    return blob;
+  } finally { iframe.remove(); }
+}
+async function openBillImageModal(bill, customerName, phone, format){
+  openModal({title:t('wa_imgTitle'), bodyHTML:`<p class="muted" id="bi_status">${t('wa_imgMaking')}</p>`, footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>`});
+  let blob;
+  try{ blob = await renderBillImage(bill, customerName, format); }
+  catch(e){ toast(t('wa_imgFail'),'error'); closeModal(); return; }
+  const url = URL.createObjectURL(blob);
+  const fname = 'bill-'+String(bill.invoiceNo||'').replace(/[^A-Za-z0-9_-]/g,'_')+'.png';
+  const canShare = !!(navigator.canShare && navigator.share && (()=>{ try{ return navigator.canShare({files:[new File([blob], fname, {type:'image/png'})]}); }catch(e){ return false; } })());
+  openModal({
+    title:t('wa_imgTitle'),
+    bodyHTML:`
+      <div style="text-align:center;max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff;margin-bottom:10px;"><img src="${url}" alt="" style="max-width:100%;"></div>
+      <div class="field" style="max-width:280px;"><label>${t('wa_imgPhone')}</label><input id="bi_phone" value="${escapeHTML(phone||'')}" placeholder="${escapeHTML(t('wa_phonePlaceholder'))}"></div>
+      <p class="muted" style="font-size:12px;">${t('wa_imgHow')}</p>`,
+    footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
+      <button class="btn btn-outline" id="bi_save">${t('wa_imgSave')}</button>
+      ${canShare?`<button class="btn btn-outline" id="bi_share">${t('wa_imgShare')}</button>`:''}
+      <button class="btn btn-whatsapp" id="bi_go">${iconSVG('whatsapp',15)} ${t('wa_imgCopyOpen')}</button>`,
+    onMount:()=>{
+      const bd = document.getElementById('modalBackdrop');
+      const mo = new MutationObserver(()=>{ if(!bd.classList.contains('open')){ mo.disconnect(); URL.revokeObjectURL(url); } });
+      mo.observe(bd, {attributes:true, attributeFilter:['class']});
+      document.getElementById('bi_save').addEventListener('click', ()=>{
+        const a = document.createElement('a'); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+        toast(t('wa_imgSaved'),'success');
+      });
+      const sh = document.getElementById('bi_share');
+      if(sh) sh.addEventListener('click', ()=>{ navigator.share({files:[new File([blob], fname, {type:'image/png'})], title:bill.invoiceNo}).catch(()=>{}); });
+      document.getElementById('bi_go').addEventListener('click', async ()=>{
+        const ph = document.getElementById('bi_phone').value.trim();
+        if(!ph){ toast(t('toast_enterPhoneNumber'),'error'); return; }
+        let copied = false;
+        try{ await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]); copied = true; }catch(e){ copied = false; }
+        openExternal(buildWhatsAppLink(ph, ''), '_blank');
+        toast(copied ? t('wa_imgCopied') : t('wa_imgCopyFail'), copied ? 'success' : 'error');
+      });
+    }
+  });
+}
+
 function sendInvoiceOnWhatsApp(bill, phone, customerName){
   const text = buildInvoiceMessageText(bill, false);
   if(phone){ openExternal(buildWhatsAppLink(phone, text), '_blank'); }
