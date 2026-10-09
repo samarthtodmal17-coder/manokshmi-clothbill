@@ -441,6 +441,7 @@
       <section id="view-accounts" class="view"></section>
       <section id="view-alterations" class="view"></section>
       <section id="view-customers" class="view"></section>
+      <section id="view-guard" class="view"></section>
       <section id="view-settings" class="view"></section>
     </main>
   </div>
@@ -1332,6 +1333,151 @@ const I18N = {
     st_mergedTag:'Merged',
     inv_mergedBanner:'MERGED into {0} on {1} by {2} - {3}',
     inv_mergedFrom:'Merged from',
+    act_login:'Logged in',
+    act_logout:'Logged out',
+    act_login_failed:'Wrong PIN at login',
+    act_pin_failed:'Wrong Owner PIN tried',
+    act_cart_remove:'Item removed from bill',
+    act_bill_dropped:'Unbilled bill thrown away',
+    act_bill_cancel:'Bill cancelled',
+    act_bill_reprint:'Bill printed again',
+    act_discount_approved:'Discount / price override approved',
+    act_return:'Return recorded',
+    act_stock_change:'Stock changed',
+    act_product_edit:'Product price/stock edited',
+    act_product_delete:'Product deleted',
+    act_expense_add:'Expense added',
+    act_expense_delete:'Expense deleted',
+    act_day_close:'Day closed',
+    act_day_reopen:'Day close removed',
+    act_backup_export:'Backup downloaded',
+    act_restore:'Backup restored',
+    act_staff_change:'Staff list changed',
+    act_owner_pin_change:'Owner PIN changed',
+    act_staff_pin_change:'A staff PIN changed',
+    act_guard_rules:'Protection rules changed',
+    act_stock_count:'Stock count',
+    act_customer_delete:'Customer deleted',
+    act_supplier_delete:'Supplier deleted',
+    act_sup_void:'Supplier entry voided',
+    act_sup_merge:'Supplier bills merged',
+    act_sup_other:'Supplier record changed',
+    act_quotation_delete:'Quotation deleted',
+    act_coupon_delete:'Coupon deleted',
+    act_purchase_delete:'Purchase bill deleted',
+    guard_needTitle:'Owner approval needed for this discount',
+    guard_limitLine:'Discount and price cuts on this bill: {0} ({1}% of the bill). The limit for staff is {2}%.',
+    guard_dropLine:'{0}: price {1} instead of {2}',
+    guard_reasonLabel:'Reason for the discount *',
+    guard_pinLabel:'Owner PIN',
+    guard_approveBtn:'Approve',
+    guard_reasonShort:'Write a reason (at least 4 letters).',
+    guard_pinWrong:'Wrong Owner PIN.',
+    nav_guard:'Staff Watch',
+    gd_tabFlags:'Red flags',
+    gd_tabLog:'Activity log',
+    gd_tabCount:'Stock count',
+    gd_tabRules:'Rules',
+    gd_save:'Save rules',
+    gd_saved:'Rules saved',
+    gd_rulesTitle:'Staff protection rules',
+    gd_rulesIntro:'Staff can always bill. These rules decide when the Owner must step in. Everything staff do that is risky is written to the Activity log with their name and the exact time, and nobody can edit or delete a log line.',
+    gd_ruleOn:'Staff need the Owner PIN and a reason for big discounts or price cuts',
+    gd_ruleMaxPct:'Highest discount staff may give alone (% of the bill)',
+    gd_alwaysTitle:'Always on',
+    gd_always1:'Only the Owner can cancel a bill, change stock, edit prices or delete products.',
+    gd_always2:'Returns outside the shop policy and returns without a bill need the Owner PIN.',
+    gd_always3:'Every bill records who sold it and every discount or price cut on it.',
+    gd_always4:'Items removed from a bill, bills thrown away, reprints, wrong-PIN tries, logins and returns are logged.',
+    gd_always5:'Voiding supplier entries needs the Owner PIN and a reason.',
+    gd_always6:'Stock counts are done blind: staff type what they count and never see the system number.',
+    gd_honest:'No software can promise zero theft. This makes theft hard to hide and easy to notice. Only the Owner should know the Owner PIN, and the shop computer should have a Windows password so nobody can open the data files.',
+    gd_period7:'Last 7 days',
+    gd_period30:'Last 30 days',
+    gd_period90:'Last 90 days',
+    gd_periodLabel:'Period',
+    gd_noFlags:'No red flags in this period. Keep checking regularly.',
+    gd_flagsIntro:'These are warning signs, not proof. Check each one with the bills and the Activity log.',
+    gd_thStaff:'Staff',
+    gd_thBills:'Bills',
+    gd_thSales:'Sales',
+    gd_thDisc:'Discount given',
+    gd_thCancel:'Cancelled',
+    gd_thReturns:'Returns',
+    gd_thRemoved:'Items removed',
+    gd_thReprint:'Reprints',
+    gd_thShort:'Cash short',
+    gd_thPins:'Wrong PINs',
+    gd_f_disc:'{0}: discounts and price cuts are {1}% of their sales ({2}). The shop average is {3}%.',
+    gd_f_cancel:'{0}: {1} of their bills were cancelled later ({2}).',
+    gd_f_returns:'{0}: {1} returns worth {2} ({3}% of their sales).',
+    gd_f_removed:'{0}: removed {1} items from bills before billing (worth {2}).',
+    gd_f_dropped:'{0}: threw away {1} open bills without billing (worth {2}).',
+    gd_f_reprint:'{0}: printed bills again {1} times.',
+    gd_f_pins:'{0}: wrong PIN tried {1} times.',
+    gd_f_short:'{0}: cash was short on {1} day close(s), {2} in total.',
+    gd_f_count:'Stock count of {0}: {1} pieces short, worth {2} at cost.',
+    gd_f_countPending:'A stock count from {0} is waiting for your review.',
+    gd_logFrom:'From',
+    gd_logTo:'To',
+    gd_logUser:'Who',
+    gd_logKind:'What',
+    gd_logAll:'All',
+    gd_logRisky:'Risky actions only',
+    gd_logSearch:'Search',
+    gd_logVerify:'Check log is untouched',
+    gd_logCsv:'Export CSV',
+    gd_thTime:'Time',
+    gd_thWho:'Who',
+    gd_thWhat:'What',
+    gd_thDetails:'Details',
+    gd_thAmount:'Amount',
+    gd_logEmpty:'No log lines for these filters.',
+    gd_logShowing:'Showing {0} of {1} lines (newest first).',
+    gd_verifyOk:'Log is intact: {0} lines checked, none changed.',
+    gd_verifyBad:'WARNING: log lines were changed or removed in {0}: line(s) {1}.',
+    sc_title:'Stock count',
+    sc_intro:'Count what is on the shelf and type the number for each item. You do not see the system number. When you submit, the Owner gets the result.',
+    sc_start:'Start a new count',
+    sc_scopeAll:'Whole shop',
+    sc_name:'Name this count (e.g. Saturday shelf count)',
+    sc_none:'No counts yet.',
+    sc_status_counting:'Counting',
+    sc_status_submitted:'Waiting for Owner',
+    sc_status_accepted:'Accepted - stock fixed',
+    sc_status_closed:'Closed - stock not changed',
+    sc_continue:'Continue counting',
+    sc_review:'Review result',
+    sc_view:'View',
+    sc_counted:'Counted',
+    sc_submit:'Submit count',
+    sc_notCounted:'Not counted yet',
+    sc_progress:'{0} of {1} items counted',
+    sc_search:'Search item or SKU',
+    sc_submitted:'Count sent to the Owner.',
+    sc_confirmSubmit:'Submit now? {0} items are not counted and will be left out.',
+    sc_thItem:'Item',
+    sc_thSku:'SKU',
+    sc_thSystem:'System',
+    sc_thCounted:'Counted',
+    sc_thDiff:'Difference',
+    sc_thValue:'Value at cost',
+    sc_sumShort:'Short: {0} pieces, {1}',
+    sc_sumExtra:'Extra: {0} pieces, {1}',
+    sc_sumMatch:'Matching items: {0}',
+    sc_sumNot:'Not counted: {0}',
+    sc_accept:'Accept and fix stock',
+    sc_close:'Close without changing stock',
+    sc_accepted:'Stock fixed to the counted numbers.',
+    sc_closedMsg:'Count closed. Stock was not changed.',
+    sc_onlyShowDiff:'Show only differences',
+    sc_ownerOnly:'Only the Owner can review a count.',
+    sc_countedBy:'Counted by',
+    sc_startedAt:'Started',
+    sc_submittedAt:'Submitted',
+    sc_noProducts:'No products to count.',
+    sc_acceptNote:'Stock count {0}',
+    sc_warnTime:'Count when no one is billing, or the system number may move while you count.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -1699,6 +1845,151 @@ const I18N = {
     st_mergedTag:'एकत्र केले',
     inv_mergedBanner:'{1} रोजी {2} यांनी {0} मध्ये एकत्र केले - {3}',
     inv_mergedFrom:'यातून एकत्र केले',
+    act_login:'लॉगिन केले',
+    act_logout:'लॉगआउट केले',
+    act_login_failed:'लॉगिनवर चुकीचा PIN',
+    act_pin_failed:'चुकीचा मालक PIN टाकला',
+    act_cart_remove:'बिलातून वस्तू काढली',
+    act_bill_dropped:'न केलेले बिल फेकले',
+    act_bill_cancel:'बिल रद्द केले',
+    act_bill_reprint:'बिल पुन्हा छापले',
+    act_discount_approved:'सूट / किंमत बदल मंजूर',
+    act_return:'परतावा नोंदवला',
+    act_stock_change:'स्टॉक बदलला',
+    act_product_edit:'उत्पादनाची किंमत/स्टॉक बदलला',
+    act_product_delete:'उत्पादन काढले',
+    act_expense_add:'खर्च जोडला',
+    act_expense_delete:'खर्च काढला',
+    act_day_close:'दिवस बंद केला',
+    act_day_reopen:'दिवस बंद नोंद काढली',
+    act_backup_export:'बॅकअप डाउनलोड केला',
+    act_restore:'बॅकअप परत आणला',
+    act_staff_change:'कर्मचारी यादी बदलली',
+    act_owner_pin_change:'मालक PIN बदलला',
+    act_staff_pin_change:'कर्मचाऱ्याचा PIN बदलला',
+    act_guard_rules:'संरक्षण नियम बदलले',
+    act_stock_count:'स्टॉक मोजणी',
+    act_customer_delete:'ग्राहक काढला',
+    act_supplier_delete:'पुरवठादार काढला',
+    act_sup_void:'पुरवठादार नोंद रद्द',
+    act_sup_merge:'पुरवठादार बिले एकत्र',
+    act_sup_other:'पुरवठादार नोंद बदलली',
+    act_quotation_delete:'कोटेशन काढले',
+    act_coupon_delete:'कूपन काढले',
+    act_purchase_delete:'खरेदी बिल काढले',
+    guard_needTitle:'या सूटसाठी मालकाची मंजुरी हवी',
+    guard_limitLine:'या बिलावरील सूट आणि किंमत कपात: {0} (बिलाच्या {1}%). कर्मचाऱ्यांसाठी मर्यादा {2}% आहे.',
+    guard_dropLine:'{0}: किंमत {2} ऐवजी {1}',
+    guard_reasonLabel:'सूट देण्याचे कारण *',
+    guard_pinLabel:'मालक PIN',
+    guard_approveBtn:'मंजूर करा',
+    guard_reasonShort:'कारण लिहा (किमान 4 अक्षरे).',
+    guard_pinWrong:'मालक PIN चुकीचा आहे.',
+    nav_guard:'कर्मचारी निगराणी',
+    gd_tabFlags:'धोक्याचे संकेत',
+    gd_tabLog:'हालचाल नोंद',
+    gd_tabCount:'स्टॉक मोजणी',
+    gd_tabRules:'नियम',
+    gd_save:'नियम जतन करा',
+    gd_saved:'नियम जतन झाले',
+    gd_rulesTitle:'कर्मचारी संरक्षण नियम',
+    gd_rulesIntro:'कर्मचारी नेहमी बिल करू शकतात. मालकाने कधी मंजुरी द्यावी हे हे नियम ठरवतात. कर्मचाऱ्यांची प्रत्येक जोखमीची कृती त्यांच्या नावासह आणि अचूक वेळेसह हालचाल नोंदीत लिहिली जाते आणि कोणीही नोंदीची ओळ बदलू किंवा काढू शकत नाही.',
+    gd_ruleOn:'मोठ्या सवलतीसाठी किंवा किंमत कपातीसाठी कर्मचाऱ्यांना मालक PIN आणि कारण लागेल',
+    gd_ruleMaxPct:'कर्मचारी स्वतः देऊ शकतात ती कमाल सवलत (बिलाच्या %)',
+    gd_alwaysTitle:'नेहमी चालू',
+    gd_always1:'बिल रद्द करणे, स्टॉक बदलणे, किंमत बदलणे किंवा उत्पादन काढणे फक्त मालक करू शकतो.',
+    gd_always2:'दुकानाच्या धोरणाबाहेरचे परतावे आणि बिलाशिवाय परतावे यासाठी मालक PIN लागतो.',
+    gd_always3:'प्रत्येक बिलावर कोणी विकले आणि त्यावरील प्रत्येक सवलत किंवा किंमत कपात नोंदवली जाते.',
+    gd_always4:'बिलातून काढलेल्या वस्तू, फेकलेली बिले, पुन्हा छापणे, चुकीचे PIN, लॉगिन आणि परतावे नोंदवले जातात.',
+    gd_always5:'पुरवठादार नोंदी रद्द करण्यासाठी मालक PIN आणि कारण लागते.',
+    gd_always6:'स्टॉक मोजणी अंध पद्धतीने होते: कर्मचारी जे मोजतात ते टाकतात आणि सिस्टीममधील संख्या त्यांना दिसत नाही.',
+    gd_honest:'कोणतेही सॉफ्टवेअर शून्य चोरीची हमी देऊ शकत नाही. हे चोरी लपवणे कठीण आणि लक्षात येणे सोपे करते. मालक PIN फक्त मालकालाच माहीत असावा आणि दुकानाच्या संगणकाला Windows पासवर्ड असावा, म्हणजे कोणीही डेटा फाइल उघडू शकणार नाही.',
+    gd_period7:'मागील 7 दिवस',
+    gd_period30:'मागील 30 दिवस',
+    gd_period90:'मागील 90 दिवस',
+    gd_periodLabel:'कालावधी',
+    gd_noFlags:'या कालावधीत धोक्याचे संकेत नाहीत. नियमित तपासत राहा.',
+    gd_flagsIntro:'हे इशारे आहेत, पुरावा नाही. प्रत्येक बिल आणि हालचाल नोंदीशी जुळवून पाहा.',
+    gd_thStaff:'कर्मचारी',
+    gd_thBills:'बिले',
+    gd_thSales:'विक्री',
+    gd_thDisc:'दिलेली सवलत',
+    gd_thCancel:'रद्द',
+    gd_thReturns:'परतावे',
+    gd_thRemoved:'काढलेल्या वस्तू',
+    gd_thReprint:'पुन्हा छापले',
+    gd_thShort:'रोख कमी',
+    gd_thPins:'चुकीचे PIN',
+    gd_f_disc:'{0}: सवलत आणि किंमत कपात त्यांच्या विक्रीच्या {1}% आहे ({2}). दुकानाची सरासरी {3}% आहे.',
+    gd_f_cancel:'{0}: त्यांची {1} बिले नंतर रद्द झाली ({2}).',
+    gd_f_returns:'{0}: {2} किमतीचे {1} परतावे (त्यांच्या विक्रीच्या {3}%).',
+    gd_f_removed:'{0}: बिल करण्यापूर्वी बिलातून {1} वस्तू काढल्या ({2} किमतीच्या).',
+    gd_f_dropped:'{0}: {1} उघडी बिले बिल न करता फेकली ({2} किमतीची).',
+    gd_f_reprint:'{0}: बिले {1} वेळा पुन्हा छापली.',
+    gd_f_pins:'{0}: चुकीचा PIN {1} वेळा टाकला.',
+    gd_f_short:'{0}: {1} दिवस बंद करताना रोख कमी होती, एकूण {2}.',
+    gd_f_count:'{0} ची स्टॉक मोजणी: {1} नग कमी, खरेदी किमतीत {2}.',
+    gd_f_countPending:'{0} ची स्टॉक मोजणी तुमच्या तपासणीची वाट पाहत आहे.',
+    gd_logFrom:'पासून',
+    gd_logTo:'पर्यंत',
+    gd_logUser:'कोण',
+    gd_logKind:'काय',
+    gd_logAll:'सर्व',
+    gd_logRisky:'फक्त जोखमीच्या कृती',
+    gd_logSearch:'शोधा',
+    gd_logVerify:'नोंद अबाधित आहे का तपासा',
+    gd_logCsv:'CSV निर्यात',
+    gd_thTime:'वेळ',
+    gd_thWho:'कोण',
+    gd_thWhat:'काय',
+    gd_thDetails:'तपशील',
+    gd_thAmount:'रक्कम',
+    gd_logEmpty:'या फिल्टरसाठी नोंदी नाहीत.',
+    gd_logShowing:'{1} पैकी {0} ओळी दाखवत आहे (नवीन आधी).',
+    gd_verifyOk:'नोंद अबाधित आहे: {0} ओळी तपासल्या, कोणतीही बदललेली नाही.',
+    gd_verifyBad:'सावधान: {0} मधील नोंदीच्या ओळी बदलल्या किंवा काढल्या गेल्या: ओळ {1}.',
+    sc_title:'स्टॉक मोजणी',
+    sc_intro:'कपाटावर जे आहे ते मोजा आणि प्रत्येक वस्तूची संख्या टाका. सिस्टीममधील संख्या तुम्हाला दिसत नाही. सबमिट केल्यावर निकाल मालकाला जातो.',
+    sc_start:'नवीन मोजणी सुरू करा',
+    sc_scopeAll:'संपूर्ण दुकान',
+    sc_name:'या मोजणीला नाव द्या (उदा. शनिवार कपाट मोजणी)',
+    sc_none:'अजून मोजणी नाही.',
+    sc_status_counting:'मोजणी सुरू',
+    sc_status_submitted:'मालकाची वाट पाहत आहे',
+    sc_status_accepted:'मान्य - स्टॉक सुधारला',
+    sc_status_closed:'बंद - स्टॉक बदलला नाही',
+    sc_continue:'मोजणी पुढे चालू ठेवा',
+    sc_review:'निकाल तपासा',
+    sc_view:'पहा',
+    sc_counted:'मोजले',
+    sc_submit:'मोजणी सबमिट करा',
+    sc_notCounted:'अजून मोजले नाही',
+    sc_progress:'{1} पैकी {0} वस्तू मोजल्या',
+    sc_search:'वस्तू किंवा SKU शोधा',
+    sc_submitted:'मोजणी मालकाला पाठवली.',
+    sc_confirmSubmit:'आता सबमिट करायचे? {0} वस्तू मोजल्या नाहीत आणि वगळल्या जातील.',
+    sc_thItem:'वस्तू',
+    sc_thSku:'SKU',
+    sc_thSystem:'सिस्टीम',
+    sc_thCounted:'मोजले',
+    sc_thDiff:'फरक',
+    sc_thValue:'खरेदी किमतीत मूल्य',
+    sc_sumShort:'कमी: {0} नग, {1}',
+    sc_sumExtra:'जास्त: {0} नग, {1}',
+    sc_sumMatch:'जुळणाऱ्या वस्तू: {0}',
+    sc_sumNot:'मोजल्या नाहीत: {0}',
+    sc_accept:'मान्य करा आणि स्टॉक सुधारा',
+    sc_close:'स्टॉक न बदलता बंद करा',
+    sc_accepted:'स्टॉक मोजलेल्या संख्येनुसार सुधारला.',
+    sc_closedMsg:'मोजणी बंद केली. स्टॉक बदलला नाही.',
+    sc_onlyShowDiff:'फक्त फरक दाखवा',
+    sc_ownerOnly:'मोजणी फक्त मालक तपासू शकतो.',
+    sc_countedBy:'मोजणी करणारा',
+    sc_startedAt:'सुरू केली',
+    sc_submittedAt:'सबमिट केली',
+    sc_noProducts:'मोजण्यासाठी उत्पादने नाहीत.',
+    sc_acceptNote:'स्टॉक मोजणी {0}',
+    sc_warnTime:'कोणी बिलिंग करत नसताना मोजणी करा, नाहीतर मोजताना सिस्टीममधील संख्या बदलू शकते.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -1830,6 +2121,505 @@ document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape' && document.getElementById('modalBackdrop')?.classList.contains('open')) closeModal();
 });
 
+
+/* ============ Staff protection: activity log ============
+   Every risky action (discounts that need approval, items removed from a bill, cancellations, reprints,
+   returns, stock changes, wrong-PIN tries, logins ...) is written to an append-only log: who, when, what.
+   The app has no screen that edits or deletes a log line, and each line is chained to the one before it,
+   so the Owner can check that nothing was changed. Lines are stored per month in the settings store. */
+function actHash(s){
+  let h1=0xdeadbeef, h2=0x41c6ce57;
+  for(let i=0,ch;i<s.length;i++){ ch=s.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36);
+}
+function actMonthKey(d){ d = d||new Date(); return 'actlog:'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function actEntryHash(prev, e){ return actHash(prev+'|'+e.n+'|'+e.at+'|'+e.u+'|'+e.k+'|'+e.d+'|'+(e.a==null?'':e.a)); }
+let ACT_Q = Promise.resolve();
+function logAct(kind, detail, extra){
+  const now = new Date();
+  const user = (typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER : null;
+  const entry = Object.assign({at:now.toISOString(), u:user?user.name:'—', r:user?user.role:'', k:kind, d:String(detail||'')}, extra||{});
+  ACT_Q = ACT_Q.then(async ()=>{
+    const key = actMonthKey(now);
+    const rec = (await dbGet('settings', key)) || {key, value:{entries:[]}};
+    const list = rec.value.entries;
+    const prev = list.length ? list[list.length-1].h : 'seed';
+    entry.n = list.length+1;
+    entry.h = actEntryHash(prev, entry);
+    list.push(entry);
+    await dbPut('settings', rec);
+  }).catch(()=>{});
+  return ACT_Q;
+}
+// Reads log lines from..to (Date objects), oldest first.
+async function readActs(from, to){
+  const out = [];
+  const d = new Date(from.getFullYear(), from.getMonth(), 1);
+  while(d <= to){
+    const rec = await dbGet('settings', actMonthKey(d));
+    if(rec && rec.value && rec.value.entries) rec.value.entries.forEach(e=>{ const at = new Date(e.at); if(at>=from && at<=to) out.push(e); });
+    d.setMonth(d.getMonth()+1);
+  }
+  return out;
+}
+// Re-checks the chain of one month. Returns {ok, bad:[line numbers]}.
+async function verifyActMonth(key){
+  const rec = await dbGet('settings', key);
+  const list = (rec && rec.value && rec.value.entries) || [];
+  let prev = 'seed'; const bad = [];
+  list.forEach((e,i)=>{ if(e.n!==i+1 || e.h!==actEntryHash(prev, e)) bad.push(i+1); prev = e.h; });
+  return {ok:!bad.length, bad, count:list.length};
+}
+function actKindLabel(k){ const key = 'act_'+k; const v = t(key); return v===key ? String(k).replace(/_/g,' ') : v; }
+const ACT_RISKY = ['cart_remove','bill_dropped','bill_cancel','bill_reprint','discount_approved','return','stock_change','product_edit','product_delete','expense_delete','day_reopen','login_failed','pin_failed','restore','owner_pin_change','staff_pin_change','sup_void','sup_merge'];
+
+// --- automatic logging of watched store writes (no screen can skip it) ---
+(function(){
+  const rawAdd = dbAdd, rawDelete = dbDelete;
+  const who = ()=> (typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER.name : '—';
+  dbAdd = async function(store, val){
+    if(store==='returns' && val && !val.by) val.by = who();
+    const id = await rawAdd(store, val);
+    try{
+      if(store==='stockAdjustments') logAct('stock_change', (val.productName||'')+(val.variantLabel?' '+val.variantLabel:'')+': '+val.previousStock+' -> '+val.newStock+' ('+(val.reason||'')+(val.note?' - '+val.note:'')+')', {a:Math.abs(val.delta||0)});
+      else if(store==='returns') logAct('return', (val.manualEntry?'No-bill return':'Return against bill '+(val.billId||''))+' '+val.totalRefund+(val.reason?' - '+val.reason:''), {a:val.totalRefund||0});
+      else if(store==='dayCloses') logAct('day_close', val.date+': expected '+val.expected+', counted '+val.counted+', difference '+val.difference, {a:val.difference||0});
+      else if(store==='expenses') logAct('expense_add', (val.category||'')+' '+(val.amount||'')+(val.note?' - '+val.note:''), {a:val.amount||0});
+    }catch(e){}
+    return id;
+  };
+  const DEL = {products:'product_delete', expenses:'expense_delete', dayCloses:'day_reopen', customers:'customer_delete', suppliers:'supplier_delete', quotations:'quotation_delete', coupons:'coupon_delete', purchaseInvoices:'purchase_delete'};
+  dbDelete = async function(store, key){
+    let rec = null;
+    if(DEL[store]){ try{ rec = await dbGet(store, key); }catch(e){} }
+    const r = await rawDelete(store, key);
+    if(rec){ try{ logAct(DEL[store], (rec.name||rec.invoiceNumber||rec.title||rec.code||rec.category||rec.date||('#'+key))+(rec.amount?' '+rec.amount:''), {a:rec.amount||rec.total||0}); }catch(e){} }
+    return r;
+  };
+  // staff list / PIN / protection-rule changes
+  const rawSave = saveSettings;
+  saveSettings = async function(newVals){
+    try{
+      if(newVals && newVals.users && SETTINGS && SETTINGS.users){
+        const o = SETTINGS.users, n = newVals.users;
+        const on = (o.staff||[]).map(s=>s.name).sort().join(','), nn = (n.staff||[]).map(s=>s.name).sort().join(',');
+        if(on!==nn) logAct('staff_change', 'Staff: '+(nn||'(none)'));
+        if(o.ownerPin && n.ownerPin && o.ownerPin!==n.ownerPin) logAct('owner_pin_change', 'Owner PIN was changed');
+        (n.staff||[]).forEach(s=>{ const os = (o.staff||[]).find(x=>x.id===s.id); if(os && os.pin!==s.pin) logAct('staff_pin_change', 'PIN changed for '+s.name); });
+      }
+      if(newVals && ('guardOn' in newVals || 'guardMaxDiscountPct' in newVals)) logAct('guard_rules', 'Discount limit '+(newVals.guardOn===false?'OFF':(newVals.guardMaxDiscountPct==null?'':newVals.guardMaxDiscountPct+'%')));
+    }catch(e){}
+    return rawSave(newVals);
+  };
+})();
+
+/* ---- Discount / price-cut guard: staff above the limit need the Owner PIN + a reason ---- */
+function guardRules(){ return {on: SETTINGS.guardOn!==false, maxPct: SETTINGS.guardMaxDiscountPct==null ? 10 : Math.max(0, Number(SETTINGS.guardMaxDiscountPct)||0)}; }
+async function guardEvaluateCart(){
+  let base = 0, manual = 0; const drops = [];
+  for(const it of CART.items){
+    let list = null;
+    try{ const pr = await dbGet('products', it.productId); const v = pr && pr.variants[it.variantIndex]; if(v) list = Number(v.sellPrice); }catch(e){}
+    if(list==null || isNaN(list)) list = it.rate;
+    base += list*it.qty;
+    if(!it.autoSale) manual += itemDiscountAmount(it);
+    if(it.rate < list-0.001){ manual += (list-it.rate)*it.qty; drops.push({name:it.name+(it.size?' '+it.size:''), list, rate:it.rate, qty:it.qty}); }
+  }
+  const tot = computeTotals();
+  manual += tot.overallDiscount;
+  manual = Math.round(manual*100)/100;
+  return {base, manual, pct: base>0 ? Math.round(manual/base*10000)/100 : 0, drops};
+}
+// Opens an Owner-PIN + reason box. Resolves {approved, reason}; closing the box = not approved.
+function guardAsk({title, lines}){
+  return new Promise(resolve=>{
+    let done = false, obs = null;
+    const finish = v=>{ if(done) return; done = true; if(obs) obs.disconnect(); resolve(v); };
+    openModal({
+      title,
+      bodyHTML:`
+        <div style="border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:10px;background:var(--paper-soft);font-size:12.5px;line-height:1.7;">${lines.map(l=>'<div>'+escapeHTML(l)+'</div>').join('')}</div>
+        <div class="field"><label>${t('guard_reasonLabel')}</label><input id="ga_reason" autocomplete="off"></div>
+        <div class="field" style="max-width:220px;"><label>${t('guard_pinLabel')}</label><input id="ga_pin" class="pin-input" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+        <div id="ga_err" style="font-size:12px;color:var(--red);min-height:16px;"></div>`,
+      footerHTML:`<button class="btn btn-outline" id="ga_cancel">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="ga_go">${t('guard_approveBtn')}</button>`,
+      onMount:()=>{
+        const bd = document.getElementById('modalBackdrop');
+        obs = new MutationObserver(()=>{ if(!bd.classList.contains('open')) finish({approved:false}); });
+        obs.observe(bd, {attributes:true, attributeFilter:['class']});
+        document.getElementById('ga_cancel').addEventListener('click', ()=>closeModal());
+        const go = ()=>{
+          const reason = document.getElementById('ga_reason').value.trim();
+          const pin = document.getElementById('ga_pin').value.trim();
+          const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
+          if(reason.length<4){ document.getElementById('ga_err').textContent = t('guard_reasonShort'); return; }
+          if(!ownerPin || pin!==ownerPin){ document.getElementById('ga_err').textContent = t('guard_pinWrong'); logAct('pin_failed','Wrong Owner PIN tried to approve: '+title); return; }
+          finish({approved:true, reason});
+          closeModal();
+        };
+        document.getElementById('ga_go').addEventListener('click', go);
+        document.getElementById('ga_pin').addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
+        const r = document.getElementById('ga_reason'); if(r) r.focus();
+      }
+    });
+  });
+}
+async function guardCheckoutOK(){
+  if(isOwner()) return true;
+  const g = guardRules(); if(!g.on) return true;
+  const ev = await guardEvaluateCart();
+  if(ev.pct <= g.maxPct + 0.0001) return true;
+  if(CART.guardApproval && ev.manual <= CART.guardApproval.amount + 0.01) return true;
+  const lines = [fillTpl(t('guard_limitLine'), [fmtMoney(ev.manual), ev.pct, g.maxPct])].concat(ev.drops.map(d=>fillTpl(t('guard_dropLine'), [d.name, fmtMoney(d.rate), fmtMoney(d.list)])));
+  const res = await guardAsk({title:t('guard_needTitle'), lines});
+  if(!res.approved) return false;
+  CART.guardApproval = {by:'Owner', reason:res.reason, pct:ev.pct, amount:ev.manual, at:new Date().toISOString()};
+  logAct('discount_approved', 'Discount '+ev.manual+' ('+ev.pct+'% of bill) approved by Owner - '+res.reason+(ev.drops.length?' | price cuts: '+ev.drops.map(d=>d.name+' '+d.rate+' (list '+d.list+')').join(', '):''), {a:ev.manual});
+  return true;
+}
+function actLogProductEdit(oldP, newP){
+  try{
+    (newP.variants||[]).forEach((v,i)=>{
+      const o = (oldP.variants||[])[i]; if(!o) return;
+      const ch = [];
+      if(Number(o.sellPrice)!==Number(v.sellPrice)) ch.push('sell '+o.sellPrice+' -> '+v.sellPrice);
+      if(Number(o.costPrice)!==Number(v.costPrice)) ch.push('cost '+o.costPrice+' -> '+v.costPrice);
+      if(Number(o.stock)!==Number(v.stock)) ch.push('stock '+o.stock+' -> '+v.stock);
+      if(ch.length) logAct('product_edit', newP.name+' '+[v.size,v.color].filter(Boolean).join('/')+': '+ch.join(', '), {a:Math.abs((Number(v.stock)||0)-(Number(o.stock)||0))});
+    });
+  }catch(e){}
+}
+async function actBillPrinted(bill){
+  try{
+    const b = await dbGet('bills', bill.id); if(!b) return;
+    b.printCount = (b.printCount||0)+1; await dbPut('bills', b);
+    if(b.printCount>1) logAct('bill_reprint', b.invoiceNo+' printed '+b.printCount+' times', {a:b.grandTotal||0, sb:b.soldByName||''});
+  }catch(e){}
+}
+
+
+/* ============ Staff Watch: red flags, activity log, rules, blind stock count ============ */
+const GUARD_STATE = {tab:null, days:30, logFrom:null, logTo:null, logUser:'', logKind:'', risky:true, logQ:'', scOpen:null, scDiffOnly:true};
+function guardTabs(){
+  return isOwner() ? [['flags',t('gd_tabFlags')],['log',t('gd_tabLog')],['count',t('gd_tabCount')],['rules',t('gd_tabRules')]] : [['count',t('gd_tabCount')]];
+}
+async function renderGuard(){
+  const el = document.getElementById('view-guard');
+  const tabs = guardTabs();
+  if(!tabs.some(x=>x[0]===GUARD_STATE.tab)) GUARD_STATE.tab = tabs[0][0];
+  el.innerHTML = `<div class="subtabs" id="gdTabs">${tabs.map(x=>`<button data-tab="${x[0]}" class="${x[0]===GUARD_STATE.tab?'active':''}">${x[1]}</button>`).join('')}</div><div id="gdBody"></div>`;
+  el.querySelectorAll('#gdTabs button').forEach(b=>b.addEventListener('click', ()=>{ GUARD_STATE.tab = b.dataset.tab; renderGuard(); }));
+  if(GUARD_STATE.tab==='flags') await renderGuardFlags();
+  else if(GUARD_STATE.tab==='log') await renderGuardLog();
+  else if(GUARD_STATE.tab==='rules') renderGuardRules();
+  else await renderStockCount();
+}
+
+/* ---- Rules ---- */
+function renderGuardRules(){
+  const g = guardRules();
+  document.getElementById('gdBody').innerHTML = `
+    <div class="card">
+      <h2 class="section-title">${t('gd_rulesTitle')}</h2>
+      <p class="muted" style="font-size:12.5px;margin-top:-4px;">${t('gd_rulesIntro')}</p>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13.5px;"><input type="checkbox" id="gr_on" ${g.on?'checked':''} style="width:auto;"> ${t('gd_ruleOn')}</label>
+      <div class="field" style="max-width:300px;margin-top:10px;"><label>${t('gd_ruleMaxPct')}</label><input id="gr_pct" type="number" min="0" max="100" step="0.5" value="${g.maxPct}"></div>
+      <button class="btn btn-primary" id="gr_save">${t('gd_save')}</button>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <h2 class="section-title">${t('gd_alwaysTitle')}</h2>
+      <ul style="font-size:13px;line-height:1.8;padding-left:20px;margin:0;">${[1,2,3,4,5,6].map(i=>`<li>${t('gd_always'+i)}</li>`).join('')}</ul>
+      <p class="muted" style="font-size:12px;margin-top:10px;">${t('gd_honest')}</p>
+    </div>`;
+  document.getElementById('gr_save').addEventListener('click', async ()=>{
+    const pct = Math.min(100, Math.max(0, parseFloat(document.getElementById('gr_pct').value)||0));
+    await saveSettings({guardOn: document.getElementById('gr_on').checked, guardMaxDiscountPct: pct});
+    toast(t('gd_saved'),'success');
+  });
+}
+
+/* ---- Activity log ---- */
+async function renderGuardLog(){
+  const S = GUARD_STATE;
+  if(!S.logFrom) S.logFrom = localISODate(new Date(Date.now()-7*86400000));
+  if(!S.logTo) S.logTo = localISODate();
+  const from = new Date(S.logFrom+'T00:00:00'), to = new Date(S.logTo+'T23:59:59');
+  const all = (await readActs(from, to)).reverse();
+  const users = [...new Set(all.map(e=>e.u))].sort(), kinds = [...new Set(all.map(e=>e.k))].sort();
+  let rows = all.filter(e=>(!S.logUser||e.u===S.logUser) && (!S.logKind||e.k===S.logKind) && (!S.risky||ACT_RISKY.includes(e.k)) && (!S.logQ || (e.d+' '+actKindLabel(e.k)+' '+e.u).toLowerCase().includes(S.logQ.toLowerCase())));
+  const total = rows.length; rows = rows.slice(0,400);
+  document.getElementById('gdBody').innerHTML = `
+    <div class="card">
+      <div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:8px;">
+        <div class="field" style="margin:0;"><label>${t('gd_logFrom')}</label><input type="date" id="gl_from" value="${S.logFrom}"></div>
+        <div class="field" style="margin:0;"><label>${t('gd_logTo')}</label><input type="date" id="gl_to" value="${S.logTo}"></div>
+        <div class="field" style="margin:0;"><label>${t('gd_logUser')}</label><select id="gl_user"><option value="">${t('gd_logAll')}</option>${users.map(u=>`<option ${u===S.logUser?'selected':''}>${escapeHTML(u)}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0;"><label>${t('gd_logKind')}</label><select id="gl_kind"><option value="">${t('gd_logAll')}</option>${kinds.map(k=>`<option value="${k}" ${k===S.logKind?'selected':''}>${escapeHTML(actKindLabel(k))}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0;"><label>${t('gd_logSearch')}</label><input id="gl_q" value="${escapeHTML(S.logQ)}" style="width:150px;"></div>
+        <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-bottom:8px;"><input type="checkbox" id="gl_risky" ${S.risky?'checked':''} style="width:auto;"> ${t('gd_logRisky')}</label>
+        <button class="btn btn-outline btn-sm" id="gl_verify">${t('gd_logVerify')}</button>
+        <button class="btn btn-outline btn-sm" id="gl_csv">${t('gd_logCsv')}</button>
+      </div>
+      <div class="muted" style="font-size:11.5px;margin:8px 0;">${fillTpl(t('gd_logShowing'),[rows.length,total])}</div>
+      <div id="gl_table">${rows.length ? `<table><thead><tr><th>${t('gd_thTime')}</th><th>${t('gd_thWho')}</th><th>${t('gd_thWhat')}</th><th>${t('gd_thDetails')}</th><th class="num">${t('gd_thAmount')}</th></tr></thead><tbody>
+        ${rows.map(e=>`<tr><td style="white-space:nowrap;font-size:11.5px;">${fmtStamp(e.at)}</td><td>${escapeHTML(e.u)}</td>
+          <td><span class="tag ${ACT_RISKY.includes(e.k)?'tag-red':''}" style="font-size:10.5px;">${escapeHTML(actKindLabel(e.k))}</span></td>
+          <td style="font-size:12px;">${escapeHTML(e.d)}</td><td class="num">${e.a?fmtMoney(e.a):''}</td></tr>`).join('')}</tbody></table>` : `<div class="empty-state">${t('gd_logEmpty')}</div>`}</div>
+    </div>`;
+  const bind = (id, key, isCheck)=>document.getElementById(id).addEventListener('change', e=>{ S[key] = isCheck ? e.target.checked : e.target.value; renderGuardLog(); });
+  bind('gl_from','logFrom'); bind('gl_to','logTo'); bind('gl_user','logUser'); bind('gl_kind','logKind'); bind('gl_risky','risky',true); bind('gl_q','logQ');
+  document.getElementById('gl_verify').addEventListener('click', async ()=>{
+    let n = 0; const bad = [];
+    const d = new Date(from.getFullYear(), from.getMonth(), 1);
+    while(d <= to){ const key = actMonthKey(d); const r = await verifyActMonth(key); n += r.count; if(!r.ok) bad.push(key.replace('actlog:','')+': '+r.bad.join(',')); d.setMonth(d.getMonth()+1); }
+    if(bad.length) toast(fillTpl(t('gd_verifyBad'),[bad.map(x=>x.split(':')[0]).join(', '), bad.map(x=>x.split(':')[1]).join(' / ')]),'error');
+    else toast(fillTpl(t('gd_verifyOk'),[n]),'success');
+  });
+  document.getElementById('gl_csv').addEventListener('click', ()=>{
+    const lines = [toCSVRow(['Time','Who','Role','What','Details','Amount'])].concat(all.map(e=>toCSVRow([e.at,e.u,e.r,actKindLabel(e.k),e.d,e.a==null?'':e.a])));
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'activity-log-'+S.logFrom+'-to-'+S.logTo+'.csv'; a.click(); URL.revokeObjectURL(url);
+  });
+}
+
+/* ---- Red flags ---- */
+async function guardCollect(days){
+  const to = new Date(), from = new Date(Date.now()-days*86400000);
+  const [bills, returns, closes, acts] = await Promise.all([scopedGetAll('bills'), scopedGetAll('returns'), scopedGetAll('dayCloses'), readActs(from, to)]);
+  const inR = d=>{ const x = new Date(d); return x>=from && x<=to; };
+  const S = {};
+  const get = n=> S[n] || (S[n] = {name:n, bills:0, sales:0, base:0, disc:0, cancelled:0, cancelledAmt:0, returns:0, returnsAmt:0, removed:0, removedAmt:0, dropped:0, droppedAmt:0, reprints:0, badPins:0, short:0, shortCloses:0});
+  bills.filter(b=>inR(b.date)).forEach(b=>{
+    const s = get(b.soldByName || t('staff_ownerTag'));
+    if(b.cancelled){ s.cancelled++; s.cancelledAmt += b.grandTotal||0; }
+    else { s.bills++; s.sales += b.grandTotal||0; s.base += (b.guard&&b.guard.base)||0; s.disc += (b.guard&&b.guard.manual)||0; }
+  });
+  returns.filter(r=>inR(r.date)).forEach(r=>{ const s = get(r.by || '—'); s.returns++; s.returnsAmt += r.totalRefund||0; });
+  closes.filter(c=>inR(c.closedAt||c.date)).forEach(c=>{ if((c.difference||0) < -0.5){ const s = get(c.closedBy||'—'); s.shortCloses++; s.short += -(c.difference||0); } });
+  acts.forEach(e=>{
+    const s = get(e.u);
+    if(e.k==='cart_remove'){ s.removed++; s.removedAmt += e.a||0; }
+    else if(e.k==='bill_dropped'){ s.dropped++; s.droppedAmt += e.a||0; }
+    else if(e.k==='bill_reprint'){ s.reprints++; }
+    else if(e.k==='pin_failed' || e.k==='login_failed'){ s.badPins++; }
+  });
+  return Object.values(S).filter(s=>s.name!=='—' || s.bills||s.returns||s.removed||s.shortCloses);
+}
+async function renderGuardFlags(){
+  const S = GUARD_STATE, g = guardRules();
+  const stats = await guardCollect(S.days);
+  const owner = t('staff_ownerTag');
+  const flags = [];
+  stats.filter(s=>s.name!==owner && s.name!=='—').forEach(s=>{
+    const pct = s.base>0 ? Math.round(s.disc/s.base*1000)/10 : 0;
+    // compared with everyone else's discount rate (the Owner's own bills included); a floor of 5% avoids noise
+    const oth = stats.filter(x=>x!==s), oBase = oth.reduce((a,x)=>a+x.base,0), oDisc = oth.reduce((a,x)=>a+x.disc,0);
+    const avgPct = oBase>0 ? Math.round(oDisc/oBase*1000)/10 : 0;
+    if(s.disc>0 && pct>Math.max(5, avgPct*1.5)) flags.push({sev:pct>g.maxPct?'high':'med', text:fillTpl(t('gd_f_disc'),[s.name,pct,fmtMoney(s.disc),avgPct])});
+    if(s.cancelled>=2 && s.cancelled/(s.bills+s.cancelled)>=0.05) flags.push({sev:s.cancelled>=4?'high':'med', text:fillTpl(t('gd_f_cancel'),[s.name,s.cancelled,fmtMoney(s.cancelledAmt)])});
+    if(s.returns>=3 && s.returnsAmt>=0.1*Math.max(1,s.sales)) flags.push({sev:'med', text:fillTpl(t('gd_f_returns'),[s.name,s.returns,fmtMoney(s.returnsAmt),Math.round(s.returnsAmt/Math.max(1,s.sales)*100)])});
+    if(s.removed>=5) flags.push({sev:s.removed>=15?'high':'med', text:fillTpl(t('gd_f_removed'),[s.name,s.removed,fmtMoney(s.removedAmt)])});
+    if(s.dropped>=2) flags.push({sev:'med', text:fillTpl(t('gd_f_dropped'),[s.name,s.dropped,fmtMoney(s.droppedAmt)])});
+    if(s.reprints>=3) flags.push({sev:'med', text:fillTpl(t('gd_f_reprint'),[s.name,s.reprints])});
+    if(s.badPins>=3) flags.push({sev:s.badPins>=5?'high':'med', text:fillTpl(t('gd_f_pins'),[s.name,s.badPins])});
+    if(s.shortCloses>=2 || s.short>=200) flags.push({sev:'high', text:fillTpl(t('gd_f_short'),[s.name,s.shortCloses,fmtMoney(s.short)])});
+    else if(s.short>=50) flags.push({sev:'med', text:fillTpl(t('gd_f_short'),[s.name,s.shortCloses,fmtMoney(s.short)])});
+  });
+  // stock counts
+  const sessions = await scList();
+  for(const sc of sessions){
+    if(sc.status==='submitted') flags.push({sev:'med', text:fillTpl(t('gd_f_countPending'),[fmtDate(sc.submittedAt)])});
+    if(sc.status==='accepted' || sc.status==='submitted' || sc.status==='closed'){
+      const sm = scSummary(sc); if(sm.shortPcs>0 && new Date(sc.submittedAt) >= new Date(Date.now()-S.days*86400000)) flags.push({sev:sm.shortValue>=1000?'high':'med', text:fillTpl(t('gd_f_count'),[escapeHTML(sc.name||fmtDate(sc.submittedAt)), sm.shortPcs, fmtMoney(sm.shortValue)])});
+    }
+  }
+  flags.sort((a,b)=>(a.sev==='high'?0:1)-(b.sev==='high'?0:1));
+  const rowsHTML = stats.sort((a,b)=>b.sales-a.sales).map(s=>{
+    const pct = s.base>0 ? Math.round(s.disc/s.base*1000)/10 : 0;
+    return `<tr><td><strong>${escapeHTML(s.name)}</strong></td><td class="num">${s.bills}</td><td class="num">${fmtMoney(s.sales)}</td><td class="num">${fmtMoney(s.disc)} <span class="muted">(${pct}%)</span></td>
+      <td class="num">${s.cancelled}${s.cancelled?` <span class="muted">(${fmtMoney(s.cancelledAmt)})</span>`:''}</td><td class="num">${s.returns}${s.returns?` <span class="muted">(${fmtMoney(s.returnsAmt)})</span>`:''}</td>
+      <td class="num">${s.removed}</td><td class="num">${s.reprints}</td><td class="num">${s.shortCloses?fmtMoney(s.short):'-'}</td><td class="num">${s.badPins}</td></tr>`;
+  }).join('');
+  document.getElementById('gdBody').innerHTML = `
+    <div class="card">
+      <div class="row" style="align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <p class="muted" style="font-size:12.5px;margin:0;">${t('gd_flagsIntro')}</p>
+        <div class="field" style="margin:0;"><select id="gf_days">${[7,30,90].map(d=>`<option value="${d}" ${d===S.days?'selected':''}>${t('gd_period'+d)}</option>`).join('')}</select></div>
+      </div>
+      ${flags.length ? flags.map(f=>`<div style="border:1px solid ${f.sev==='high'?'var(--red)':'var(--line)'};background:${f.sev==='high'?'var(--red-soft)':'var(--paper-soft)'};border-radius:9px;padding:8px 10px;margin-bottom:6px;font-size:13px;">${f.text}</div>`).join('')
+        : `<div class="empty-state">${t('gd_noFlags')}</div>`}
+    </div>
+    <div class="card" style="margin-top:14px;overflow-x:auto;">
+      <table><thead><tr><th>${t('gd_thStaff')}</th><th class="num">${t('gd_thBills')}</th><th class="num">${t('gd_thSales')}</th><th class="num">${t('gd_thDisc')}</th><th class="num">${t('gd_thCancel')}</th><th class="num">${t('gd_thReturns')}</th><th class="num">${t('gd_thRemoved')}</th><th class="num">${t('gd_thReprint')}</th><th class="num">${t('gd_thShort')}</th><th class="num">${t('gd_thPins')}</th></tr></thead><tbody>${rowsHTML}</tbody></table>
+    </div>`;
+  document.getElementById('gf_days').addEventListener('change', e=>{ S.days = parseInt(e.target.value); renderGuardFlags(); });
+}
+
+/* ---- Blind stock count ---- */
+async function scList(){
+  const idx = await dbGet('settings','stockcount:index');
+  const ids = (idx && idx.value && idx.value.ids) || [];
+  const out = [];
+  for(const id of ids){ const r = await dbGet('settings','stockcount:'+id); if(r && r.value) out.push(r.value); }
+  return out.sort((a,b)=>new Date(b.startedAt)-new Date(a.startedAt));
+}
+async function scSave(sc){
+  await dbPut('settings', {key:'stockcount:'+sc.id, value:sc});
+  const idx = await dbGet('settings','stockcount:index');
+  const ids = (idx && idx.value && idx.value.ids) || [];
+  if(!ids.includes(sc.id)){ ids.push(sc.id); await dbPut('settings', {key:'stockcount:index', value:{ids}}); }
+}
+async function scGet(id){ const r = await dbGet('settings','stockcount:'+id); return r ? r.value : null; }
+function scSummary(sc){
+  let shortPcs=0, shortValue=0, extraPcs=0, extraValue=0, match=0, notCounted=0;
+  (sc.lines||[]).forEach(l=>{
+    if(l.counted==null){ notCounted++; return; }
+    const sys = l.sys==null ? 0 : l.sys, d = l.counted - sys;
+    if(d<0){ shortPcs += -d; shortValue += -d*(l.cost||0); } else if(d>0){ extraPcs += d; extraValue += d*(l.cost||0); } else match++;
+  });
+  return {shortPcs, shortValue:Math.round(shortValue*100)/100, extraPcs, extraValue:Math.round(extraValue*100)/100, match, notCounted};
+}
+async function scStart(name){
+  const products = await scopedGetAll('products');
+  const lines = [];
+  products.sort((a,b)=>a.name.localeCompare(b.name)).forEach(pr=>{
+    (pr.variants||[]).forEach((v,i)=>{ lines.push({pid:pr.id, vi:i, name:pr.name, label:[v.size,v.color].filter(Boolean).join(' / '), sku:v.sku||'', cost:Number(v.costPrice)||0, counted:null}); });
+  });
+  if(!lines.length){ toast(t('sc_noProducts'),'error'); return; }
+  const sc = {id:'sc'+Date.now().toString(36), name:name||'', status:'counting', startedAt:new Date().toISOString(), startedBy:(CURRENT_USER?CURRENT_USER.name:'—'), lines};
+  await scSave(sc);
+  logAct('stock_count','Stock count started: '+(sc.name||sc.id)+' ('+lines.length+' items)');
+  GUARD_STATE.scOpen = sc.id;
+  await renderStockCount();
+}
+async function renderStockCount(){
+  const body = document.getElementById('gdBody');
+  const S = GUARD_STATE;
+  if(S.scOpen){
+    const sc = await scGet(S.scOpen);
+    if(sc){
+      if(sc.status==='counting') return renderScCounting(sc);
+      if(isOwner()) return renderScReview(sc);
+    }
+    S.scOpen = null;
+  }
+  const list = await scList();
+  body.innerHTML = `
+    <div class="card">
+      <h2 class="section-title">${t('sc_title')}</h2>
+      <p class="muted" style="font-size:12.5px;margin-top:-4px;">${t('sc_intro')} ${t('sc_warnTime')}</p>
+      <div class="row" style="align-items:flex-end;gap:8px;">
+        <div class="field" style="margin:0;flex:1;max-width:340px;"><label>${t('sc_name')}</label><input id="sc_name" autocomplete="off"></div>
+        <button class="btn btn-primary" id="sc_start">${t('sc_start')}</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      ${list.length ? `<table><thead><tr><th>${t('sc_title')}</th><th>${t('sc_startedAt')}</th><th>${t('sc_countedBy')}</th><th>${t('th_status')}</th><th></th></tr></thead><tbody>
+        ${list.map(sc=>`<tr><td>${escapeHTML(sc.name||sc.id)}</td><td style="font-size:12px;">${fmtStamp(sc.startedAt)}</td><td>${escapeHTML(sc.startedBy||'')}</td><td><span class="tag ${sc.status==='submitted'?'tag-amber':(sc.status==='counting'?'':'tag-green')}">${t('sc_status_'+sc.status)}</span></td>
+          <td>${sc.status==='counting' ? `<button class="btn btn-primary btn-sm" data-open="${sc.id}">${t('sc_continue')}</button>` : (isOwner() ? `<button class="btn btn-outline btn-sm" data-open="${sc.id}">${sc.status==='submitted'?t('sc_review'):t('sc_view')}</button>` : '')}</td></tr>`).join('')}</tbody></table>`
+        : `<div class="empty-state">${t('sc_none')}</div>`}
+    </div>`;
+  document.getElementById('sc_start').addEventListener('click', ()=>scStart(document.getElementById('sc_name').value.trim()));
+  body.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click', ()=>{ S.scOpen = b.dataset.open; renderStockCount(); }));
+}
+function renderScCounting(sc){
+  const body = document.getElementById('gdBody');
+  const counted = ()=>sc.lines.filter(l=>l.counted!=null).length;
+  body.innerHTML = `
+    <div class="card">
+      <div class="row" style="align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <h2 class="section-title" style="margin:0;">${escapeHTML(sc.name||t('sc_title'))}</h2>
+        <div><button class="btn btn-outline btn-sm" id="sc_back">${t('acct_cancelBtn')==='Cancel'?'Back':'Back'}</button> <button class="btn btn-primary" id="sc_submit">${t('sc_submit')}</button></div>
+      </div>
+      <p class="muted" style="font-size:12px;margin:6px 0;"><span id="sc_prog"></span> &middot; ${t('sc_warnTime')}</p>
+      <div class="field" style="max-width:300px;"><input id="sc_q" placeholder="${escapeHTML(t('sc_search'))}" autocomplete="off"></div>
+      <div style="max-height:62vh;overflow:auto;"><table><thead><tr><th>${t('sc_thItem')}</th><th>${t('sc_thSku')}</th><th style="width:110px;">${t('sc_counted')}</th></tr></thead><tbody id="sc_rows"></tbody></table></div>
+    </div>`;
+  const prog = ()=>{ document.getElementById('sc_prog').textContent = fillTpl(t('sc_progress'),[counted(), sc.lines.length]); };
+  let saveT = null;
+  const queueSave = ()=>{ clearTimeout(saveT); saveT = setTimeout(()=>scSave(sc), 500); };
+  const draw = ()=>{
+    const q = (document.getElementById('sc_q').value||'').toLowerCase();
+    document.getElementById('sc_rows').innerHTML = sc.lines.map((l,i)=>({l,i})).filter(x=>!q || (x.l.name+' '+x.l.label+' '+x.l.sku).toLowerCase().includes(q)).slice(0,600).map(x=>
+      `<tr><td>${escapeHTML(x.l.name)}${x.l.label?' <span class="muted">('+escapeHTML(x.l.label)+')</span>':''}</td><td style="font-size:11.5px;">${escapeHTML(x.l.sku)}</td>
+       <td><input type="number" min="0" step="1" class="sc-in" data-i="${x.i}" value="${x.l.counted==null?'':x.l.counted}" placeholder="${escapeHTML(t('sc_notCounted'))}" style="width:96px;"></td></tr>`).join('');
+    document.querySelectorAll('.sc-in').forEach(inp=>inp.addEventListener('input', ()=>{
+      const l = sc.lines[parseInt(inp.dataset.i)];
+      if(inp.value===''){ l.counted = null; l.by = null; l.at = null; }
+      else { l.counted = Math.max(0, parseInt(inp.value)||0); l.by = CURRENT_USER?CURRENT_USER.name:'—'; l.at = new Date().toISOString(); }
+      prog(); queueSave();
+    }));
+  };
+  document.getElementById('sc_q').addEventListener('input', draw);
+  document.getElementById('sc_back').addEventListener('click', async ()=>{ await scSave(sc); GUARD_STATE.scOpen = null; renderStockCount(); });
+  document.getElementById('sc_submit').addEventListener('click', async ()=>{
+    const left = sc.lines.length - counted();
+    if(counted()===0){ toast(fillTpl(t('sc_confirmSubmit'),[left]),'error'); return; }
+    if(left>0 && !confirm(fillTpl(t('sc_confirmSubmit'),[left]))) return;
+    // freeze what the system believed at this moment, so later sales don't look like theft
+    for(const l of sc.lines){
+      if(l.counted==null) continue;
+      const pr = await dbGet('products', l.pid); const v = pr && pr.variants[l.vi];
+      l.sys = v ? Number(v.stock||0) : 0; l.cost = v ? Number(v.costPrice)||0 : l.cost;
+    }
+    sc.status = 'submitted'; sc.submittedAt = new Date().toISOString(); sc.submittedBy = CURRENT_USER?CURRENT_USER.name:'—';
+    await scSave(sc);
+    const sm = scSummary(sc);
+    logAct('stock_count','Stock count submitted: '+(sc.name||sc.id)+' - '+sm.shortPcs+' short, '+sm.extraPcs+' extra', {a:sm.shortValue});
+    toast(t('sc_submitted'),'success');
+    GUARD_STATE.scOpen = null; renderStockCount();
+  });
+  prog(); draw();
+}
+function renderScReview(sc){
+  const body = document.getElementById('gdBody'), S = GUARD_STATE;
+  const sm = scSummary(sc);
+  const diffRows = sc.lines.filter(l=>l.counted!=null).map(l=>({l, d:l.counted-(l.sys||0)})).filter(x=>!S.scDiffOnly || x.d!==0).sort((a,b)=>(a.d*a.l.cost)-(b.d*b.l.cost));
+  body.innerHTML = `
+    <div class="card">
+      <div class="row" style="align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <h2 class="section-title" style="margin:0;">${escapeHTML(sc.name||sc.id)} <span class="tag" style="font-size:11px;">${t('sc_status_'+sc.status)}</span></h2>
+        <button class="btn btn-outline btn-sm" id="scr_back">${t('print_closeBtn')}</button>
+      </div>
+      <p class="muted" style="font-size:12px;margin:6px 0;">${t('sc_startedAt')}: ${fmtStamp(sc.startedAt)} (${escapeHTML(sc.startedBy||'')}) &middot; ${t('sc_submittedAt')}: ${sc.submittedAt?fmtStamp(sc.submittedAt):'-'} (${escapeHTML(sc.submittedBy||'')})</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;font-size:13px;">
+        <span class="tag tag-red">${fillTpl(t('sc_sumShort'),[sm.shortPcs,fmtMoney(sm.shortValue)])}</span><span class="tag tag-amber">${fillTpl(t('sc_sumExtra'),[sm.extraPcs,fmtMoney(sm.extraValue)])}</span>
+        <span class="tag tag-green">${fillTpl(t('sc_sumMatch'),[sm.match])}</span><span class="tag">${fillTpl(t('sc_sumNot'),[sm.notCounted])}</span>
+      </div>
+      <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-bottom:8px;"><input type="checkbox" id="scr_diff" ${S.scDiffOnly?'checked':''} style="width:auto;"> ${t('sc_onlyShowDiff')}</label>
+      <div style="max-height:52vh;overflow:auto;"><table><thead><tr><th>${t('sc_thItem')}</th><th>${t('sc_thSku')}</th><th class="num">${t('sc_thSystem')}</th><th class="num">${t('sc_thCounted')}</th><th class="num">${t('sc_thDiff')}</th><th class="num">${t('sc_thValue')}</th></tr></thead><tbody>
+        ${diffRows.map(x=>`<tr><td>${escapeHTML(x.l.name)}${x.l.label?' <span class="muted">('+escapeHTML(x.l.label)+')</span>':''}</td><td style="font-size:11.5px;">${escapeHTML(x.l.sku)}</td><td class="num">${x.l.sys||0}</td><td class="num">${x.l.counted}</td>
+          <td class="num" style="color:${x.d<0?'var(--red)':(x.d>0?'var(--amber, #b8860b)':'inherit')};font-weight:700;">${x.d>0?'+':''}${x.d}</td><td class="num">${fmtMoney(Math.abs(x.d)*(x.l.cost||0))}</td></tr>`).join('')}</tbody></table></div>
+      ${sc.status==='submitted' ? `<div style="margin-top:12px;display:flex;gap:8px;"><button class="btn btn-primary" id="scr_accept">${t('sc_accept')}</button><button class="btn btn-outline" id="scr_close">${t('sc_close')}</button></div>` : ''}
+    </div>`;
+  document.getElementById('scr_back').addEventListener('click', ()=>{ S.scOpen = null; renderStockCount(); });
+  document.getElementById('scr_diff').addEventListener('change', e=>{ S.scDiffOnly = e.target.checked; renderScReview(sc); });
+  const acc = document.getElementById('scr_accept');
+  if(acc){
+    acc.addEventListener('click', async ()=>{
+      for(const l of sc.lines){
+        if(l.counted==null) continue;
+        const d = l.counted - (l.sys||0); if(d===0) continue;
+        const pr = await dbGet('products', l.pid); if(!pr || !pr.variants[l.vi]) continue;
+        const v = pr.variants[l.vi], prev = Number(v.stock||0);
+        adjustFirmStock(v, pr.firmId, d); await dbPut('products', pr);
+        await dbAdd('stockAdjustments', {productId:l.pid, variantIndex:l.vi, productName:pr.name, variantLabel:[v.size,v.color].filter(Boolean).join('/')||v.sku||'', sku:v.sku||'', firmId:pr.firmId,
+          delta:v.stock-prev, previousStock:prev, newStock:v.stock, reason:'Stock count', note:fillTpl(t('sc_acceptNote'),[sc.name||sc.id]), date:new Date().toISOString(), user:(CURRENT_USER?CURRENT_USER.name:'Owner')});
+      }
+      sc.status = 'accepted'; sc.reviewedAt = new Date().toISOString(); sc.reviewedBy = CURRENT_USER?CURRENT_USER.name:'Owner';
+      await scSave(sc); logAct('stock_count','Stock count accepted, stock fixed: '+(sc.name||sc.id), {a:sm.shortValue});
+      toast(t('sc_accepted'),'success'); renderScReview(sc); if(typeof refreshLowStockBadge==='function') refreshLowStockBadge();
+    });
+    document.getElementById('scr_close').addEventListener('click', async ()=>{
+      sc.status = 'closed'; sc.reviewedAt = new Date().toISOString(); sc.reviewedBy = CURRENT_USER?CURRENT_USER.name:'Owner';
+      await scSave(sc); logAct('stock_count','Stock count closed without changing stock: '+(sc.name||sc.id), {a:sm.shortValue});
+      toast(t('sc_closedMsg'),'success'); renderScReview(sc);
+    });
+  }
+}
+
 /* ---------- Icons ---------- */
 const ICONS = {
   check:'<polyline points="20 6 9 17 4 12"/>',
@@ -1855,6 +2645,7 @@ const ICONS = {
   chart:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
   mail:'<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/>',
   accounts:'<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  guard:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>',
   tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>'
 };
 function iconSVG(name, size){
@@ -1871,6 +2662,7 @@ const NAV_META = [
   {view:'trends', label:'Trends', key:'nav_trends'},
   {view:'requirements', label:'Vendor Management', key:'nav_requirements', badgeId:'reqBadge'},
   {view:'accounts', label:'Accounts', key:'nav_accounts'},
+  {view:'guard', label:'Staff Watch', key:'nav_guard'},
   {view:'alterations', label:'Alterations', key:'nav_alterations', badgeId:'alterBadge'},
   {view:'customers', label:'Customers', key:'nav_customers'},
   {view:'settings', label:'Settings', key:'nav_settings'}
@@ -1878,7 +2670,7 @@ const NAV_META = [
 function navLabel(n){ return (typeof t==='function' && n.key) ? t(n.key) : n.label; }
 const VIEWS = NAV_META.map(n=>n.view);
 
-const CASHIER_ALLOWED_VIEWS = ['dashboard','billing','inventory','customers','alterations'];
+const CASHIER_ALLOWED_VIEWS = ['dashboard','billing','inventory','customers','alterations','guard'];
 function visibleNavMeta(){
   if(typeof CURRENT_USER==='undefined' || !CURRENT_USER || CURRENT_USER.role==='owner') return NAV_META;
   return NAV_META.filter(n=>CASHIER_ALLOWED_VIEWS.includes(n.view));
@@ -1909,6 +2701,7 @@ function requireOwnerApproval(actionLabel, onApproved){
           onApproved();
         } else {
           document.getElementById('oa_error').textContent = 'Incorrect PIN';
+          logAct('pin_failed', 'Wrong Owner PIN tried for: '+actionLabel);
         }
       };
       document.getElementById('oa_go').addEventListener('click', tryApprove);
@@ -1986,6 +2779,7 @@ function showView(name){
   if(name==='alterations' && typeof renderAlterations==='function') renderAlterations();
   if(name==='customers' && typeof renderCustomers==='function') renderCustomers();
   if(name==='settings' && typeof renderSettings==='function') renderSettings();
+  if(name==='guard' && typeof renderGuard==='function') renderGuard();
 }
 
 /* ---------- Theme toggle ---------- */
@@ -2855,6 +3649,7 @@ async function exportBackup(){
   a.href = url; a.download = 'cloth-shop-backup-'+todayISO()+'.json';
   a.click();
   URL.revokeObjectURL(url);
+  logAct('backup_export','Full backup downloaded');
   toast(t('toast_fullBackupDownloaded'),'success');
 }
 
@@ -2922,6 +3717,7 @@ async function performRestore(payload, storesInFile){
     for(const name of storesInFile){
       await dbReplaceAll(name, payload.data[name]);
     }
+    await logAct('restore','A backup file was restored over all data (backup made '+(payload.exportedAt||'?')+')');
     closeModal();
     toast(t('toast_backupRestoredReloading'),'success');
     setTimeout(()=>location.reload(), 900);
@@ -4369,6 +5165,7 @@ async function saveProductFromModal(productId){
     createdAt: new Date().toISOString()
   };
   const oldProduct = productId ? await dbGet('products', productId) : null;
+  if(oldProduct) actLogProductEdit(oldProduct, record);
   let savedId = productId;
   if(productId){
     record.id = productId;
@@ -8437,7 +9234,7 @@ function updateCartRate(i,val){ CART.items[i].rate = parseFloat(val)||0; renderC
 // SALE badge (which implies "this is the configured sale price") no longer applies here.
 function updateCartDiscount(i,val){ CART.items[i].discount = Math.max(0, parseFloat(val)||0); CART.items[i].autoSale = false; renderCartItems(); renderBillTotals(); }
 function updateCartDiscountType(i,val){ CART.items[i].discountType = val==='percent'?'percent':'amount'; CART.items[i].autoSale = false; renderCartItems(); renderBillTotals(); }
-function removeCartItem(i){ CART.items.splice(i,1); renderCartItems(); renderBillTotals(); }
+function removeCartItem(i){ { const it = CART.items[i]; if(it) logAct('cart_remove', it.name+(it.size?' '+it.size:'')+(it.color?'/'+it.color:'')+' x'+it.qty+' @ '+it.rate, {a:Math.round(it.qty*it.rate*100)/100}); } CART.items.splice(i,1); renderCartItems(); renderBillTotals(); }
 
 // Highest matching automatic tiered discount for a given bill amount (after item discounts).
 function autoTierDiscountAmount(baseAmount){
@@ -8621,6 +9418,8 @@ async function closeBillTab(id, silent){
   const tab = BILL_TABS[idx];
   if(!silent && (tab.cart.items||[]).length>0){
     if(!confirm(t('tabs_confirmClose').replace('{0}', billTabTitle(tab, idx)))) return;
+    const _v = Math.round(tab.cart.items.reduce((s,it)=>s+it.qty*it.rate,0)*100)/100;
+    logAct('bill_dropped', tab.cart.items.length+' item line(s) worth '+_v+' thrown away without billing: '+tab.cart.items.map(it=>it.name+' x'+it.qty).join(', ').slice(0,200), {a:_v});
   }
   BILL_TABS.splice(idx,1);
   try{ await dbDelete('openBills', id); }catch(e){}
@@ -9001,6 +9800,7 @@ async function ensureBillCustomerOk(){
 async function openCheckoutModal(){
   if(CART.items.length===0){ toast(t('toast_cartEmpty'),'error'); return; }
   if(!(await ensureBillCustomerOk())) return;
+  if(!(await guardCheckoutOK())) return;
   const tot = computeTotals();
   let customer = null;
   if(CART.customerId) customer = await dbGet('customers', CART.customerId);
@@ -9247,6 +10047,7 @@ async function finalizeCheckout(tot, getAmountDue){
   const cashTendered = cashTenderedRaw ? (parseFloat(cashTenderedRaw)||0) : null;
   const changeGiven = cashTendered!=null ? Math.max(0, Math.round((cashTendered-cash)*100)/100) : 0;
 
+  const _gv = await guardEvaluateCart();
   const bill = {
     invoiceNo,
     firmId: saleFirmId,
@@ -9276,7 +10077,10 @@ async function finalizeCheckout(tot, getAmountDue){
     status: remaining>0.01 ? (paid>0?'partial':'credit') : 'paid',
     // Who was logged in and processed this sale — powers the Staff Sales Performance report.
     soldByKey: CURRENT_USER ? staffKeyFor(CURRENT_USER) : 'owner',
-    soldByName: CURRENT_USER ? CURRENT_USER.name : t('staff_ownerTag')
+    soldByName: CURRENT_USER ? CURRENT_USER.name : t('staff_ownerTag'),
+    // Manual discounts and price cuts on this bill, and who approved them if the staff limit was passed.
+    guard: {manual:_gv.manual, pct:_gv.pct, base:_gv.base, drops:_gv.drops,
+            approvedBy:(CART.guardApproval||{}).by||null, reason:(CART.guardApproval||{}).reason||null}
   };
   const billId = await dbAdd('bills', bill);
   bill.id = billId;
@@ -9600,6 +10404,7 @@ async function showInvoiceModal(bill){
     `,
     onMount:()=>{
       document.getElementById('printInvoiceBtn').addEventListener('click', ()=>{
+        actBillPrinted(bill);
         const format = document.getElementById('invoicePaperFormat').value;
         const isThermal = format!=='a4';
         const w = openPrintWindow(isThermal ? 'width=380,height=600' : 'width=780,height=900');
@@ -10545,6 +11350,7 @@ async function cancelBill(billId, reason){
   bill.cancelReason = reason;
   bill.cancelledBy = (typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER.name : t('staff_ownerTag');
   await dbPut('bills', bill);
+  logAct('bill_cancel', bill.invoiceNo+' worth '+bill.grandTotal+' sold by '+(bill.soldByName||'?')+' - '+reason, {a:bill.grandTotal||0, sb:bill.soldByName||''});
 
   closeModal();
   toast(t('toast_billCancelled').replace('{0}', bill.invoiceNo), 'success');
@@ -11242,6 +12048,7 @@ function supAudit(supplier, action, detail){
   const s = stampNow();
   supplier.audit = supplier.audit||[];
   supplier.audit.push({at:s.at, by:s.by, action, detail});
+  try{ logAct(action==='void'?'sup_void':(action==='merge'?'sup_merge':(action==='delete'?'supplier_delete':'sup_other')), (supplier.name||'')+': '+action+' '+(detail||'')); }catch(e){}
 }
 // Posts one stamped ledger row and moves the vendor's balances. The effect is stored on the row
 // (bal / adv) so that a void can undo exactly what this row did.
@@ -13173,7 +13980,7 @@ async function openMergeModal(ids){
         if(!billNo){ toast(t('toast_mgBillNo'),'error'); return; }
         if(reason.length<4){ toast(t('toast_mgReason'),'error'); return; }
         const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
-        if(ownerPin && document.getElementById('mg_pin').value.trim()!==ownerPin){ toast(t('toast_mgPin'),'error'); return; }
+        if(ownerPin && document.getElementById('mg_pin').value.trim()!==ownerPin){ toast(t('toast_mgPin'),'error'); logAct('pin_failed','Wrong Owner PIN tried to merge supplier bills'); return; }
         const res = await executeMerge(ids, billNo, document.getElementById('mg_date').value, reason);
         if(res!==true){ if(res) toast(t(res),'error'); return; }
         closeModal(); toast(t('toast_mgDone'),'success'); await refreshSupplierSurfaces();
@@ -13286,7 +14093,7 @@ async function openVoidModal(supplierId, entryId, opts){
         const reason = document.getElementById('vd_reason').value.trim();
         if(reason.length<4){ toast(t('toast_voidReasonShort'),'error'); return; }
         const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
-        if(ownerPin && document.getElementById('vd_pin').value.trim()!==ownerPin){ toast(t('toast_voidPinWrong'),'error'); return; }
+        if(ownerPin && document.getElementById('vd_pin').value.trim()!==ownerPin){ toast(t('toast_voidPinWrong'),'error'); logAct('pin_failed','Wrong Owner PIN tried to void a supplier entry'); return; }
         const stockEl = document.getElementById('vd_stock');
         const ok = await executeVoid(supplierId, entryId, opts.invId||null, reason, stockEl ? stockEl.checked : false);
         if(!ok) return;
@@ -15636,6 +16443,7 @@ function staffKeyFor(user){
   return user.role==='owner' ? 'owner' : ('staff-'+user.id);
 }
 async function recordCheckIn(user){
+  logAct('login', user.name+' logged in');
   try{
     await dbAdd('attendance', {
       staffKey: staffKeyFor(user),
@@ -15649,6 +16457,7 @@ async function recordCheckIn(user){
 }
 async function recordCheckOut(user){
   if(!user) return;
+  logAct('logout', user.name+' logged out');
   try{
     const key = staffKeyFor(user);
     const all = await dbGetAll('attendance');
@@ -15835,6 +16644,7 @@ function showLoginScreen(activeTab){
       await onAuthResolved();
     } else {
       document.getElementById('login_err').textContent = t('auth_incorrectPin');
+      logAct('login_failed', 'Wrong PIN tried on the Owner login');
     }
   });
   const staffGo = document.getElementById('login_staff_go');
@@ -15850,6 +16660,7 @@ function showLoginScreen(activeTab){
       await onAuthResolved();
     } else {
       document.getElementById('login_err').textContent = t('auth_incorrectPin');
+      logAct('login_failed', 'Wrong PIN tried for staff login: '+(s?s.name:'?'));
     }
   });
 }
