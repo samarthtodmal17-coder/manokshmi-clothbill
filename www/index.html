@@ -907,7 +907,7 @@ const DEFAULT_SETTINGS = {
   logo:'',
   paperSize:'thermal80',
   upiId:'',
-  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false,   // barcode label printer
+  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false, labelAutoClean:true,   // barcode label printer
   billQrMode:'always',   // always | due | never
   loyaltyEnabled:false,
   loyaltyEarnPerRupee:100,
@@ -1490,6 +1490,16 @@ const I18N = {
     wa_imgCopyFail:'Could not copy the image here. Press Save image, then attach the file in WhatsApp.',
     wa_imgFail:'Could not make the bill image.',
     wa_imgSaved:'Bill image saved',
+    lb_autoClean:'Before every print, remove old stuck label prints (recommended)',
+    lb_cancelOld:'Cancel old label prints',
+    lb_cancelHint:'If the roll finished and old labels come out again after loading a new roll: press "Cancel old label prints", then print again. Best pressed BEFORE loading the new roll.',
+    lb_cancelDone:'Old label prints cancelled: {0} job(s) removed and the printer was reset.',
+    lb_cancelNone:'No old label prints were waiting. The printer was reset.',
+    lb_cancelFail:'Could not cancel old prints: {0}',
+    lb_stuckErr:'The printer is out of paper, offline or in error. This print was cancelled so it will not come out later. Load the roll, then print again.',
+    inv_printVariantTitle:'Print labels for this variant now (one click)',
+    lb_printThis:'Print this',
+    lb_printThisTitle:'Print only this variant',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2014,6 +2024,16 @@ const I18N = {
     wa_imgCopyFail:'येथे इमेज कॉपी करता आली नाही. इमेज सेव्ह करा आणि व्हॉट्सअॅपमध्ये फाइल जोडा.',
     wa_imgFail:'बिलाची इमेज तयार करता आली नाही.',
     wa_imgSaved:'बिलाची इमेज सेव्ह झाली',
+    lb_autoClean:'प्रत्येक प्रिंटआधी अडकलेले जुने लेबल प्रिंट काढून टाका (शिफारस)',
+    lb_cancelOld:'जुने लेबल प्रिंट रद्द करा',
+    lb_cancelHint:'रोल संपल्यावर नवीन रोल लावला की जुने लेबल पुन्हा येत असतील तर "जुने लेबल प्रिंट रद्द करा" दाबा, मग पुन्हा प्रिंट करा. नवीन रोल लावण्यापूर्वीच दाबणे उत्तम.',
+    lb_cancelDone:'जुने लेबल प्रिंट रद्द झाले: {0} जॉब काढले आणि प्रिंटर रीसेट केला.',
+    lb_cancelNone:'थांबलेले जुने लेबल प्रिंट नव्हते. प्रिंटर रीसेट केला.',
+    lb_cancelFail:'जुने प्रिंट रद्द करता आले नाहीत: {0}',
+    lb_stuckErr:'प्रिंटरमध्ये कागद संपला आहे, तो ऑफलाइन आहे किंवा त्रुटी आहे. हे प्रिंट रद्द केले, त्यामुळे ते नंतर येणार नाही. रोल लावा आणि पुन्हा प्रिंट करा.',
+    inv_printVariantTitle:'या व्हेरिएंटचे लेबल लगेच छापा (एक क्लिक)',
+    lb_printThis:'हे छापा',
+    lb_printThisTitle:'फक्त हा व्हेरिएंट छापा',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -4695,7 +4715,8 @@ async function renderInventoryTable(){
         <button type="button" class="qtyStepBtn" data-pid="${p.id}" data-vi="${vi}" data-dir="add" title="${t('inv_addOneTitle')}" style="${stepBtnStyle}">+</button>
         ${saleBtn}
       ` : '';
-      return `<span class="tag ${cls}" title="${escapeHTML('SKU: '+(v.sku||''))}" style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0;">${escapeHTML(label)}: ${v.stock}${saleInfo}${stepper}</span>`;
+      const printBtn = `<button type="button" class="lblStepBtn" data-pid="${p.id}" data-vi="${vi}" title="${t('inv_printVariantTitle')}" style="${stepBtnStyle}">${iconSVG('barcode',11)}</button>`;
+      return `<span class="tag ${cls}" title="${escapeHTML('SKU: '+(v.sku||''))}" style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0;">${escapeHTML(label)}: ${v.stock}${saleInfo}${stepper}${printBtn}</span>`;
     }).join(' ')
       + (hiddenCount>0 ? ` <button type="button" class="inv-variant-more" data-pid="${p.id}">${t('inv_showMoreVariants').replace('{0}', hiddenCount)}</button>` : '')
       + (expanded && allVariants.length>chipCap ? ` <button type="button" class="inv-variant-more" data-pid="${p.id}">${t('inv_showFewerVariants')}</button>` : '');
@@ -4781,6 +4802,12 @@ async function renderInventoryTable(){
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       openSaleModal(parseInt(btn.dataset.pid), parseInt(btn.dataset.vi));
+    });
+  });
+  wrap.querySelectorAll('.lblStepBtn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      printOneVariantLabels(parseInt(btn.dataset.pid), parseInt(btn.dataset.vi));
     });
   });
   document.getElementById('invPageSize').addEventListener('change', (e)=>{
@@ -5282,6 +5309,7 @@ async function openBarcodeModal(productId){
           <label style="font-size:11px;">${t('inv_copiesLabel')}</label>
           <input type="number" min="0" value="${LABEL_QTY[i]}" data-vi="${i}" class="labelQtyInput">
         </div>
+        <div class="col" style="flex:0 0 auto;"><button type="button" class="btn btn-outline btn-sm labelOneBtn" data-vi="${i}" title="${t('lb_printThisTitle')}">${t('lb_printThis')}</button></div>
       </div>
     `;
   }).join('');
@@ -5320,6 +5348,9 @@ async function openBarcodeModal(productId){
               <div class="col field" style="min-width:110px;"><label>${t('lb_rawGap')}</label><input id="lb_rawgap" type="number" min="0" step="0.5" value="${labelConfig().rawGap}"></div>
             </div>
             <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;"><input type="checkbox" id="lb_invert" style="width:auto;" ${labelConfig().invert?'checked':''}> ${t('lb_invert')}</label>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-top:6px;"><input type="checkbox" id="lb_autoclean" style="width:auto;" ${labelConfig().autoClean?'checked':''}> ${t('lb_autoClean')}</label>
+            <div style="margin-top:8px;"><button type="button" class="btn btn-outline btn-sm" id="lb_cancelOldBtn">${t('lb_cancelOld')}</button></div>
+            <p class="muted" style="font-size:11.5px;margin:6px 0 0;">${t('lb_cancelHint')}</p>
             <p class="muted" style="font-size:11.5px;margin:6px 0 0;">${t('lb_rawHint')}</p>
           </div>
         </div>
@@ -5384,9 +5415,19 @@ async function openBarcodeModal(productId){
         const c = readLabelCfgFromModal();
         // Remember the label setup so it only has to be done once per printer.
         await saveSettings({labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot,
-          labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert});
+          labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert, labelAutoClean:c.autoClean});
       };
       document.getElementById('lb_testBtn').addEventListener('click', async ()=>{ await saveLabelCfg(); printTestLabel(); });
+      const cancelOldBtn = document.getElementById('lb_cancelOldBtn');
+      if(cancelOldBtn) cancelOldBtn.addEventListener('click', async ()=>{ cancelOldBtn.disabled = true; try{ await cancelOldLabelPrints(readLabelCfgFromModal()); } finally { cancelOldBtn.disabled = false; } });
+      document.querySelectorAll('.labelOneBtn').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const vi = parseInt(btn.dataset.vi);
+          if(!(LABEL_QTY[vi]>0)){ toast(t('lb_noCopies'),'error'); return; }
+          await saveLabelCfg();
+          printBarcodeLabels(product, productId, {[vi]: LABEL_QTY[vi]});
+        });
+      });
       document.getElementById('printLabelsBtn').addEventListener('click', async ()=>{
         if(!Object.values(LABEL_QTY).some(q=>q>0)){ toast(t('lb_noCopies'),'error'); return; }
         await saveLabelCfg();
@@ -5415,7 +5456,8 @@ function labelConfig(src){
     printer: String(src.labelPrinter||''),
     dpi: [200,203,300,600].includes(Number(src.labelDpi)) ? Number(src.labelDpi) : 203,
     rawGap: Math.max(0, num(src.labelRawGapMm, 2)),
-    invert: src.labelRawInvert===true || src.labelRawInvert==='1' || src.labelRawInvert==='true'
+    invert: src.labelRawInvert===true || src.labelRawInvert==='1' || src.labelRawInvert==='true',
+    autoClean: !(src.labelAutoClean===false || src.labelAutoClean==='0' || src.labelAutoClean==='false')
   };
 }
 function readLabelCfgFromModal(){
@@ -5423,7 +5465,8 @@ function readLabelCfgFromModal(){
   const has = id=>!!document.getElementById(id);
   return labelConfig({labelPaper:g('lb_paper'), labelWidthMm:g('lb_w'), labelHeightMm:g('lb_h'), labelCols:g('lb_cols'), labelGapMm:g('lb_gap'), labelOffX:g('lb_offx'), labelOffY:g('lb_offy'), labelRot:g('lb_rot'),
     labelMethod: has('lb_method')?g('lb_method'):'driver', labelPrinter: has('lb_printer')?g('lb_printer'):'', labelDpi: has('lb_dpi')?g('lb_dpi'):203,
-    labelRawGapMm: has('lb_rawgap')?g('lb_rawgap'):2, labelRawInvert: has('lb_invert') ? document.getElementById('lb_invert').checked : false});
+    labelRawGapMm: has('lb_rawgap')?g('lb_rawgap'):2, labelRawInvert: has('lb_invert') ? document.getElementById('lb_invert').checked : false,
+    labelAutoClean: has('lb_autoclean') ? document.getElementById('lb_autoclean').checked : true});
 }
 // The physical page the printer receives (swapped when the label is fed sideways).
 function labelPageSize(cfg){
@@ -5614,27 +5657,57 @@ function buildRawLabelJob(dataItems, cfg){
 async function printLabelsRaw(dataItems, cfg){
   if(!dataItems.length) return;
   try{
+    const inv = window.__TAURI__.core.invoke;
+    // Old label jobs left in the Windows queue (roll ran out) are removed first, so they cannot print again with this one.
+    if(cfg.autoClean){ try{ await inv('cancel_print_jobs', {printer: cfg.printer, onlyStuck: true}); }catch(e){} }
     const bytes = buildRawLabelJob(dataItems, cfg);
-    await window.__TAURI__.core.invoke('print_raw', {printer: cfg.printer, data: Array.from(bytes)});
+    await inv('print_raw', {printer: cfg.printer, data: Array.from(bytes), label: 'labels'});
     toast(fillTpl(t('toast_labelSent'), [dataItems.length, cfg.printer || t('lb_printerDefault')]), 'success');
   }catch(e){
-    toast(fillTpl(t('toast_labelSendFail'), [String(e && e.message || e)]), 'error');
+    const msg = String(e && e.message || e);
+    toast(msg.indexOf('PRINTER_STUCK')>=0 ? t('lb_stuckErr') : fillTpl(t('toast_labelSendFail'), [msg]), 'error');
   }
 }
+// "Cancel old label prints": removes every ClothBill label job from the Windows queue, then resets the printer
+// so labels already sitting in its own memory are thrown away too.
+async function cancelOldLabelPrints(cfg){
+  if(!window.IS_TAURI || !window.__TAURI__ || cfg.method==='driver') return;
+  const inv = window.__TAURI__.core.invoke;
+  let n = 0;
+  try{
+    n = Number(await inv('cancel_print_jobs', {printer: cfg.printer, onlyStuck: false})) || 0;
+  }catch(e){
+    toast(fillTpl(t('lb_cancelFail'), [String(e && e.message || e)]), 'error'); return;
+  }
+  try{
+    const reset = cfg.method==='zpl' ? '~JA\r\n' : '\x1B!R\r\n';     // ZPL: cancel all; TSPL: reset printer
+    await inv('print_raw', {printer: cfg.printer, data: Array.from(new TextEncoder().encode(reset)), label: 'reset'});
+  }catch(e){ /* reset is best-effort: the queue was already cleared */ }
+  toast(n>0 ? fillTpl(t('lb_cancelDone'), [n]) : t('lb_cancelNone'), 'success');
+}
 
-function printBarcodeLabels(product, productId){
+// One click: prints the labels of a single variant right away (copies = pieces in stock, at least 1), using the saved label setup.
+async function printOneVariantLabels(productId, vi){
+  const product = await dbGet('products', productId);
+  const v = product && (product.variants||[])[vi];
+  if(!v) return;
+  const n = Math.max(1, Math.floor(sellableStock(v)));
+  printBarcodeLabels(product, productId, {[vi]: n});
+}
+function printBarcodeLabels(product, productId, qtyMap){
+  const Q = qtyMap || LABEL_QTY;
   const cfg = labelConfig();
   if(labelRawActive(cfg)){
     const data = [];
     (product.variants||[]).forEach((v,i)=>{
-      const qty = LABEL_QTY[i] || 0;
+      const qty = Q[i] || 0;
       for(let n=0;n<qty;n++) data.push(labelItemData(product, productId, v, i));
     });
     return printLabelsRaw(data, cfg);
   }
   const items = [];
   (product.variants||[]).forEach((v,i)=>{
-    const qty = LABEL_QTY[i] || 0;
+    const qty = Q[i] || 0;
     for(let n=0;n<qty;n++) items.push(labelItemHTML(product, productId, v, i));
   });
   let style, body;

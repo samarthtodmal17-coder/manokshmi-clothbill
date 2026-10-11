@@ -77,15 +77,38 @@ fn list_printers() -> Result<PrinterList, String> {
 }
 
 /// Sends label commands (TSPL / ZPL) straight to a printer, bypassing the Windows driver layout.
+/// Runs on a worker thread so a printer that is out of paper can never freeze the app window.
 #[tauri::command]
-fn print_raw(printer: String, data: Vec<u8>) -> Result<(), String> {
+async fn print_raw(printer: String, data: Vec<u8>, label: Option<String>) -> Result<(), String> {
     #[cfg(windows)]
     {
-        rawprint::print_raw(&printer, &data)
+        tauri::async_runtime::spawn_blocking(move || {
+            rawprint::print_raw_named(&printer, &data, label.as_deref().unwrap_or("labels"))
+        })
+        .await
+        .map_err(|e| e.to_string())?
     }
     #[cfg(not(windows))]
     {
-        let _ = (printer, data);
+        let _ = (printer, data, label);
+        Err("direct printing is only implemented for Windows".into())
+    }
+}
+
+/// Removes this app's label jobs from the Windows print queue (old prints left behind when a roll ran out).
+/// only_stuck = true removes only jobs that are in error / paper-out / offline / paused state.
+/// Returns how many jobs were removed. Never touches other programs' print jobs.
+#[tauri::command]
+async fn cancel_print_jobs(printer: String, only_stuck: bool) -> Result<u32, String> {
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || rawprint::cancel_jobs(&printer, only_stuck))
+            .await
+            .map_err(|e| e.to_string())?
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (printer, only_stuck);
         Err("direct printing is only implemented for Windows".into())
     }
 }
@@ -100,7 +123,7 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![get_device_fingerprint, open_external, list_printers, print_raw])
+        .invoke_handler(tauri::generate_handler![get_device_fingerprint, open_external, list_printers, print_raw, cancel_print_jobs])
         .run(tauri::generate_context!())
         .expect("error while running Manokshmi ClothBill");
 }
