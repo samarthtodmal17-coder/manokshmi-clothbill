@@ -1,6 +1,6 @@
 [package]
 name = "manokshmi-clothbill"
-version = "0.1.17"
+version = "0.1.18"
 description = "Manokshmi ClothBill - billing & management for cloth shops (Tauri desktop, SQLite)"
 edition = "2021"
 
