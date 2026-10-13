@@ -12449,12 +12449,14 @@ async function printPurchaseBill(invId){
     </tbody></table>
     ${payRows?`<table><thead><tr><th>${t('th_date')}</th><th>${t('th_mode')}</th><th>${t('th_reference')}</th><th class="num">${t('th_amount')}</th></tr></thead><tbody>${payRows}</tbody></table>`:''}
     <div class="foot"><span>${escapeHTML(shopName)}</span><span></span></div>
-    <script>window.onload = ()=>{ window.print(); }<\/script>
+    ${window.IS_TAURI ? '' : '<script>window.onload = ()=>{ window.print(); }<\/script>'}
     </body></html>`;
-  const win = window.open('', '_blank');
+  // Desktop app: window.open is blocked there, so the app's own print helper (hidden frame) is used instead.
+  const win = (window.IS_TAURI && window.openPrintWindow) ? window.openPrintWindow() : window.open('', '_blank');
   if(!win){ toast('Allow pop-ups to print the bill','error'); return; }
   win.document.write(html);
   win.document.close();
+  if(window.IS_TAURI){ win.focus(); win.print(); }
 }
 function viewPurchaseInvoiceDetail(invId){
   dbGet('purchaseInvoices', invId).then(inv=>{
