@@ -1531,6 +1531,9 @@ const I18N = {
     cb_issueUnder:'Issue this bill under',
     cb_tag:'Combined',
     cb_stockFrom:'Stock from',
+    pi_goneTag:'Product deleted',
+    pi_goneBanner:'{0} bill(s) below are for products that were deleted, but the supplier still owes the amount. If they were mistakes, press "Cancel bill" on them to remove the due balance.',
+    pi_cancelBill:'Cancel bill',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2089,6 +2092,9 @@ const I18N = {
     cb_issueUnder:'हे बिल कोणत्या फर्मच्या नावे काढायचे',
     cb_tag:'एकत्रित',
     cb_stockFrom:'स्टॉक',
+    pi_goneTag:'प्रॉडक्ट हटवला',
+    pi_goneBanner:'खालील {0} बिले हटवलेल्या प्रॉडक्टची आहेत, तरीही पुरवठादाराची बाकी दिसत आहे. चुकीची असतील तर त्यावर "बिल रद्द करा" दाबून बाकी काढून टाका.',
+    pi_cancelBill:'बिल रद्द करा',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -12358,6 +12364,10 @@ function statusTag(status){
 async function renderPurchaseInvoicesTable(){
   const wrap = document.getElementById('pinvTableWrap');
   const [invoices, suppliers] = await Promise.all([scopedGetAll('purchaseInvoices'), scopedGetAll('suppliers')]);
+  // Bills whose products were all deleted afterwards (e.g. stock added by mistake and then deleted): the supplier balance is still there.
+  const _prods = await dbGetAll('products'); const _pmap = {}; _prods.forEach(pr=>{ _pmap[pr.id] = pr; });
+  const goneBill = (inv)=> !inv.voided && (inv.items||[]).length>0 && (inv.items||[]).every(it=>{ const pr = _pmap[it.productId]; return !pr || !(pr.variants||[])[it.variantIndex]; });
+  const goneCount = invoices.filter(goneBill).length;
   const supplierName = (id)=> id ? ((suppliers.find(s=>s.id===id)||{}).name || t('vendor_unknownSupplier')) : t('vendor_cashPurchaseLabel');
   invoices.sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(invoices.length===0){
@@ -12365,6 +12375,7 @@ async function renderPurchaseInvoicesTable(){
     return;
   }
   wrap.innerHTML = `
+    ${goneCount?`<div style="border:1px solid var(--red);background:var(--red-soft);color:var(--red);border-radius:9px;padding:8px 10px;margin-bottom:10px;font-size:12.5px;">${escapeHTML(fillTpl(t('pi_goneBanner'),[goneCount]))}</div>`:''}
     <div class="row" style="align-items:center;margin-bottom:8px;gap:10px;"><button class="btn btn-outline btn-sm" id="mgBtn">${t('mg_btn')}</button><span class="muted" style="font-size:11.5px;">${t('mg_hint')}</span></div>
     <table>
       <thead><tr><th style="width:26px;"></th><th>${t('th_invoiceHash')}</th><th>${t('th_date')}</th><th>${t('th_supplier')}</th><th class="num">${t('th_items')}</th><th class="num">${t('th_total')}</th><th class="num">${t('th_paid')}</th><th>${t('th_status')}</th><th>${t('th_actions')}</th></tr></thead>
@@ -12374,7 +12385,7 @@ async function renderPurchaseInvoicesTable(){
           return `
           <tr${inv.voided?' style="opacity:.55;"':''}>
             <td>${(!inv.voided && inv.supplierId) ? `<input type="checkbox" class="mgChk" data-id="${inv.id}" style="width:auto;">` : ''}</td>
-            <td>${escapeHTML(inv.invoiceNumber)}${inv.billNo?` <span class="muted" style="font-size:11px;">(${escapeHTML(inv.billNo)})</span>`:''}${inv.gstMode==='none'?` <span class="tag" style="font-size:10.5px;">${t('pu_tagNoGst')}</span>`:(inv.gstAmount>0?` <span class="tag tag-green" style="font-size:10.5px;">${t('pu_tagGst')}</span>`:'')}</td>
+            <td>${goneBill(inv)?`<span class="tag tag-red" style="font-size:10px;margin-right:4px;">${t('pi_goneTag')}</span>`:''}${escapeHTML(inv.invoiceNumber)}${inv.billNo?` <span class="muted" style="font-size:11px;">(${escapeHTML(inv.billNo)})</span>`:''}${inv.gstMode==='none'?` <span class="tag" style="font-size:10.5px;">${t('pu_tagNoGst')}</span>`:(inv.gstAmount>0?` <span class="tag tag-green" style="font-size:10.5px;">${t('pu_tagGst')}</span>`:'')}</td>
             <td>${fmtDate(inv.date)}${inv.enteredAt?`<br><span class="muted" style="font-size:10.5px;">${t('inv_enteredAt')} ${fmtStamp(inv.enteredAt)}${inv.enteredBy?' · '+escapeHTML(inv.enteredBy):''}</span>`:''}</td>
             <td>${escapeHTML(supplierName(inv.supplierId))}</td>
             <td class="num">${(inv.items||[]).reduce((s,it)=>s+it.qty,0)}</td>
@@ -12384,6 +12395,7 @@ async function renderPurchaseInvoicesTable(){
             <td>
               <button class="btn btn-outline btn-sm" onclick="viewPurchaseInvoiceDetail(${inv.id})">${t('sales_viewBtn')}</button>
               <button class="btn btn-outline btn-sm" onclick="printPurchaseBill(${inv.id})" title="${t('pb_printBtn')}">${t('pb_billBtn')}</button>
+              ${goneBill(inv)?`<button class="btn btn-danger btn-sm" onclick="openVoidInvoiceModal(${inv.id})">${t('pi_cancelBill')}</button>`:''}
               ${(status!=='paid' && status!=='void' && status!=='merged' && inv.supplierId) ? `<button class="btn btn-primary btn-sm" onclick="openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_payBtn')}</button>` : ''}
             </td>
           </tr>`;
