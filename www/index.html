@@ -1501,6 +1501,25 @@ const I18N = {
     lb_printThis:'Print this',
     lb_printThisTitle:'Print only this variant',
     lb_showBrand:'Print brand name on the label (when the product has a brand)',
+    dp_billsTitle:'This product was added on supplier bill(s):',
+    dp_cancelBills:'Also cancel the bill(s) that contain only this product (the supplier balance goes back)',
+    dp_mixedNote:'Bills that also contain other products are left as they are. If one was a mistake, cancel it in Suppliers.',
+    dp_reason:'Reason for cancelling the bill(s)',
+    dp_pin:'Owner PIN',
+    dp_billsCancelled:'Supplier bill(s) cancelled',
+    pb_title:'PURCHASE BILL',
+    pb_printBtn:'Print bill',
+    pb_billBtn:'Bill',
+    pb_cancelled:'CANCELLED',
+    pb_outstanding:'Outstanding',
+    pb_cashPurchase:'Cash purchase',
+    pb_payments:'Payments',
+    pb_enteredBy:'Entered',
+    pb_supplierBillNo:'Supplier bill no.',
+    pb_sr:'#',
+    pb_merged:'MERGED',
+    inv_billsLabel:'Bill',
+    inv_billsMore:'+{0} more',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2036,6 +2055,25 @@ const I18N = {
     lb_printThis:'हे छापा',
     lb_printThisTitle:'फक्त हा व्हेरिएंट छापा',
     lb_showBrand:'लेबलवर ब्रँडचे नाव छापा (प्रॉडक्टला ब्रँड असल्यास)',
+    dp_billsTitle:'हा प्रॉडक्ट खालील पुरवठादार बिलावर जोडला होता:',
+    dp_cancelBills:'फक्त या प्रॉडक्टचे असलेले बिल देखील रद्द करा (पुरवठादाराची बाकी परत जाईल)',
+    dp_mixedNote:'ज्या बिलात इतर प्रॉडक्ट देखील आहेत ती तशीच राहतील. चूक असल्यास ती पुरवठादार विभागात रद्द करा.',
+    dp_reason:'बिल रद्द करण्याचे कारण',
+    dp_pin:'मालकाचा पिन',
+    dp_billsCancelled:'पुरवठादार बिल रद्द झाले',
+    pb_title:'खरेदी बिल',
+    pb_printBtn:'बिल छापा',
+    pb_billBtn:'बिल',
+    pb_cancelled:'रद्द',
+    pb_outstanding:'बाकी',
+    pb_cashPurchase:'रोख खरेदी',
+    pb_payments:'पेमेंट',
+    pb_enteredBy:'नोंद',
+    pb_supplierBillNo:'पुरवठादार बिल क्र.',
+    pb_sr:'क्र.',
+    pb_merged:'एकत्र केले',
+    inv_billsLabel:'बिल',
+    inv_billsMore:'+{0} आणखी',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -4636,10 +4674,28 @@ async function quickAdjustStock(productId, variantIndex, direction){
 }
 
 const INV_EXPANDED_VARIANTS = new Set();
+// Which purchase bills brought each product / variant in (cancelled ones are left out): key "productId" and "productId:variantIndex".
+async function loadPurchaseBillMap(){
+  const map = {};
+  const invs = (await dbGetAll('purchaseInvoices')).filter(i=>!i.voided).sort((a,b)=>new Date(a.date)-new Date(b.date) || a.id-b.id);
+  const put = (k, inv)=>{ const a = map[k] || (map[k] = []); if(!a.some(x=>x.id===inv.id)) a.push({id:inv.id, no:inv.invoiceNumber||'', billNo:inv.billNo||''}); };
+  invs.forEach(inv=>(inv.items||[]).forEach(it=>{ put(String(it.productId), inv); put(it.productId+':'+it.variantIndex, inv); }));
+  return map;
+}
+function billTextOf(list){ return (list||[]).map(b=>b.no+(b.billNo?' ('+b.billNo+')':'')).join(', '); }
+// Small clickable bill numbers (open the bill). Shows the first few, then "+n more".
+function billLinksHTML(list, max){
+  if(!list || !list.length) return '';
+  max = max || 3;
+  const shown = list.slice(-max);       // newest bills
+  const more = list.length - shown.length;
+  return `<span class="muted" style="font-size:10.5px;">${t('inv_billsLabel')}: ` + shown.map(b=>`<a href="#" onclick="event.stopPropagation();viewPurchaseInvoiceDetail(${b.id});return false;" style="color:inherit;text-decoration:underline;">${escapeHTML(b.no)}${b.billNo?' ('+escapeHTML(b.billNo)+')':''}</a>`).join(', ') + (more>0 ? ' '+escapeHTML(fillTpl(t('inv_billsMore'),[more])) : '') + '</span>';
+}
 async function renderInventoryTable(){
   const wrap = document.getElementById('invTableWrap');
   if(!wrap) return;
   let products = await scopedGetAll('products');
+  const PBILLS = await loadPurchaseBillMap();
   const totalProductCount = products.length;
   if(INV_STATE.category) products = products.filter(p=>p.category===INV_STATE.category);
   if(INV_STATE.brand) products = products.filter(p=>p.brand===INV_STATE.brand);
@@ -4659,6 +4715,7 @@ async function renderInventoryTable(){
     const q = INV_STATE.search.toLowerCase();
     products = products.filter(p=>{
       if(p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q)) return true;
+      if((PBILLS[String(p.id)]||[]).some(b=>(b.no+' '+b.billNo).toLowerCase().includes(q))) return true;     // search by purchase bill number
       return (p.variants||[]).some(v=>(v.sku||'').toLowerCase().includes(q));
     });
   }
@@ -4718,7 +4775,7 @@ async function renderInventoryTable(){
         ${saleBtn}
       ` : '';
       const printBtn = `<button type="button" class="lblStepBtn" data-pid="${p.id}" data-vi="${vi}" title="${t('inv_printVariantTitle')}" style="${stepBtnStyle}">${iconSVG('barcode',11)}</button>`;
-      return `<span class="tag ${cls}" title="${escapeHTML('SKU: '+(v.sku||''))}" style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0;">${escapeHTML(label)}: ${v.stock}${saleInfo}${stepper}${printBtn}</span>`;
+      return `<span class="tag ${cls}" title="${escapeHTML('SKU: '+(v.sku||'')+(PBILLS[p.id+':'+vi]?' · '+t('inv_billsLabel')+': '+billTextOf(PBILLS[p.id+':'+vi]):''))}" style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0;">${escapeHTML(label)}: ${v.stock}${saleInfo}${stepper}${printBtn}</span>`;
     }).join(' ')
       + (hiddenCount>0 ? ` <button type="button" class="inv-variant-more" data-pid="${p.id}">${t('inv_showMoreVariants').replace('{0}', hiddenCount)}</button>` : '')
       + (expanded && allVariants.length>chipCap ? ` <button type="button" class="inv-variant-more" data-pid="${p.id}">${t('inv_showFewerVariants')}</button>` : '');
@@ -4733,6 +4790,7 @@ async function renderInventoryTable(){
             <div>
               <strong>${escapeHTML(p.name)}</strong>${isCombinedFirmView() && multiFirmInUse() ? ` <span class="tag" style="font-size:10px;">${escapeHTML((firmById(p.firmId)||{}).name||'—')}</span>` : ''}<br>
               <span class="muted" style="font-size:11.5px">${escapeHTML(p.brand||'')}</span>
+              ${PBILLS[String(p.id)] ? '<br>'+billLinksHTML(PBILLS[String(p.id)]) : ''}
             </div>
           </div>
         </td>
@@ -5269,16 +5327,52 @@ async function saveProductFromModal(productId){
 
 async function deleteProductConfirm(productId){
   const product = await dbGet('products', productId);
+  // Supplier bills that brought this product in (still active). Deleting the product alone would leave them in vendor management.
+  const bills = (await dbGetAll('purchaseInvoices')).filter(i=>!i.voided && (i.items||[]).some(it=>it.productId===productId));
+  const onlyThis = bills.filter(i=>(i.items||[]).every(it=>it.productId===productId));
+  const mixed = bills.filter(i=>!onlyThis.includes(i));
+  const billsHTML = bills.length ? `
+    <div style="border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:8px 0;background:var(--paper-soft);font-size:12.5px;">
+      <div style="font-weight:700;margin-bottom:4px;">${t('dp_billsTitle')}</div>
+      ${bills.map(i=>`<div>${escapeHTML(i.invoiceNumber||'')}${i.billNo?' ('+escapeHTML(i.billNo)+')':''} &middot; ${fmtDate(i.date)} &middot; ${fmtMoney(i.total)}${onlyThis.includes(i)?'':' &middot; <span class="muted">+ other products</span>'}</div>`).join('')}
+      ${onlyThis.length ? `<label style="display:flex;gap:8px;align-items:center;margin-top:8px;"><input type="checkbox" id="dp_cancel" checked style="width:auto;"> ${t('dp_cancelBills')}</label>
+        <div id="dp_cancelBox" style="margin-top:6px;">
+          <div class="field"><label>${t('dp_reason')}</label><input id="dp_reasonIn" autocomplete="off"></div>
+          <div class="field" style="max-width:200px;"><label>${t('dp_pin')}</label><input id="dp_pinIn" class="pin-input" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+        </div>` : ''}
+      ${mixed.length ? `<p class="muted" style="font-size:11.5px;margin:6px 0 0;">${t('dp_mixedNote')}</p>` : ''}
+    </div>` : '';
   openModal({
     title:t('modal_deleteProductQ'),
-    bodyHTML:`<p>${t('acct_deleteBtn')} <strong>${escapeHTML(product.name)}</strong> and all its variants? This cannot be undone. Past bills referencing it are not affected.</p>`,
+    bodyHTML:`<p>${t('acct_deleteBtn')} <strong>${escapeHTML(product.name)}</strong> and all its variants? This cannot be undone. Past bills referencing it are not affected.</p>${billsHTML}`,
     footerHTML:`
       <button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button>
       <button class="btn btn-danger" id="confirmDeleteProductBtn">${t('acct_deleteBtn')}</button>
     `,
     onMount: ()=>{
+      const cb = document.getElementById('dp_cancel');
+      if(cb) cb.addEventListener('change', ()=>{ document.getElementById('dp_cancelBox').style.display = cb.checked ? '' : 'none'; });
       document.getElementById('confirmDeleteProductBtn').addEventListener('click', async ()=>{
+        let cancelled = 0;
+        if(cb && cb.checked){
+          const reason = document.getElementById('dp_reasonIn').value.trim();
+          if(reason.length<4){ toast(t('toast_voidReasonShort'),'error'); return; }
+          const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
+          if(ownerPin && document.getElementById('dp_pinIn').value.trim()!==ownerPin){ toast(t('toast_voidPinWrong'),'error'); logAct('pin_failed','Wrong Owner PIN tried to cancel a supplier bill while deleting a product'); return; }
+          for(const inv of onlyThis){
+            let ok = false;
+            if(inv.supplierId){
+              const sup = await dbGet('suppliers', inv.supplierId);
+              const row = sup && (sup.ledger||[]).find(l=>l.type==='purchase' && l.invoiceId===inv.id && isVoidable(l));
+              if(row) ok = await executeVoid(inv.supplierId, row.entryId, null, reason + ' (product deleted)', false);
+              else toast(t('toast_voidLegacy'),'error');
+            } else ok = await executeVoid(null, null, inv.id, reason + ' (product deleted)', false);
+            if(!ok) return;          // nothing is deleted if a bill could not be cancelled
+            cancelled++;
+          }
+        }
         await dbDelete('products', productId);
+        if(cancelled){ toast(t('dp_billsCancelled'),'success'); await refreshSupplierSurfaces(); }
         closeModal();
         toast(t('toast_productDeleted'));
         await renderInventoryTable();
@@ -5950,6 +6044,7 @@ async function openStockAdjustModal(productId){
 
 async function showStockAdjustmentsLog(){
   const records = (await dbGetAll('stockAdjustments')).sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const PBILLS = await loadPurchaseBillMap();
   const productNames = ['all', ...new Set(records.map(r=>r.productName))];
   const renderRows = (filter)=>{
     const filtered = filter==='all'?records:records.filter(r=>r.productName===filter);
@@ -5957,7 +6052,7 @@ async function showStockAdjustmentsLog(){
     return filtered.slice(0,150).map(r=>`
       <tr>
         <td>${fmtDate(r.date)}</td>
-        <td>${escapeHTML(r.productName)}${r.variantLabel?` <span class="muted" style="font-size:11px;">(${escapeHTML(r.variantLabel)})</span>`:''}</td>
+        <td>${escapeHTML(r.productName)}${r.variantLabel?` <span class="muted" style="font-size:11px;">(${escapeHTML(r.variantLabel)})</span>`:''}${PBILLS[r.productId+':'+r.variantIndex]?'<br>'+billLinksHTML(PBILLS[r.productId+':'+r.variantIndex],2):''}</td>
         <td>${escapeHTML(r.reason||'')}${r.note?`<br><span class="muted" style="font-size:11px;">${escapeHTML(r.note)}</span>`:''}</td>
         <td class="num" style="color:${r.delta<0?'var(--red)':'var(--green)'};">${r.delta>0?'+':''}${r.delta}</td>
         <td class="num">${r.previousStock} → ${r.newStock}</td>
@@ -12259,6 +12354,7 @@ async function renderPurchaseInvoicesTable(){
             <td>${statusTag(status)}</td>
             <td>
               <button class="btn btn-outline btn-sm" onclick="viewPurchaseInvoiceDetail(${inv.id})">${t('sales_viewBtn')}</button>
+              <button class="btn btn-outline btn-sm" onclick="printPurchaseBill(${inv.id})" title="${t('pb_printBtn')}">${t('pb_billBtn')}</button>
               ${(status!=='paid' && status!=='void' && status!=='merged' && inv.supplierId) ? `<button class="btn btn-primary btn-sm" onclick="openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_payBtn')}</button>` : ''}
             </td>
           </tr>`;
@@ -12271,6 +12367,66 @@ async function renderPurchaseInvoicesTable(){
   });
 }
 
+// A proper printable purchase bill (print or save as PDF) for any supplier invoice, including cancelled ones (stamped CANCELLED).
+async function printPurchaseBill(invId){
+  const inv = await dbGet('purchaseInvoices', invId);
+  if(!inv) return;
+  const sup = inv.supplierId ? await dbGet('suppliers', inv.supplierId) : null;
+  const firm = (inv.firmId && typeof firmById==='function') ? firmById(inv.firmId) : null;
+  const shopName = (firm && firm.name) || SETTINGS.name || '';
+  const shopAddr = firm ? (firm.address||'') : (SETTINGS.address||'');
+  const shopGstin = firm ? (firm.gstin||'') : (SETTINGS.gstin||'');
+  const status = invoiceStatus(inv), paid = invoicePaid(inv);
+  const dead = !!inv.voided;
+  const rows = (inv.items||[]).map((it,i)=>`<tr><td>${i+1}</td><td>${escapeHTML(it.productName||'')}${it.variantLabel?' ('+escapeHTML(it.variantLabel)+')':''}</td><td class="num">${it.qty}</td><td class="num">${fmtMoney(it.rate)}</td><td class="num">${fmtMoney(it.qty*it.rate)}</td></tr>`).join('');
+  const gstRows = inv.gstAmount>0
+    ? ((inv.gstSplits&&inv.gstSplits.length) ? inv.gstSplits.map(sp=>`<tr><td>GST (${sp.rate}%)</td><td class="num">${fmtMoney(sp.tax)}</td></tr>`).join('') : `<tr><td>GST</td><td class="num">${fmtMoney(inv.gstAmount)}</td></tr>`)
+    : (inv.gstMode==='none' ? `<tr><td colspan="2" style="color:#666;font-size:11px;">${escapeHTML(t('pu_detailNoGst'))}</td></tr>` : '');
+  const payRows = (inv.payments||[]).map(pm=>`<tr${pm.voided?' style="color:#999;text-decoration:line-through;"':''}><td>${fmtDate(pm.date)}</td><td>${escapeHTML(pm.mode||'')}</td><td>${escapeHTML(pm.reference||'-')}</td><td class="num">${fmtMoney(pm.amount)}</td></tr>`).join('');
+  const stamp = dead ? (inv.merged ? t('pb_merged') : t('pb_cancelled')) : '';
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHTML(inv.invoiceNumber||'')}</title>
+    <style>
+      body{font-family:Arial,'Nirmala UI',sans-serif;margin:0;padding:22px;color:#222;position:relative;}
+      .head{display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid #222;padding-bottom:10px;}
+      .shop{font-size:18px;font-weight:700;} .muted{color:#666;font-size:12px;}
+      .title{font-size:20px;font-weight:800;letter-spacing:1px;text-align:right;}
+      .meta{display:flex;gap:16px;margin-top:12px;} .meta>div{flex:1;border:1px solid #ccc;border-radius:6px;padding:8px 10px;font-size:13px;line-height:1.6;}
+      table{width:100%;border-collapse:collapse;margin-top:14px;} th,td{border:1px solid #ccc;padding:6px 8px;font-size:13px;text-align:left;} th{background:#f2f2f2;}
+      .num{text-align:right;font-variant-numeric:tabular-nums;} .tot{width:46%;margin-left:auto;} .tot td{border:0;border-bottom:1px solid #eee;} .tot .grand td{font-weight:800;border-top:2px solid #222;font-size:15px;}
+      .stamp{position:fixed;top:40%;left:12%;font-size:90px;font-weight:900;color:rgba(200,0,0,.18);transform:rotate(-24deg);border:8px solid rgba(200,0,0,.18);padding:0 24px;pointer-events:none;}
+      .foot{margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:#555;}
+      @page{margin:12mm;}
+    </style></head><body>
+    ${stamp?`<div class="stamp">${escapeHTML(stamp)}</div>`:''}
+    <div class="head"><div><div class="shop">${escapeHTML(shopName)}</div><div class="muted">${escapeHTML(shopAddr)}${shopGstin?'<br>GSTIN: '+escapeHTML(shopGstin):''}</div></div>
+      <div><div class="title">${t('pb_title')}</div><div class="muted" style="text-align:right;">${escapeHTML(inv.invoiceNumber||'')}</div></div></div>
+    <div class="meta">
+      <div><strong>${t('th_supplier')}</strong><br>${escapeHTML(sup?sup.name:t('pb_cashPurchase'))}${sup&&sup.phone?'<br>'+escapeHTML(sup.phone):''}${sup&&sup.address?'<br>'+escapeHTML(sup.address):''}${sup&&sup.gstin?'<br>GSTIN: '+escapeHTML(sup.gstin):''}</div>
+      <div>${inv.billNo?`<div>${t('pb_supplierBillNo')} <strong>${escapeHTML(inv.billNo)}</strong></div>`:''}<div>${t('inv_billDate')}: <strong>${fmtDate(inv.date)}</strong></div>
+        ${inv.dueDate&&!dead?`<div>${t('vendor_dueDateLabel')}: ${fmtDate(inv.dueDate)}</div>`:''}
+        ${inv.enteredAt?`<div class="muted">${t('pb_enteredBy')}: ${fmtStamp(inv.enteredAt)}${inv.enteredBy?' · '+escapeHTML(inv.enteredBy):''}</div>`:''}</div>
+    </div>
+    ${dead&&inv.voidReason?`<p style="color:#b00;font-size:12.5px;margin:10px 0 0;">${escapeHTML(inv.voidReason)} (${fmtStamp(inv.voidedAt)}${inv.voidedBy?' · '+escapeHTML(inv.voidedBy):''})</p>`:''}
+    <table><thead><tr><th style="width:36px;">${t('pb_sr')}</th><th>${t('th_item')}</th><th class="num">${t('th_qty')}</th><th class="num">${t('th_rate')}</th><th class="num">${t('th_amount')}</th></tr></thead><tbody>${rows}</tbody></table>
+    <table class="tot"><tbody>
+      <tr><td>${t('bill_subtotal')}</td><td class="num">${fmtMoney(inv.subtotal)}</td></tr>
+      ${inv.discount>0?`<tr><td>${t('print_discountLabel')}</td><td class="num">-${fmtMoney(inv.discount)}</td></tr>`:''}
+      ${inv.freight>0?`<tr><td>${t('vendor_freightLabel')}</td><td class="num">${fmtMoney(inv.freight)}</td></tr>`:''}
+      ${inv.otherExpenses>0?`<tr><td>${t('vendor_otherExpensesLabel')}</td><td class="num">${fmtMoney(inv.otherExpenses)}</td></tr>`:''}
+      ${gstRows}
+      <tr class="grand"><td>${t('print_totalRowLabel')}</td><td class="num">${fmtMoney(inv.total)}</td></tr>
+      <tr><td>${t('sales_tagPaid')}</td><td class="num">${fmtMoney(paid)}</td></tr>
+      <tr><td>${t('pb_outstanding')}</td><td class="num">${fmtMoney(dead?0:Math.max(0,inv.total-paid))}</td></tr>
+    </tbody></table>
+    ${payRows?`<table><thead><tr><th>${t('th_date')}</th><th>${t('th_mode')}</th><th>${t('th_reference')}</th><th class="num">${t('th_amount')}</th></tr></thead><tbody>${payRows}</tbody></table>`:''}
+    <div class="foot"><span>${escapeHTML(shopName)}</span><span></span></div>
+    <script>window.onload = ()=>{ window.print(); }<\/script>
+    </body></html>`;
+  const win = window.open('', '_blank');
+  if(!win){ toast('Allow pop-ups to print the bill','error'); return; }
+  win.document.write(html);
+  win.document.close();
+}
 function viewPurchaseInvoiceDetail(invId){
   dbGet('purchaseInvoices', invId).then(inv=>{
     const rows = (inv.items||[]).map(it=>`
@@ -12317,6 +12473,7 @@ function viewPurchaseInvoiceDetail(invId){
       `,
       footerHTML:`
         <button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
+        <button class="btn btn-outline" onclick="printPurchaseBill(${inv.id})">${t('pb_printBtn')}</button>
         ${!inv.voided ? `<button class="btn btn-outline" style="color:var(--red);" onclick="closeModal();openVoidInvoiceModal(${inv.id})">${t('inv_voidBill')}</button>` : ''}
         ${(status!=='paid' && status!=='void' && status!=='merged' && inv.supplierId) ? `<button class="btn btn-primary" onclick="closeModal();openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_recordPaymentBtn')}</button>` : ''}
       `
