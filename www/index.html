@@ -4720,32 +4720,30 @@ async function renderInventoryTable(){
   const totalProductCount = products.length;
   if(INV_STATE.category) products = products.filter(p=>p.category===INV_STATE.category);
   if(INV_STATE.brand) products = products.filter(p=>p.brand===INV_STATE.brand);
-  if(INV_STATE.size) products = products.filter(p=>(p.variants||[]).some(v=>v.size===INV_STATE.size));
-  if(INV_STATE.color) products = products.filter(p=>(p.variants||[]).some(v=>v.color===INV_STATE.color));
+  // Variant-level filters: size, colour, price, stock state and a SKU search all apply to the SAME variant, and only the
+  // variants that match are shown (and counted) -- other sizes/colours of the product are hidden while a filter is on.
   const priceMin = INV_STATE.priceMin!=='' ? parseFloat(INV_STATE.priceMin) : null;
   const priceMax = INV_STATE.priceMax!=='' ? parseFloat(INV_STATE.priceMax) : null;
-  if(priceMin!=null || priceMax!=null){
-    products = products.filter(p=>(p.variants||[]).some(v=>{
-      const price = Number(v.sellPrice||0);
-      if(priceMin!=null && price<priceMin) return false;
-      if(priceMax!=null && price>priceMax) return false;
-      return true;
-    }));
-  }
-  if(INV_STATE.search){
-    const q = INV_STATE.search.toLowerCase();
-    products = products.filter(p=>{
-      if(p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q)) return true;
-      if((PBILLS[String(p.id)]||[]).some(b=>(b.no+' '+b.billNo).toLowerCase().includes(q))) return true;     // search by purchase bill number
-      return (p.variants||[]).some(v=>(v.sku||'').toLowerCase().includes(q));
-    });
-  }
-  if(INV_STATE.stockFilter==='low') products = products.filter(p=>(p.variants||[]).some(variantIsLow));
-  else if(INV_STATE.stockFilter==='out') products = products.filter(p=>(p.variants||[]).some(variantIsOut));
-  else if(INV_STATE.stockFilter==='sale') products = products.filter(p=>(p.variants||[]).some(isVariantOnSale));
+  const sq = (INV_STATE.search||'').toLowerCase();
+  const productHitsSearch = (p)=> !sq || p.name.toLowerCase().includes(sq) || (p.brand||'').toLowerCase().includes(sq)
+    || (PBILLS[String(p.id)]||[]).some(bb=>(bb.no+' '+bb.billNo).toLowerCase().includes(sq));       // name / brand / purchase bill number: whole product
+  const variantOK = (p, v)=>{
+    if(INV_STATE.size && v.size!==INV_STATE.size) return false;
+    if(INV_STATE.color && v.color!==INV_STATE.color) return false;
+    const price = Number(v.sellPrice||0);
+    if(priceMin!=null && price<priceMin) return false;
+    if(priceMax!=null && price>priceMax) return false;
+    if(INV_STATE.stockFilter==='low' && !variantIsLow(v)) return false;
+    if(INV_STATE.stockFilter==='out' && !variantIsOut(v)) return false;
+    if(INV_STATE.stockFilter==='sale' && !isVariantOnSale(v)) return false;
+    if(sq && !productHitsSearch(p) && !(v.sku||'').toLowerCase().includes(sq)) return false;   // SKU search: only that variant
+    return true;
+  };
+  products = products.filter(p=>(p.variants||[]).some(v=>variantOK(p,v)));
 
-  const totalStockOf = (p)=>(p.variants||[]).reduce((s,v)=>s+Number(v.stock||0),0);
-  const minPriceOf = (p)=>Math.min(...(p.variants||[{sellPrice:0}]).map(v=>Number(v.sellPrice||0)));
+  const visibleVariantsOf = (p)=>(p.variants||[]).filter(v=>variantOK(p,v));
+  const totalStockOf = (p)=>visibleVariantsOf(p).reduce((s,v)=>s+Number(v.stock||0),0);
+  const minPriceOf = (p)=>{ const vs = visibleVariantsOf(p); return Math.min(...(vs.length?vs:[{sellPrice:0}]).map(v=>Number(v.sellPrice||0))); };
   const dir = INV_STATE.sortDir==='desc' ? -1 : 1;
   products.sort((a,b)=>{
     if(INV_STATE.sortBy==='stock') return (totalStockOf(a)-totalStockOf(b))*dir;
@@ -4777,13 +4775,14 @@ async function renderInventoryTable(){
   let rows = '';
   pageProducts.forEach(p=>{
     const totalStock = totalStockOf(p);
-    const allVariants = (p.variants||[]);
+    // keep each variant's real position (needed for the +/- and sale buttons) while hiding the ones the filters exclude
+    const allVariants = (p.variants||[]).map((v,i)=>({v,i})).filter(x=>variantOK(p,x.v));
     const chipCap = 8;
     const expanded = INV_EXPANDED_VARIANTS.has(p.id);
     const shownVariants = (expanded || allVariants.length<=chipCap) ? allVariants : allVariants.slice(0, chipCap);
     const hiddenCount = allVariants.length - shownVariants.length;
-    const variantChips = shownVariants.map((v,vi)=>{
-      // vi matches the real position because slicing only ever drops the tail
+    const variantChips = shownVariants.map(({v,i:vi})=>{
+      // vi is the variant's real position in the product (filters may hide earlier ones)
       const out = variantIsOut(v), low = variantIsLow(v);
       const cls = out ? 'tag-red' : (low ? 'tag-amber' : 'tag-green');
       const label = [v.size,v.color].filter(Boolean).join('/') || v.sku || 'default';
