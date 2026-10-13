@@ -704,6 +704,13 @@ function multiFirmInUse(){ return activeFirms().length > 1; }
 // The firm the app is currently "working as" — null/'all' means the combined/no-firm view.
 function activeFirmId(){ return (SETTINGS && SETTINGS.activeFirmId) || null; }
 function isCombinedFirmView(){ return activeFirmId()==='all'; }
+// Combined billing: in the "All Firms (Combined)" view a bill may hold items of several firms. Each item's stock is cut from
+// the firm that owns that product; the bill itself is issued under ONE firm (name, GSTIN, invoice number) chosen on the billing screen.
+function combinedBilling(){ return multiFirmInUse() && !billableFirmId(); }
+function combinedIssueFirmId(){
+  const f = SETTINGS && SETTINGS.combinedBillFirmId;
+  return (f && activeFirms().some(x=>x.id===f)) ? f : ((activeFirms()[0]||{}).id || null);
+}
 // A real, billable firm id, or null when in combined view / no firms exist yet.
 function billableFirmId(){
   const fid = activeFirmId();
@@ -1520,6 +1527,10 @@ const I18N = {
     pb_merged:'MERGED',
     inv_billsLabel:'Bill',
     inv_billsMore:'+{0} more',
+    cb_banner:'Combined billing is ON: the bill can hold items from any firm, and the stock of each item is cut from its own firm.',
+    cb_issueUnder:'Issue this bill under',
+    cb_tag:'Combined',
+    cb_stockFrom:'Stock from',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2074,6 +2085,10 @@ const I18N = {
     pb_merged:'एकत्र केले',
     inv_billsLabel:'बिल',
     inv_billsMore:'+{0} आणखी',
+    cb_banner:'एकत्रित बिलिंग चालू: बिलात कोणत्याही फर्मचे आयटम असू शकतात आणि प्रत्येक आयटमचा स्टॉक त्याच्या स्वतःच्या फर्ममधून कमी होतो.',
+    cb_issueUnder:'हे बिल कोणत्या फर्मच्या नावे काढायचे',
+    cb_tag:'एकत्रित',
+    cb_stockFrom:'स्टॉक',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -8858,7 +8873,7 @@ async function renderBilling(){
   el.classList.toggle('touch-billing', !!SETTINGS.touchFriendlyBilling);
   // "All Firms (Combined)" is a reporting view only — billing needs one real firm so the
   // sale and its stock go to the right place. Show a quick picker instead of the full screen.
-  if(multiFirmInUse() && !billableFirmId()){
+  if(false /* combined billing is allowed now */){
     el.innerHTML = `
       <div class="card" style="max-width:480px;margin:40px auto;text-align:center;">
         <h2 class="section-title" style="justify-content:center;">${t('firm_pickToBill')}</h2>
@@ -8874,7 +8889,14 @@ async function renderBilling(){
   // open bills rather than carrying another firm's half-built carts across.
   if(BILL_TABS.length===0 || BILL_TABS[0].firmId !== tabsFirmId()) await loadBillTabs();
 
+  const cbBanner = combinedBilling() ? `
+    <div class="card" style="margin-bottom:12px;border-color:var(--gold, #c9a227);">
+      <div style="font-size:12.5px;">${t('cb_banner')}</div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-top:6px;">${t('cb_issueUnder')}:
+        <select id="cbIssueFirm" style="max-width:240px;" onchange="saveSettings({combinedBillFirmId:parseInt(this.value)})">${activeFirms().map(f=>`<option value="${f.id}" ${f.id===combinedIssueFirmId()?'selected':''}>${escapeHTML(f.name)}</option>`).join('')}</select></label>
+    </div>` : '';
   el.innerHTML = `
+    ${cbBanner}
     <div id="billTabsWrap" class="bill-tabs"></div>
     <div class="card" id="todaysSalesStrip" style="margin-bottom:12px;"></div>
     <div class="row" style="align-items:flex-start;">
@@ -9188,7 +9210,7 @@ async function renderBillProductResults(){
     <div style="border-bottom:1px solid var(--line);padding:5px 2px;">
       <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;line-height:1.25;">
         ${p.photo?`<img src="${p.photo}" style="width:22px;height:22px;object-fit:cover;border-radius:5px;flex:none;">`:''}
-        <span>${escapeHTML(p.name)} ${p.brand?`<span class="muted" style="font-weight:400;">— ${escapeHTML(p.brand)}</span>`:''}</span>
+        <span>${escapeHTML(p.name)} ${p.brand?`<span class="muted" style="font-weight:400;">— ${escapeHTML(p.brand)}</span>`:''}${combinedBilling()?` <span class="tag" style="font-size:10px;">${escapeHTML((firmById(p.firmId)||{}).name||'')}</span>`:''}</span>
       </div>
       <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
         ${(p.variants||[]).map((v,i)=>{
@@ -9372,6 +9394,7 @@ async function addToCart(productId, variantIndex){
       hsn: product.hsn||'',
       taxRate: product.taxRate||0,
       taxInclusive: !!product.taxInclusive,
+      stockFirmId: product.firmId || null,
       maxStock: avail
     });
     if(onSale) toast(t('toast_addedAtSalePrice').replace('{0}',product.name).replace('{1}',variant.saleType==='percent'?variant.saleValue+'% off':fmtMoney(variant.saleValue)+' off'), 'success');
@@ -9398,7 +9421,7 @@ function renderCartItems(){
           const variant = [it.size,it.color].filter(Boolean).join('/');
           const lineTotal = (it.qty*it.rate - itemDiscountAmount(it));
           return `<tr>
-            <td><strong>${escapeHTML(it.name)}</strong>${it.autoSale?` <span class="tag tag-red" style="font-size:9.5px;padding:1px 5px;">${iconSVG('tag',9)} ${t('bill_saleTag')}</span>`:''}${variant?`<br><span class="muted" style="font-size:11px">${escapeHTML(variant)}</span>`:''}
+            <td><strong>${escapeHTML(it.name)}</strong>${(combinedBilling() && it.stockFirmId)?` <span class="tag" style="font-size:10px;">${escapeHTML((firmById(it.stockFirmId)||{}).name||'')}</span>`:''}${it.autoSale?` <span class="tag tag-red" style="font-size:9.5px;padding:1px 5px;">${iconSVG('tag',9)} ${t('bill_saleTag')}</span>`:''}${variant?`<br><span class="muted" style="font-size:11px">${escapeHTML(variant)}</span>`:''}
               <br><a href="#" style="font-size:10.5px;" onclick="toggleItemNote(${i});return false;">${it.note?t('bill_notePrefix')+escapeHTML(it.note):t('bill_addNoteLink')}</a>
               <div id="itemNoteWrap${i}" style="display:none;margin-top:4px;"><input type="text" placeholder="${t('bill_noteExamplePlaceholder')}" value="${escapeHTML(it.note||'')}" style="padding:4px;font-size:11.5px;" onchange="updateItemNote(${i}, this.value)"></div>
             </td>
@@ -9723,7 +9746,7 @@ async function saveCurrentAsQuotation(){
   const record = {
     quoteNumber,
     date: new Date().toISOString(),
-    firmId: billableFirmId(),
+    firmId: billableFirmId() || (combinedBilling() ? combinedIssueFirmId() : null),
     customerId: CART.customerId,
     items: CART.items.map(it=>({...it})),
     overallDiscount: CART.overallDiscount, overallDiscountType: CART.overallDiscountType,
@@ -9980,7 +10003,7 @@ function quickAddCustomerFromBilling(){
           await renderCustomerSelect();
           return;
         }
-        const id = await dbAdd('customers', {name, phone, firmId: billableFirmId(), creditBalance:0, storeCredit:0, ledger:[], loyaltyPoints:0, pointsLedger:[]});
+        const id = await dbAdd('customers', {name, phone, firmId: billableFirmId() || (combinedBilling() ? combinedIssueFirmId() : null), creditBalance:0, storeCredit:0, ledger:[], loyaltyPoints:0, pointsLedger:[]});
         CART.customerId = id;
         closeModal();
         toast(t('toast_customerAdded'),'success');
@@ -10226,11 +10249,9 @@ async function finalizeCheckout(tot, getAmountDue){
 
   // Combined "All Firms" view is for reporting only — a sale must belong to one real firm
   // so its stock and invoice number go to the right place.
-  if(multiFirmInUse() && !billableFirmId()){
-    toast(t('toast_pickFirmBeforeBilling'),'error');
-    return;
-  }
-  const saleFirmId = billableFirmId();
+  const cmbMode = combinedBilling();
+  const saleFirmId = billableFirmId() || (cmbMode ? combinedIssueFirmId() : null);
+  const stockFirmQty = {};
 
   // Re-validate stock right before committing (in case of concurrent changes)
   for(const it of CART.items){
@@ -10240,6 +10261,9 @@ async function finalizeCheckout(tot, getAmountDue){
       toast(t('toast_notEnoughStockFor').replace('{0}',it.name),'error');
       return;
     }
+    const sfk = String(product.firmId||'');
+    stockFirmQty[sfk] = (stockFirmQty[sfk]||0) + it.qty;
+    it.stockFirmId = product.firmId || null;
   }
   // Decrement stock — total and the selling firm's own slice move together
   for(const it of CART.items){
@@ -10263,6 +10287,10 @@ async function finalizeCheckout(tot, getAmountDue){
   const bill = {
     invoiceNo,
     firmId: saleFirmId,
+    ...(cmbMode ? {
+      combined: Object.keys(stockFirmQty).length>1 || Object.keys(stockFirmQty).some(k=>Number(k)!==saleFirmId),
+      stockFirms: Object.keys(stockFirmQty).map(k=>({firmId:Number(k)||null, name:(firmById(Number(k))||{}).name||'', qty:stockFirmQty[k]}))
+    } : {}),
     date: new Date().toISOString(),
     customerId: CART.customerId,
     items: CART.items.map(it=>({...it})),
@@ -10507,6 +10535,7 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
           ${hAddress?`<div class="muted" style="font-size:${fsSm};">${escapeHTML(hAddress)}</div>`:''}
           <div class="muted" style="font-size:${fsSm};">${hPhone?(t('print_phLabel')+escapeHTML(hPhone)):''}${hPhone&&hGstin?' · ':''}${hGstin?('GSTIN '+escapeHTML(hGstin)):''}</div>
           ${stateName?`<div class="muted" style="font-size:${fsSm};">${t('print_placeOfSupply')}${escapeHTML(stateName)}</div>`:''}
+          ${(bill.combined && bill.stockFirms)?`<div class="muted" style="font-size:${fsSm};margin-top:2px;">${t('cb_tag')} — ${t('cb_stockFrom')}: ${bill.stockFirms.map(f=>escapeHTML(f.name)+' ×'+f.qty).join(', ')}</div>`:''}
         </div>
 
         <div style="display:flex;${stack?'flex-wrap:wrap;':''}border-bottom:1px solid #000;font-size:${isThermal?'.9em':'.92em'};">
@@ -11375,7 +11404,7 @@ async function renderSalesData(){
             const reasonLine = b.cancelled && b.cancelReason
               ? `<br><span class="muted" style="font-size:11px;">${escapeHTML(b.cancelReason)}</span>` : '';
             return `<tr${b.cancelled?' class="row-cancelled"':''}>
-              <td>${escapeHTML(b.invoiceNo)}${reasonLine}</td>
+              <td>${escapeHTML(b.invoiceNo)}${b.combined?` <span class="tag" style="font-size:10px;" title="${escapeHTML(t('cb_stockFrom')+': '+(b.stockFirms||[]).map(f=>f.name+' ×'+f.qty).join(', '))}">${t('cb_tag')}</span>`:''}${reasonLine}</td>
               <td>${fmtDate(b.date)}</td>
               <td>${cust?escapeHTML(cust.name):t('bill_walkIn')}</td>
               <td class="num">${fmtMoney(b.grandTotal)}</td>
