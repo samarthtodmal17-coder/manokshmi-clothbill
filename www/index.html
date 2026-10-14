@@ -258,6 +258,21 @@
 
   .empty-state{padding:34px 20px;text-align:center;color:var(--ink-soft);font-size:13px;}
 
+  /* ---------- Settings: menu on the left, one section on the right ---------- */
+  .set-layout{display:flex;gap:16px;align-items:flex-start;}
+  .set-nav{flex:none;width:220px;position:sticky;top:0;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:8px;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow);}
+  .set-nav button{appearance:none;border:none;background:transparent;color:var(--ink);display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:9px;font-size:13.5px;cursor:pointer;font-weight:500;font-family:inherit;}
+  .set-nav button:hover{background:var(--paper-soft);}
+  .set-nav button.active{background:var(--wine);color:#fff;font-weight:700;}
+  .set-body{flex:1;min-width:0;}
+  .set-pane > .card{margin-top:14px !important;}
+  .set-pane > .card:first-child{margin-top:0 !important;}
+  .set-savebar{position:sticky;bottom:0;z-index:5;margin-top:14px;}
+  @media (max-width:820px){
+    .set-layout{flex-direction:column;}
+    .set-nav{width:100%;position:static;flex-direction:row;overflow-x:auto;}
+    .set-nav button{white-space:nowrap;}
+  }
   .subtabs{display:flex;gap:4px;margin-bottom:14px;background:var(--paper-soft);border:1px solid var(--line);border-radius:var(--radius-sm);padding:4px;width:fit-content;}
   .subtabs button{
     appearance:none;border:none;background:transparent;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:600;
@@ -914,7 +929,7 @@ const DEFAULT_SETTINGS = {
   logo:'',
   paperSize:'thermal80',
   upiId:'',
-  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false, labelAutoClean:true, labelShowBrand:true, labelShowSku:true, labelShowShop:true, labelShowBarcode:true, labelShowName:true, labelShowSize:true, labelShowColor:true, labelShowPrice:true,   // barcode label printer
+  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false, labelAutoClean:true, waOpenMode:'auto', labelShowBrand:true, labelShowSku:true, labelShowShop:true, labelShowBarcode:true, labelShowName:true, labelShowSize:true, labelShowColor:true, labelShowPrice:true,   // barcode label printer
   billQrMode:'always',   // always | due | never
   loyaltyEnabled:false,
   loyaltyEarnPerRupee:100,
@@ -1558,6 +1573,22 @@ const I18N = {
     lb_settingsTitle:'Barcode label — what to print',
     lb_settingsHint:'Choose what appears on every label. Applies to the label window, the one-click label button and test labels.',
     lb_fieldsSaved:'Label contents saved',
+    set_g_shop:'Shop & Invoice',
+    set_g_firms:'Firms',
+    set_g_display:'Language & Display',
+    set_g_billing:'Billing Rules',
+    set_g_payments:'Payments',
+    set_g_printing:'Printing & Labels',
+    set_g_messages:'WhatsApp & Messages',
+    set_g_purchase:'Purchases & Expenses',
+    set_g_staff:'Staff & Security',
+    set_g_backup:'Backup & Restore',
+    wa_openModeTitle:'WhatsApp opens in',
+    wa_openModeHint:'Used when you send a bill, a reminder or an offer on WhatsApp.',
+    wa_modeAuto:'Automatic — the WhatsApp app if installed, else WhatsApp Web',
+    wa_modeApp:'WhatsApp app (installed on this computer)',
+    wa_modeWeb:'WhatsApp Web (in the browser)',
+    wa_modeSaved:'WhatsApp setting saved',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2143,6 +2174,22 @@ const I18N = {
     lb_settingsTitle:'बारकोड लेबल — काय छापायचे',
     lb_settingsHint:'प्रत्येक लेबलवर काय दिसेल ते निवडा. लेबल विंडो, एक-क्लिक लेबल बटण आणि टेस्ट लेबलला लागू.',
     lb_fieldsSaved:'लेबलचा मजकूर जतन केला',
+    set_g_shop:'दुकान आणि इनव्हॉइस',
+    set_g_firms:'फर्म',
+    set_g_display:'भाषा आणि दिसणे',
+    set_g_billing:'बिलिंग नियम',
+    set_g_payments:'पेमेंट',
+    set_g_printing:'प्रिंटिंग आणि लेबल',
+    set_g_messages:'व्हॉट्सअ‍ॅप आणि संदेश',
+    set_g_purchase:'खरेदी आणि खर्च',
+    set_g_staff:'स्टाफ आणि सुरक्षा',
+    set_g_backup:'बॅकअप आणि रिस्टोअर',
+    wa_openModeTitle:'व्हॉट्सअ‍ॅप येथे उघडेल',
+    wa_openModeHint:'बिल, आठवण किंवा ऑफर व्हॉट्सअ‍ॅपवर पाठवताना वापरले जाते.',
+    wa_modeAuto:'ऑटोमॅटिक — इन्स्टॉल असल्यास व्हॉट्सअ‍ॅप अ‍ॅप, नाहीतर व्हॉट्सअ‍ॅप वेब',
+    wa_modeApp:'व्हॉट्सअ‍ॅप अ‍ॅप (या कॉम्प्युटरवर इन्स्टॉल)',
+    wa_modeWeb:'व्हॉट्सअ‍ॅप वेब (ब्राउझरमध्ये)',
+    wa_modeSaved:'व्हॉट्सअ‍ॅप सेटिंग जतन केले',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -3099,6 +3146,61 @@ async function syncSoleFirmFromSettings(prev){
     if(typeof renderFirmSwitcher==='function') renderFirmSwitcher();
   }
 }
+let SETTINGS_TAB = '';
+// [key, label, icon, elements that identify which cards belong to it]
+const SETTINGS_GROUPS = [
+  ['shop','set_g_shop','dashboard',['#set_name','#logoFileInput']],
+  ['firms','set_g_firms','duplicate',['#addFirmBtn']],
+  ['display','set_g_display','sun',['#set_language','#set_touchBilling']],
+  ['billing','set_g_billing','billing',['#set_roundoff','#addTierRowBtn','#addCouponBtn','#set_loyalty_enabled','#set_return_period']],
+  ['payments','set_g_payments','accounts',['#set_upi','#paymentModesWrap']],
+  ['printing','set_g_printing','barcode',['#set_papersize','#set_lbl_shop']],
+  ['messages','set_g_messages','whatsapp',['#set_waMode','#set_bday_tpl','#set_winback_tpl','#set_credit_tpl']],
+  ['purchase','set_g_purchase','requirements',['#set_purchase_threshold','#addExpenseCatBtn']],
+  ['staff','set_g_staff','guard',['#addStaffBtn']],
+  ['backup','set_g_backup','download',['#exportDataBtn']]
+];
+function openSettingsGroup(key){
+  const el = document.getElementById('view-settings'); if(!el) return;
+  const pane = el.querySelector('.set-pane[data-g="'+key+'"]'); if(!pane) return;
+  SETTINGS_TAB = key;
+  el.querySelectorAll('.set-pane').forEach(x=>{ x.style.display = x===pane ? '' : 'none'; });
+  el.querySelectorAll('.set-nav button').forEach(b=>b.classList.toggle('active', b.dataset.g===key));
+  try{ if(el.parentElement) el.parentElement.scrollTop = 0; }catch(e){}
+}
+// Turns the long list of setting cards into a menu (left) + one section at a time (right). The cards themselves are untouched,
+// so every field is still in the page and the single Save button still saves all of them.
+function organizeSettings(el){
+  const cards = Array.from(el.children).filter(c=>c.classList.contains('card'));
+  const saveCard = cards.find(c=>c.querySelector('#saveSettingsBtn'));
+  const panes = {};
+  cards.forEach(c=>{
+    if(c===saveCard) return;
+    const g = SETTINGS_GROUPS.find(gr=>gr[3].some(sel=>c.querySelector(sel)));
+    const key = g ? g[0] : 'shop';
+    (panes[key] = panes[key] || []).push(c);
+  });
+  const avail = SETTINGS_GROUPS.filter(g=>panes[g[0]]);
+  if(!avail.length) return;
+  if(!avail.some(g=>g[0]===SETTINGS_TAB)) SETTINGS_TAB = avail[0][0];
+  const layout = document.createElement('div'); layout.className = 'set-layout';
+  const nav = document.createElement('nav'); nav.className = 'set-nav';
+  const body = document.createElement('div'); body.className = 'set-body';
+  avail.forEach(g=>{
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.g = g[0];
+    b.innerHTML = iconSVG(g[2],16) + '<span>' + escapeHTML(t(g[1])) + '</span>';
+    b.classList.toggle('active', g[0]===SETTINGS_TAB);
+    b.addEventListener('click', ()=>openSettingsGroup(g[0]));
+    nav.appendChild(b);
+    const pane = document.createElement('div'); pane.className = 'set-pane'; pane.dataset.g = g[0];
+    pane.style.display = g[0]===SETTINGS_TAB ? '' : 'none';
+    panes[g[0]].forEach(c=>pane.appendChild(c));
+    body.appendChild(pane);
+  });
+  layout.appendChild(nav); layout.appendChild(body);
+  if(saveCard) saveCard.classList.add('set-savebar');
+  el.replaceChildren(layout, ...(saveCard ? [saveCard] : []));
+}
 function renderSettings(){
   const el = document.getElementById('view-settings');
   el.innerHTML = `
@@ -3326,6 +3428,17 @@ function renderSettings(){
       <p class="muted" style="font-size:12.5px;">${t('settings_returnsPeriodHint')}</p>
     </div>
     <div class="card" style="margin-top:14px;">
+      <h2 class="section-title">${t('wa_openModeTitle')}</h2>
+      <p class="muted" style="font-size:12px;margin-top:-4px;">${t('wa_openModeHint')}</p>
+      <div class="field" style="max-width:560px;">
+        <select id="set_waMode">
+          <option value="auto" ${(SETTINGS.waOpenMode||'auto')==='auto'?'selected':''}>${t('wa_modeAuto')}</option>
+          <option value="app" ${SETTINGS.waOpenMode==='app'?'selected':''}>${t('wa_modeApp')}</option>
+          <option value="web" ${SETTINGS.waOpenMode==='web'?'selected':''}>${t('wa_modeWeb')}</option>
+        </select>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px;">
       <h2 class="section-title">${t('settings_birthdayOffersTitle')}</h2>
       <div class="field">
         <label>${t('settings_birthdayTplLabel')}</label>
@@ -3383,6 +3496,7 @@ function renderSettings(){
       </div>
     </div>
   `;
+  organizeSettings(el);
   if(typeof wireStaffManagement==='function' && isOwner()) wireStaffManagement();
   renderFirmsList();
   document.getElementById('addFirmBtn').addEventListener('click', ()=>openFirmModal());
@@ -3391,6 +3505,10 @@ function renderSettings(){
     buildSidebarNav();
     showView('settings');
     toast(e.target.value==='mr' ? 'भाषा बदलली' : 'Language changed','success');
+  });
+  document.getElementById('set_waMode').addEventListener('change', async (e)=>{
+    await saveSettings({waOpenMode: e.target.value});
+    toast(t('wa_modeSaved'),'success');
   });
   LABEL_FIELDS.forEach(([k,cap])=>{
     const cb = document.getElementById('set_lbl_'+k);
@@ -10943,7 +11061,7 @@ async function sendCreditReminder(customerId){
   const {due, days} = creditAgeInfo(customer);
   if(due <= 0.009){ toast(t('toast_noCreditDue'),'error'); return; }
   const text = creditReminderText(customer, due, days);
-  if(customer.phone){ openExternal(buildWhatsAppLink(customer.phone, text), '_blank'); }
+  if(customer.phone){ openWhatsAppLink(buildWhatsAppLink(customer.phone, text), '_blank'); }
   else { promptPhoneThenOpen(text); }
 }
 
@@ -10953,7 +11071,7 @@ async function sendAllCreditReminders(){
   toast(t('toast_openingReminders').replace('{0}', list.length),'success');
   list.forEach((x,i)=>{
     setTimeout(()=>{
-      openExternal(buildWhatsAppLink(x.c.phone, creditReminderText(x.c, x.due, x.days)), '_blank');
+      openWhatsAppLink(buildWhatsAppLink(x.c.phone, creditReminderText(x.c, x.due, x.days)), '_blank');
     }, i*700);
   });
 }
@@ -11189,7 +11307,7 @@ function renderBulkSending(){
   document.getElementById('modalFooter').innerHTML = `<button class="btn btn-outline" id="bs_back">${t('bulk_editMessage')}</button><button class="btn btn-primary" onclick="closeModal()">${t('btn_close')}</button>`;
   const openChat = (i)=>{
     const r = S.list[i];
-    openExternal(buildWhatsAppLink(r.phone, bulkMessageText(S.tpl, r)), '_blank');
+    openWhatsAppLink(buildWhatsAppLink(r.phone, bulkMessageText(S.tpl, r)), '_blank');
     r.status = 'sent';
     renderBulkSending();
   };
@@ -11451,7 +11569,7 @@ async function openCustomerInsightsModal(){
             if(!r) return;
             const template = SETTINGS.winBackTemplate || DEFAULT_SETTINGS.winBackTemplate;
             const text = template.replace(/\{shop\}/g, SETTINGS.name||t('wa_ourShopFallback'));
-            if(r.customer.phone){ openExternal(buildWhatsAppLink(r.customer.phone, text), '_blank'); }
+            if(r.customer.phone){ openWhatsAppLink(buildWhatsAppLink(r.customer.phone, text), '_blank'); }
             else { promptPhoneThenOpen(text); }
           });
         });
@@ -13589,7 +13707,25 @@ window.openExternal = window.openExternal || function(url){ window.open(url, '_b
 function buildWhatsAppLink(phone, text){
   let cleanPhone = (phone||'').replace(/[^0-9]/g,'');
   if(cleanPhone.length===10) cleanPhone = '91' + cleanPhone;   // wa.me needs the country code
-  return 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(text);
+  return 'https://wa.me/' + cleanPhone + (text ? '?text=' + encodeURIComponent(text) : '');   // no text = an empty chat (used when sending the bill picture)
+}
+// Opens a WhatsApp chat the way the owner chose in Settings: the installed WhatsApp app, WhatsApp Web, or automatic
+// (desktop app: the WhatsApp app when it is installed, otherwise WhatsApp Web; browser: wa.me, which offers both).
+async function openWhatsAppLink(url){
+  const m = /^https:\/\/wa\.me\/(\d+)(?:\?text=(.*))?$/.exec(String(url||''));
+  if(!m){ openExternal(url, '_blank'); return; }
+  const phone = m[1], q = m[2] ? '&text=' + m[2] : '';
+  const mode = ['app','web'].includes(SETTINGS.waOpenMode) ? SETTINGS.waOpenMode : 'auto';
+  const appUrl = 'whatsapp://send?phone=' + phone + q, webUrl = 'https://web.whatsapp.com/send?phone=' + phone + q;
+  if(window.IS_TAURI){
+    let useApp = mode==='app';
+    if(mode==='auto'){ try{ useApp = !!(await window.__TAURI__.core.invoke('whatsapp_installed')); }catch(e){ useApp = false; } }
+    openExternal(useApp ? appUrl : webUrl, '_blank');
+    return;
+  }
+  if(mode==='app') window.location.href = appUrl;
+  else if(mode==='web') openExternal(webUrl, '_blank');
+  else openExternal(url, '_blank');
 }
 function promptPhoneThenOpen(text){
   openModal({
@@ -13603,7 +13739,7 @@ function promptPhoneThenOpen(text){
       document.getElementById('wa_go').addEventListener('click', ()=>{
         const phone = document.getElementById('wa_phone').value.trim();
         if(!phone){ toast(t('toast_enterPhoneNumber'),'error'); return; }
-        openExternal(buildWhatsAppLink(phone, text), '_blank');
+        openWhatsAppLink(buildWhatsAppLink(phone, text), '_blank');
         closeModal();
       });
     }
@@ -13694,7 +13830,7 @@ async function openBillImageModal(bill, customerName, phone, format){
         if(!ph){ toast(t('toast_enterPhoneNumber'),'error'); return; }
         let copied = false;
         try{ await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]); copied = true; }catch(e){ copied = false; }
-        openExternal(buildWhatsAppLink(ph, ''), '_blank');
+        openWhatsAppLink(buildWhatsAppLink(ph, ''), '_blank');
         toast(copied ? t('wa_imgCopied') : t('wa_imgCopyFail'), copied ? 'success' : 'error');
       });
     }
@@ -13703,7 +13839,7 @@ async function openBillImageModal(bill, customerName, phone, format){
 
 function sendInvoiceOnWhatsApp(bill, phone, customerName){
   const text = buildInvoiceMessageText(bill, false);
-  if(phone){ openExternal(buildWhatsAppLink(phone, text), '_blank'); }
+  if(phone){ openWhatsAppLink(buildWhatsAppLink(phone, text), '_blank'); }
   else { promptPhoneThenOpen(text); }
 }
 function sendInvoiceByEmail(bill, customerName){
@@ -13717,7 +13853,7 @@ async function sendOccasionWish(customerId, type){
   const template = type==='birthday' ? (SETTINGS.birthdayOfferTemplate||DEFAULT_SETTINGS.birthdayOfferTemplate) : (SETTINGS.anniversaryOfferTemplate||DEFAULT_SETTINGS.anniversaryOfferTemplate);
   const text = template.replace(/\{shop\}/g, SETTINGS.name||t('wa_ourShopFallback'));
   if(customer.phone){
-    openExternal(buildWhatsAppLink(customer.phone, text), '_blank');
+    openWhatsAppLink(buildWhatsAppLink(customer.phone, text), '_blank');
   } else {
     promptPhoneThenOpen(text);
   }
@@ -14846,7 +14982,7 @@ function shareVendorLedgerOnWhatsApp(supplier, rows){
   const recent = rows.slice(-5);
   const lines = recent.map(r=> `${fmtDate(r.date)}: ${r.debit>0?'Dr '+fmtMoney(r.debit):'Cr '+fmtMoney(r.credit)} — ${r.note||r.type}`);
   const text = `${t('wa_ledgerStatementPrefix')}${supplier.name}\nWith: ${SETTINGS.name||t('wa_usFallback')}\nBalance Due: ${fmtMoney(supplier.balanceDue||0)}\nAdvance Available: ${fmtMoney(supplier.advanceBalance||0)}${lines.length?`\n\nRecent entries:\n${lines.join('\n')}`:''}`;
-  openExternal(buildWhatsAppLink(supplier.phone, text), '_blank');
+  openWhatsAppLink(buildWhatsAppLink(supplier.phone, text), '_blank');
 }
 function exportVendorLedgerCSV(supplier, rows){
   const lines = [toCSVRow(['Date','Entered at','Entered by','Type','Invoice','Supplier bill no','GST','Note','Debit','Credit','Balance','Status','Void reason'])];
@@ -15035,7 +15171,7 @@ async function viewSupplierLedger(supplierId){
       if(remindBtn){
         remindBtn.addEventListener('click', ()=>{
           const text = `Hi ${supplier.contactPerson||supplier.name}, this is a reminder that ${fmtMoney(supplier.balanceDue||0)} is outstanding with ${SETTINGS.name}. Please let us know when we can expect payment. Thank you!`;
-          openExternal(buildWhatsAppLink(supplier.phone, text), '_blank');
+          openWhatsAppLink(buildWhatsAppLink(supplier.phone, text), '_blank');
         });
       }
       document.getElementById('sp_printStatement').addEventListener('click', ()=>{

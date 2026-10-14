@@ -34,8 +34,8 @@ fn get_device_fingerprint() -> Result<String, String> {
 #[tauri::command]
 fn open_external(url: String) -> Result<(), String> {
     let lower = url.to_lowercase();
-    if !(lower.starts_with("https://") || lower.starts_with("http://") || lower.starts_with("mailto:")) {
-        return Err("blocked: only http, https and mailto links can be opened".into());
+    if !(lower.starts_with("https://") || lower.starts_with("http://") || lower.starts_with("mailto:") || lower.starts_with("whatsapp://send?")) {
+        return Err("blocked: only http, https, mailto and whatsapp chat links can be opened".into());
     }
     if url.len() > 8000 || url.contains('\0') || url.contains('\n') || url.contains('\r') {
         return Err("blocked: invalid link".into());
@@ -53,6 +53,39 @@ fn open_external(url: String) -> Result<(), String> {
     #[cfg(not(windows))]
     {
         Err("open_external is only implemented for Windows".into())
+    }
+}
+
+/// True when the WhatsApp desktop app is installed (it registers the "whatsapp:" link type with Windows).
+/// Checked through the registry with the built-in `reg` tool, on a worker thread.
+#[tauri::command]
+async fn whatsapp_installed() -> bool {
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(|| {
+            use std::os::windows::process::CommandExt;
+            let keys = [
+                r"HKCR\whatsapp",
+                r"HKCU\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\whatsapp",
+                r"HKCR\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\PackageRepository\Extensions\windows.protocol\whatsapp",
+            ];
+            keys.iter().any(|k| {
+                std::process::Command::new("reg")
+                    .args(["query", k])
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
+                    .status()
+                    .map(|s| s.success())
+                    .unwrap_or(false)
+            })
+        })
+        .await
+        .unwrap_or(false)
+    }
+    #[cfg(not(windows))]
+    {
+        false
     }
 }
 
@@ -123,7 +156,7 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![get_device_fingerprint, open_external, list_printers, print_raw, cancel_print_jobs])
+        .invoke_handler(tauri::generate_handler![get_device_fingerprint, open_external, whatsapp_installed, list_printers, print_raw, cancel_print_jobs])
         .run(tauri::generate_context!())
         .expect("error while running Manokshmi ClothBill");
 }
