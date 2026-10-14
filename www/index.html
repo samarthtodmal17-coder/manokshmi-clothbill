@@ -914,7 +914,7 @@ const DEFAULT_SETTINGS = {
   logo:'',
   paperSize:'thermal80',
   upiId:'',
-  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false, labelAutoClean:true, labelShowBrand:true, labelShowSku:true,   // barcode label printer
+  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false, labelAutoClean:true, labelShowBrand:true, labelShowSku:true, labelShowShop:true, labelShowBarcode:true, labelShowName:true, labelShowSize:true, labelShowColor:true, labelShowPrice:true,   // barcode label printer
   billQrMode:'always',   // always | due | never
   loyaltyEnabled:false,
   loyaltyEarnPerRupee:100,
@@ -1545,6 +1545,19 @@ const I18N = {
     prod_editStockNote:'Only correcting a wrong count? Leave this unticked: just the stock number changes and no purchase is recorded.',
     prod_stockChangesTitle:'Stock changes in this save',
     prod_billNotChanged:'Stock was lowered, but the supplier bill {0} is not changed. If the bill itself is wrong, cancel it in Vendor Management and enter it again.',
+    lb_whatToPrint:'What to print on the label',
+    lb_whatToPrintHint:'Tick only what you want. Without the barcode the label cannot be scanned at billing.',
+    lb_f_shop:'Shop name',
+    lb_f_barcode:'Barcode',
+    lb_f_sku:'SKU number',
+    lb_f_brand:'Brand',
+    lb_f_name:'Product name',
+    lb_f_size:'Size',
+    lb_f_color:'Color',
+    lb_f_price:'Price',
+    lb_settingsTitle:'Barcode label — what to print',
+    lb_settingsHint:'Choose what appears on every label. Applies to the label window, the one-click label button and test labels.',
+    lb_fieldsSaved:'Label contents saved',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2117,6 +2130,19 @@ const I18N = {
     prod_editStockNote:'फक्त चुकीची संख्या दुरुस्त करताय? हे रिकामे ठेवा: फक्त स्टॉक संख्या बदलते, खरेदी नोंदवली जात नाही.',
     prod_stockChangesTitle:'या सेव्हमधील स्टॉक बदल',
     prod_billNotChanged:'स्टॉक कमी केला, पण पुरवठादाराचे बिल {0} बदललेले नाही. बिलच चुकीचे असेल तर ते विक्रेता व्यवस्थापनात रद्द करून पुन्हा नोंदवा.',
+    lb_whatToPrint:'लेबलवर काय छापायचे',
+    lb_whatToPrintHint:'फक्त हवे तेच निवडा. बारकोड नसल्यास बिलिंगमध्ये लेबल स्कॅन करता येणार नाही.',
+    lb_f_shop:'दुकानाचे नाव',
+    lb_f_barcode:'बारकोड',
+    lb_f_sku:'SKU क्रमांक',
+    lb_f_brand:'ब्रँड',
+    lb_f_name:'प्रॉडक्टचे नाव',
+    lb_f_size:'साईज',
+    lb_f_color:'रंग',
+    lb_f_price:'किंमत',
+    lb_settingsTitle:'बारकोड लेबल — काय छापायचे',
+    lb_settingsHint:'प्रत्येक लेबलवर काय दिसेल ते निवडा. लेबल विंडो, एक-क्लिक लेबल बटण आणि टेस्ट लेबलला लागू.',
+    lb_fieldsSaved:'लेबलचा मजकूर जतन केला',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -3193,6 +3219,12 @@ function renderSettings(){
       </div>
     </div>
     <div class="card" style="margin-top:14px;">
+      <h2 class="section-title">${t('lb_settingsTitle')}</h2>
+      <p class="muted" style="font-size:12px;margin-top:-4px;">${t('lb_settingsHint')}</p>
+      ${labelFieldsHTML(k=>'set_lbl_'+k, labelConfig())}
+      <p class="muted" style="font-size:11.5px;margin:6px 0 0;">${t('lb_whatToPrintHint')}</p>
+    </div>
+    <div class="card" style="margin-top:14px;">
       <h2 class="section-title">${t('settings_upiPaymentsTitle')}</h2>
       <div class="field">
         <label>${t('settings_upiIdLabel')}</label>
@@ -3359,6 +3391,13 @@ function renderSettings(){
     buildSidebarNav();
     showView('settings');
     toast(e.target.value==='mr' ? 'भाषा बदलली' : 'Language changed','success');
+  });
+  LABEL_FIELDS.forEach(([k,cap])=>{
+    const cb = document.getElementById('set_lbl_'+k);
+    if(cb) cb.addEventListener('change', async ()=>{
+      await saveSettings({['labelShow'+cap]: cb.checked});
+      toast(t('lb_fieldsSaved'),'success');
+    });
   });
   document.getElementById('set_touchBilling').addEventListener('change', async (e)=>{
     await saveSettings({touchFriendlyBilling: e.target.checked});
@@ -5566,8 +5605,9 @@ async function openBarcodeModal(productId){
           <div class="col field" style="min-width:90px;"><label>${t('lb_rotate')}</label>
             <select id="lb_rot">${[0,90,180,270].map(r=>`<option value="${r}" ${labelConfig().rot===r?'selected':''}>${r}°</option>`).join('')}</select></div>
         </div>
-        <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin:2px 0 8px;"><input type="checkbox" id="lb_showbrand" style="width:auto;" ${labelConfig().showBrand?'checked':''}> ${t('lb_showBrand')}</label>
-        <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin:2px 0 8px;"><input type="checkbox" id="lb_showsku" style="width:auto;" ${labelConfig().showSku?'checked':''}> ${t('lb_showSku')}</label>
+        <div style="font-weight:700;font-size:12.5px;margin:4px 0 2px;">${t('lb_whatToPrint')}</div>
+        ${labelFieldsHTML(k=>'lb_show'+k, labelConfig())}
+        <div class="muted" style="font-size:11.5px;margin-bottom:8px;">${t('lb_whatToPrintHint')}</div>
         <div id="lb_rawBox" style="display:${window.IS_TAURI?'':'none'};border-top:1px dashed var(--line);margin:4px 0 10px;padding-top:8px;">
           <div class="row" style="flex-wrap:wrap;">
             <div class="col field" style="min-width:260px;"><label>${t('lb_method')}</label>
@@ -5629,7 +5669,7 @@ async function openBarcodeModal(productId){
         if(hit){ document.getElementById('lb_w').value = hit[1]; document.getElementById('lb_h').value = hit[2]; }
         refreshPreview();
       });
-      ['lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot','lb_showbrand','lb_showsku'].forEach(id=>{
+      ['lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot','lb_showbrand','lb_showsku','lb_showshop','lb_showbarcode','lb_showname','lb_showsize','lb_showcolor','lb_showprice'].forEach(id=>{
         const el = document.getElementById(id);
         el.addEventListener('input', ()=>{ if(id==='lb_w'||id==='lb_h') document.getElementById('lb_preset').value=''; refreshPreview(); });
         el.addEventListener('change', refreshPreview);
@@ -5649,7 +5689,8 @@ async function openBarcodeModal(productId){
         const c = readLabelCfgFromModal();
         // Remember the label setup so it only has to be done once per printer.
         await saveSettings({labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot,
-          labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert, labelAutoClean:c.autoClean, labelShowBrand:c.showBrand, labelShowSku:c.showSku});
+          labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert, labelAutoClean:c.autoClean, labelShowBrand:c.show.brand, labelShowSku:c.show.sku,
+          labelShowShop:c.show.shop, labelShowBarcode:c.show.barcode, labelShowName:c.show.name, labelShowSize:c.show.size, labelShowColor:c.show.color, labelShowPrice:c.show.price});
       };
       document.getElementById('lb_testBtn').addEventListener('click', async ()=>{ await saveLabelCfg(); printTestLabel(); });
       const cancelOldBtn = document.getElementById('lb_cancelOldBtn');
@@ -5674,6 +5715,13 @@ async function openBarcodeModal(productId){
 // ---- Barcode label printing -------------------------------------------------------
 // Every label printer behaves a little differently (paper size, feed direction, offset), so the
 // label setup is fully adjustable here: size presets, shift, rotation, a live preview and a test label.
+// What can be printed on a label. Each one is a tick-box (Settings, and the label window); all on by default.
+const LABEL_FIELDS = [['shop','Shop','lb_f_shop'],['barcode','Barcode','lb_f_barcode'],['sku','Sku','lb_f_sku'],['brand','Brand','lb_f_brand'],
+  ['name','Name','lb_f_name'],['size','Size','lb_f_size'],['color','Color','lb_f_color'],['price','Price','lb_f_price']];
+function labelFieldsHTML(idOf, cfg){
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin:2px 0 6px;">` + LABEL_FIELDS.map(([k,cap,tk])=>
+    `<label style="display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:400;"><input type="checkbox" id="${idOf(k)}" style="width:auto;" ${cfg.show[k]?'checked':''}> ${t(tk)}</label>`).join('') + `</div>`;
+}
 const LABEL_PRESETS = [['50x25',50,25],['38x25',38,25],['40x30',40,30],['50x30',50,30],['58x40',58,40],['75x50',75,50],['100x50',100,50],['100x150',100,150]];
 function labelConfig(src){
   src = src || SETTINGS;
@@ -5693,7 +5741,8 @@ function labelConfig(src){
     invert: src.labelRawInvert===true || src.labelRawInvert==='1' || src.labelRawInvert==='true',
     autoClean: !(src.labelAutoClean===false || src.labelAutoClean==='0' || src.labelAutoClean==='false'),
     showBrand: !(src.labelShowBrand===false || src.labelShowBrand==='0' || src.labelShowBrand==='false'),
-    showSku: !(src.labelShowSku===false || src.labelShowSku==='0' || src.labelShowSku==='false')
+    showSku: !(src.labelShowSku===false || src.labelShowSku==='0' || src.labelShowSku==='false'),
+    show: Object.fromEntries(LABEL_FIELDS.map(([k,cap])=>{ const x = src['labelShow'+cap]; return [k, !(x===false || x==='0' || x==='false')]; }))
   };
 }
 function readLabelCfgFromModal(){
@@ -5704,7 +5753,13 @@ function readLabelCfgFromModal(){
     labelRawGapMm: has('lb_rawgap')?g('lb_rawgap'):2, labelRawInvert: has('lb_invert') ? document.getElementById('lb_invert').checked : false,
     labelAutoClean: has('lb_autoclean') ? document.getElementById('lb_autoclean').checked : true,
     labelShowBrand: has('lb_showbrand') ? document.getElementById('lb_showbrand').checked : true,
-    labelShowSku: has('lb_showsku') ? document.getElementById('lb_showsku').checked : true});
+    labelShowSku: has('lb_showsku') ? document.getElementById('lb_showsku').checked : true,
+    labelShowShop: has('lb_showshop') ? document.getElementById('lb_showshop').checked : true,
+    labelShowBarcode: has('lb_showbarcode') ? document.getElementById('lb_showbarcode').checked : true,
+    labelShowName: has('lb_showname') ? document.getElementById('lb_showname').checked : true,
+    labelShowSize: has('lb_showsize') ? document.getElementById('lb_showsize').checked : true,
+    labelShowColor: has('lb_showcolor') ? document.getElementById('lb_showcolor').checked : true,
+    labelShowPrice: has('lb_showprice') ? document.getElementById('lb_showprice').checked : true});
 }
 // The physical page the printer receives (swapped when the label is fed sideways).
 function labelPageSize(cfg){
@@ -5713,23 +5768,25 @@ function labelPageSize(cfg){
   return {w: cfg.w*cfg.cols + cfg.gap*(cfg.cols-1), h: cfg.h};
 }
 function labelItemHTML(product, productId, v, i, extra, cfgIn){
-  const showBrand = (cfgIn || labelConfig()).showBrand && !!String(product.brand||'').trim();
-  const showSku = (cfgIn || labelConfig()).showSku;
+  const lc = cfgIn || labelConfig(), sh = lc.show;
+  const showBrand = sh.brand && !!String(product.brand||'').trim();
+  const showSku = sh.sku;
   const sku = v.sku || autoSKU(productId, i);
-  const label = [v.size,v.color].filter(Boolean).join(' / ');
+  const label = [sh.size ? v.size : '', sh.color ? v.color : ''].filter(Boolean).join(' / ');
+  const nameHTML = [sh.name ? escapeHTML(product.name) : '', label ? escapeHTML(label) : ''].filter(Boolean).join(' — ');
   const onSale = isVariantOnSale(v);
   // Bars are stretched to the label width (never in height) so the quiet zone stays and the code scans.
   const bars = renderBarcodeSVG(sku,{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
   return `
     <div class="lbl${extra||''}">
-      ${SETTINGS.name?`<div class="lbl-shop">${escapeHTML(SETTINGS.name)}</div>`:''}
-      ${bars}
+      ${sh.shop && SETTINGS.name?`<div class="lbl-shop">${escapeHTML(SETTINGS.name)}</div>`:''}
+      ${sh.barcode ? bars : ''}
       ${showSku?`<div class="lbl-sku">${escapeHTML(sku)}</div>`:''}
       ${showBrand?`<div class="lbl-brand">${escapeHTML(String(product.brand).trim())}</div>`:''}
-      <div class="lbl-name">${escapeHTML(product.name)}${label?(' — '+escapeHTML(label)):''}</div>
-      <div class="lbl-price">${onSale
+      ${nameHTML ? `<div class="lbl-name">${nameHTML}</div>` : ''}
+      ${sh.price ? `<div class="lbl-price">${onSale
         ? `<span class="lbl-mrp">${fmtMoney(v.sellPrice)}</span> <span class="lbl-sale">${fmtMoney(variantSalePrice(v))}</span>`
-        : fmtMoney(v.sellPrice)}</div>
+        : fmtMoney(v.sellPrice)}</div>` : ''}
     </div>`;
 }
 // CSS + markup for a roll of labels: each row of labels is exactly ONE page of the label's own
@@ -5738,7 +5795,7 @@ function buildLabelPage(items, cfg){
   const s = Math.min(cfg.w/50, cfg.h/25);            // scale text with the label size
   const pt = n => (Math.round(n*s*10)/10)+'pt';
   const pg = labelPageSize(cfg);
-  const bh = Math.round(cfg.h*(0.34 - (cfg.showBrand?0.06:0) - (cfg.showSku?0.04:0))*10)/10;
+  const bh = Math.round(cfg.h*(0.34 - (cfg.show.brand?0.06:0) - (cfg.show.sku?0.04:0) + (cfg.show.shop?0:0.03) + (cfg.show.name?0:0.06) + (cfg.show.price?0:0.05))*10)/10;
   const sideways = cfg.rot===90 || cfg.rot===270;
   const move = `translate(${cfg.offX}mm,${cfg.offY}mm)`;
   let place;
@@ -5777,13 +5834,14 @@ function buildLabelPage(items, cfg){
 function labelRawActive(cfg){ return !!(window.IS_TAURI && cfg && cfg.method!=='driver' && cfg.paper==='roll'); }
 function labelItemData(product, productId, v, i){
   const onSale = isVariantOnSale(v);
-  const label = [v.size,v.color].filter(Boolean).join(' / ');
+  const sh = labelConfig().show;
+  const label = [sh.size ? v.size : '', sh.color ? v.color : ''].filter(Boolean).join(' / ');
   return {
-    shop: SETTINGS.name || '', sku: v.sku || autoSKU(productId, i),
-    brand: labelConfig().showBrand ? String(product.brand||'').trim() : '',
-    skuText: labelConfig().showSku ? (v.sku || autoSKU(productId, i)) : '',
-    name: String(product.name||'') + (label ? (' — '+label) : ''),
-    mrp: onSale ? fmtMoney(v.sellPrice) : '', priceText: fmtMoney(onSale ? variantSalePrice(v) : v.sellPrice)
+    shop: sh.shop ? (SETTINGS.name || '') : '', sku: v.sku || autoSKU(productId, i), noBar: !sh.barcode,
+    brand: sh.brand ? String(product.brand||'').trim() : '',
+    skuText: sh.sku ? (v.sku || autoSKU(productId, i)) : '',
+    name: [sh.name ? String(product.name||'') : '', label].filter(Boolean).join(' — '),
+    mrp: (sh.price && onSale) ? fmtMoney(v.sellPrice) : '', priceText: sh.price ? fmtMoney(onSale ? variantSalePrice(v) : v.sellPrice) : ''
   };
 }
 // Draws one upright label into ctx at (x0,y0) inside a box of wd x hd dots.
@@ -5807,23 +5865,24 @@ function drawRawLabel(ctx, d, x0, y0, wd, hd, cfg){
   const shopF = font(6,false), nameF = font(7.5,true), priceF = font(9.5,true), mrpF = font(7.5,false), brandF = font(7,true), skuF = font(5.5,false);
   const shopTxt = d.shop ? fit(String(d.shop).toUpperCase(), shopF, innerW) : '';
   const lh = (f,k)=>Math.round(parseInt(f.match(/(\d+)px/)[1])*(k||1.15));
-  const nameLines = wrap(d.name||'', nameF, innerW, 2);
+  const nameLines = d.name ? wrap(d.name, nameF, innerW, 2) : [];
   let bh = Math.round(cfg.h*0.34*dpmm);
   const brandTxt = d.brand ? fit(String(d.brand), brandF, innerW) : '';
   const parts = [];
   if(shopTxt) parts.push({k:'shop', h:lh(shopF)});
-  parts.push({k:'bar', h:bh});
+  if(!d.noBar) parts.push({k:'bar', h:bh});
   const skuTxt = d.skuText ? fit(String(d.skuText), skuF, innerW) : '';
   if(skuTxt) parts.push({k:'sku', h:lh(skuF,1.05)+2});       // +2 dots of air between the bars and the SKU text
   if(brandTxt) parts.push({k:'brand', h:lh(brandF,1.08)});
   nameLines.forEach(()=>parts.push({k:'name', h:lh(nameF)}));
-  parts.push({k:'price', h:lh(priceF)});
-  let total = parts.reduce((a,b)=>a+b.h,0) + gap*(parts.length-1);
+  if(d.priceText) parts.push({k:'price', h:lh(priceF)});
+  let total = parts.reduce((a,b)=>a+b.h,0) + gap*Math.max(0,parts.length-1);
   // The brand line needs room: make the barcode a little shorter (never below 55%) so everything still fits.
   const availH = hd - 2*padY;
-  if(total > availH){
+  const barPart = parts.find(x=>x.k==='bar');
+  if(total > availH && barPart){
     const newBh = Math.max(Math.round(bh*0.55), bh - (total-availH));
-    parts.find(x=>x.k==='bar').h = newBh; bh = newBh;
+    barPart.h = newBh; bh = newBh;
     total = parts.reduce((a,b)=>a+b.h,0) + gap*(parts.length-1);
   }
   let y = y0 + Math.max(padY, Math.round((hd-total)/2));
