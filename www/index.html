@@ -1538,6 +1538,13 @@ const I18N = {
     prod_gridSkuPlaceholder:'e.g. KUR',
     prod_gridSkuHint:'Each variant gets its own SKU, like KUR-M-RED. Leave empty for automatic SKUs.',
     lb_showSku:'Print SKU number under the barcode',
+    sa_searchPlaceholder:'Search size, colour or SKU…',
+    sa_noVariantMatch:'No variant matches this search',
+    adj_searchPlaceholder:'Search product, size, SKU, reason, bill no…',
+    prod_recordPurchaseLabelEdit:'These extra pieces were really bought from this vendor — add them to a purchase bill',
+    prod_editStockNote:'Only correcting a wrong count? Leave this unticked: just the stock number changes and no purchase is recorded.',
+    prod_stockChangesTitle:'Stock changes in this save',
+    prod_billNotChanged:'Stock was lowered, but the supplier bill {0} is not changed. If the bill itself is wrong, cancel it in Vendor Management and enter it again.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2103,6 +2110,13 @@ const I18N = {
     prod_gridSkuPlaceholder:'उदा. KUR',
     prod_gridSkuHint:'प्रत्येक व्हेरिएंटला स्वतःचा SKU मिळतो, जसे KUR-M-RED. रिकामे ठेवल्यास SKU आपोआप तयार होतात.',
     lb_showSku:'बारकोडखाली SKU क्रमांक छापा',
+    sa_searchPlaceholder:'साईज, रंग किंवा SKU शोधा…',
+    sa_noVariantMatch:'या शोधाशी जुळणारा व्हेरिएंट नाही',
+    adj_searchPlaceholder:'प्रॉडक्ट, साईज, SKU, कारण, बिल क्र. शोधा…',
+    prod_recordPurchaseLabelEdit:'हे जास्तीचे नग खरोखर या विक्रेत्याकडून खरेदी केले — खरेदी बिलात जोडा',
+    prod_editStockNote:'फक्त चुकीची संख्या दुरुस्त करताय? हे रिकामे ठेवा: फक्त स्टॉक संख्या बदलते, खरेदी नोंदवली जात नाही.',
+    prod_stockChangesTitle:'या सेव्हमधील स्टॉक बदल',
+    prod_billNotChanged:'स्टॉक कमी केला, पण पुरवठादाराचे बिल {0} बदललेले नाही. बिलच चुकीचे असेल तर ते विक्रेता व्यवस्थापनात रद्द करून पुन्हा नोंदवा.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -2461,7 +2475,7 @@ async function renderGuardLog(){
   const from = new Date(S.logFrom+'T00:00:00'), to = new Date(S.logTo+'T23:59:59');
   const all = (await readActs(from, to)).reverse();
   const users = [...new Set(all.map(e=>e.u))].sort(), kinds = [...new Set(all.map(e=>e.k))].sort();
-  let rows = all.filter(e=>(!S.logUser||e.u===S.logUser) && (!S.logKind||e.k===S.logKind) && (!S.risky||ACT_RISKY.includes(e.k)) && (!S.logQ || (e.d+' '+actKindLabel(e.k)+' '+e.u).toLowerCase().includes(S.logQ.toLowerCase())));
+  let rows = all.filter(e=>(!S.logUser||e.u===S.logUser) && (!S.logKind||e.k===S.logKind) && (!S.risky||ACT_RISKY.includes(e.k)) && (!srchNorm(S.logQ) || searchMatch(S.logQ, [e.d, actKindLabel(e.k), e.u])));
   const total = rows.length; rows = rows.slice(0,400);
   document.getElementById('gdBody').innerHTML = `
     <div class="card">
@@ -2482,7 +2496,10 @@ async function renderGuardLog(){
           <td style="font-size:12px;">${escapeHTML(e.d)}</td><td class="num">${e.a?fmtMoney(e.a):''}</td></tr>`).join('')}</tbody></table>` : `<div class="empty-state">${t('gd_logEmpty')}</div>`}</div>
     </div>`;
   const bind = (id, key, isCheck)=>document.getElementById(id).addEventListener('change', e=>{ S[key] = isCheck ? e.target.checked : e.target.value; renderGuardLog(); });
-  bind('gl_from','logFrom'); bind('gl_to','logTo'); bind('gl_user','logUser'); bind('gl_kind','logKind'); bind('gl_risky','risky',true); bind('gl_q','logQ');
+  bind('gl_from','logFrom'); bind('gl_to','logTo'); bind('gl_user','logUser'); bind('gl_kind','logKind'); bind('gl_risky','risky',true);
+  // search applies as you type (it used to wait until you clicked away), then the box gets its cursor back
+  let glT = null;
+  document.getElementById('gl_q').addEventListener('input', e=>{ const val = e.target.value; clearTimeout(glT); glT = setTimeout(async ()=>{ S.logQ = val; await renderGuardLog(); const n = document.getElementById('gl_q'); if(n){ n.focus(); const L = n.value.length; try{ n.setSelectionRange(L,L); }catch(_){} } }, 250); });
   document.getElementById('gl_verify').addEventListener('click', async ()=>{
     let n = 0; const bad = [];
     const d = new Date(from.getFullYear(), from.getMonth(), 1);
@@ -2654,8 +2671,8 @@ function renderScCounting(sc){
   let saveT = null;
   const queueSave = ()=>{ clearTimeout(saveT); saveT = setTimeout(()=>scSave(sc), 500); };
   const draw = ()=>{
-    const q = (document.getElementById('sc_q').value||'').toLowerCase();
-    document.getElementById('sc_rows').innerHTML = sc.lines.map((l,i)=>({l,i})).filter(x=>!q || (x.l.name+' '+x.l.label+' '+x.l.sku).toLowerCase().includes(q)).slice(0,600).map(x=>
+    const q = document.getElementById('sc_q').value || '';
+    document.getElementById('sc_rows').innerHTML = sc.lines.map((l,i)=>({l,i})).filter(x=>searchMatch(q, [x.l.name, x.l.label, x.l.sku])).slice(0,600).map(x=>
       `<tr><td>${escapeHTML(x.l.name)}${x.l.label?' <span class="muted">('+escapeHTML(x.l.label)+')</span>':''}</td><td style="font-size:11.5px;">${escapeHTML(x.l.sku)}</td>
        <td><input type="number" min="0" step="1" class="sc-in" data-i="${x.i}" value="${x.l.counted==null?'':x.l.counted}" placeholder="${escapeHTML(t('sc_notCounted'))}" style="width:96px;"></td></tr>`).join('');
     document.querySelectorAll('.sc-in').forEach(inp=>inp.addEventListener('input', ()=>{
@@ -3894,6 +3911,7 @@ function autoSKU(productId, variantIndex){
 
 <!-- MODULE:INVENTORY -->
 <script>
+let INV_RENDER_SEQ = 0;
 let INV_STATE = {
   subtab:'products', search:'', category:'', stockFilter:'all', sortBy:'name', sortDir:'asc',
   brand:'', size:'', color:'', priceMin:'', priceMax:'',
@@ -4704,6 +4722,25 @@ async function quickAdjustStock(productId, variantIndex, direction){
 
 const INV_EXPANDED_VARIANTS = new Set();
 // Which purchase bills brought each product / variant in (cancelled ones are left out): key "productId" and "productId:variantIndex".
+// ---- ONE matcher for every search box: ignores case, extra spaces and missing fields; every word typed must be found
+// somewhere in the fields (so "kurta blue M" works); a single-letter / 1-2 digit word beside other words is read as a
+// size and must match a whole word (so the "m" in "cotton" does not count); phone numbers match on digits only. ----
+function srchNorm(s){ return String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').trim(); }
+function searchMatch(q, fields, phones){
+  const words = srchNorm(q).split(' ').filter(Boolean);
+  if(!words.length) return true;
+  const hay = srchNorm((fields||[]).map(x=>x==null?'':x).join(' '));
+  let tokens = null;
+  const ph = (phones||[]).map(x=>String(x==null?'':x).replace(/\D/g,'')).filter(Boolean).join(' ');
+  return words.every(w=>{
+    if(words.length>1 && (w.length===1 || /^\d{1,2}$/.test(w))){
+      if(!tokens) tokens = hay.split(/[^\p{L}\p{N}\p{M}]+/u);
+      if(tokens.includes(w)) return true;
+    } else if(hay.includes(w)) return true;
+    const d = w.replace(/\D/g,'');
+    return !!(ph && d.length>=3 && /^[\d+\-()]+$/.test(w) && ph.includes(d));
+  });
+}
 async function loadPurchaseBillMap(){
   const map = {};
   const invs = (await dbGetAll('purchaseInvoices')).filter(i=>!i.voided).sort((a,b)=>new Date(a.date)-new Date(b.date) || a.id-b.id);
@@ -4723,8 +4760,10 @@ function billLinksHTML(list, max){
 async function renderInventoryTable(){
   const wrap = document.getElementById('invTableWrap');
   if(!wrap) return;
+  const rseq = ++INV_RENDER_SEQ;
   let products = await scopedGetAll('products');
   const PBILLS = await loadPurchaseBillMap();
+  if(rseq!==INV_RENDER_SEQ) return;       // a newer keystroke/filter already started drawing: don't paint over it with older results
   const totalProductCount = products.length;
   if(INV_STATE.category) products = products.filter(p=>p.category===INV_STATE.category);
   if(INV_STATE.brand) products = products.filter(p=>p.brand===INV_STATE.brand);
@@ -4732,9 +4771,8 @@ async function renderInventoryTable(){
   // variants that match are shown (and counted) -- other sizes/colours of the product are hidden while a filter is on.
   const priceMin = INV_STATE.priceMin!=='' ? parseFloat(INV_STATE.priceMin) : null;
   const priceMax = INV_STATE.priceMax!=='' ? parseFloat(INV_STATE.priceMax) : null;
-  const sq = (INV_STATE.search||'').toLowerCase();
-  const productHitsSearch = (p)=> !sq || p.name.toLowerCase().includes(sq) || (p.brand||'').toLowerCase().includes(sq)
-    || (PBILLS[String(p.id)]||[]).some(bb=>(bb.no+' '+bb.billNo).toLowerCase().includes(sq));       // name / brand / purchase bill number: whole product
+  const sq = srchNorm(INV_STATE.search);
+  const billsTxt = (p)=>(PBILLS[String(p.id)]||[]).map(bb=>bb.no+' '+bb.billNo).join(' ');
   const variantOK = (p, v)=>{
     if(INV_STATE.size && v.size!==INV_STATE.size) return false;
     if(INV_STATE.color && v.color!==INV_STATE.color) return false;
@@ -4744,7 +4782,8 @@ async function renderInventoryTable(){
     if(INV_STATE.stockFilter==='low' && !variantIsLow(v)) return false;
     if(INV_STATE.stockFilter==='out' && !variantIsOut(v)) return false;
     if(INV_STATE.stockFilter==='sale' && !isVariantOnSale(v)) return false;
-    if(sq && !productHitsSearch(p) && !(v.sku||'').toLowerCase().includes(sq)) return false;   // SKU search: only that variant
+    // every typed word must be found in this variant's own text (name, brand, category, bill numbers, size, colour, SKU)
+    if(sq && !searchMatch(sq, [p.name, p.brand, p.category, p.hsn, billsTxt(p), v.size, v.color, v.sku])) return false;
     return true;
   };
   products = products.filter(p=>(p.variants||[]).some(v=>variantOK(p,v)));
@@ -4756,7 +4795,7 @@ async function renderInventoryTable(){
   products.sort((a,b)=>{
     if(INV_STATE.sortBy==='stock') return (totalStockOf(a)-totalStockOf(b))*dir;
     if(INV_STATE.sortBy==='price') return (minPriceOf(a)-minPriceOf(b))*dir;
-    return a.name.localeCompare(b.name)*dir;
+    return String(a.name||'').localeCompare(String(b.name||''))*dir;
   });
 
   const anyFilterActive = INV_STATE.search || INV_STATE.category || INV_STATE.brand || INV_STATE.size || INV_STATE.color || INV_STATE.priceMin!=='' || INV_STATE.priceMax!=='' || INV_STATE.stockFilter!=='all';
@@ -4942,6 +4981,8 @@ async function duplicateProduct(productId){
 
 async function openProductModalCore(product, productId, title){
   VARIANT_ROWS = product ? JSON.parse(JSON.stringify(product.variants||[])) : [ blankVariant() ];
+  // Remember each saved variant's position, so a correction is compared with THAT variant's old stock (not guessed from the SKU).
+  if(productId) VARIANT_ROWS.forEach((r,i)=>{ r._oi = i; });
   PRODUCT_PHOTO = product && product.photo ? product.photo : '';
   // A duplicate carries its source's firmId even though it has no id yet; a genuinely new
   // product (product===null) gets stamped with the current working firm on save instead.
@@ -4992,7 +5033,10 @@ async function openProductModalCore(product, productId, title){
       </select>
     </div>
     <div id="pf_purchaseBox" style="display:${product&&product.preferredSupplierId?'':'none'};background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-      <label style="display:flex;gap:8px;align-items:center;font-weight:600;margin-bottom:8px;"><input type="checkbox" id="pf_recordPurchase" checked style="width:auto;"> ${t('prod_recordPurchaseLabel')}</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;margin-bottom:8px;"><input type="checkbox" id="pf_recordPurchase" ${productId?'':'checked'} style="width:auto;"> ${productId ? t('prod_recordPurchaseLabelEdit') : t('prod_recordPurchaseLabel')}</label>
+      ${productId ? `<div class="muted" style="font-size:11.5px;margin:-4px 0 8px;">${t('prod_editStockNote')}</div>` : ''}
+      <div id="pf_stockChanges" style="font-size:12px;margin-bottom:8px;"></div>
+      <div id="pf_purFields" style="${productId?'display:none;':''}">
       ${billNoFieldHTML('pf')}
       <div class="row" style="margin-top:8px;">
         <div class="col field"><label>${t('pu_gstModeLabel')}</label>
@@ -5004,6 +5048,7 @@ async function openProductModalCore(product, productId, title){
       </div>
       <div id="pf_purSummary" data-total="0"></div>
       <p class="muted" style="font-size:11.5px;margin:8px 0 0;">${t('prod_recordPurchaseHint')}</p>
+      </div>
     </div>
     <div class="field">
       <label>${t('prod_photoLabel')}</label>
@@ -5121,6 +5166,17 @@ async function openProductModalCore(product, productId, title){
       syncBillNoField('pf', document.getElementById('pf_supplier').value ? parseInt(document.getElementById('pf_supplier').value) : null, false);
       ['pf_tax','pf_purGst','pf_purPaid','pf_recordPurchase','pf_billNo','pf_billDate'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', updatePfPurchaseSummary); el.addEventListener('change', updatePfPurchaseSummary); });
       document.getElementById('pf_payFull').addEventListener('click', ()=>{ document.getElementById('pf_purPaid').value = document.getElementById('pf_purSummary').dataset.total || 0; updatePfPurchaseSummary(); });
+      document.getElementById('pf_recordPurchase').addEventListener('change', ()=>{
+        const on = document.getElementById('pf_recordPurchase').checked;
+        document.getElementById('pf_purFields').style.display = on ? '' : 'none';
+        // extra pieces for a product that already came on a bill: continue THAT bill instead of making a second one
+        if(on && productId){
+          const sup = document.getElementById('pf_supplier').value ? parseInt(document.getElementById('pf_supplier').value) : null;
+          const bn = document.getElementById('pf_billNo');
+          if(sup && bn && !bn.value) bn.value = pfLatestBillNoFor(productId, sup);
+        }
+        updatePfPurchaseSummary();
+      });
       updatePfPurchaseSummary();
       document.getElementById('saveProductBtn').addEventListener('click', ()=>saveProductFromModal(productId));
     }
@@ -5216,16 +5272,45 @@ function purchaseSummaryRender(px, lines, gstRate){
   box.innerHTML = h;
 }
 // Product form: added units = new stock minus what the saved product had (matched by SKU, same as saving does).
+function pfPrevVariant(v){
+  if(!PF_OLD_PRODUCT || !v || v._oi==null || v._oi<0) return null;
+  return (PF_OLD_PRODUCT.variants||[])[v._oi] || null;
+}
+function pfLatestBillNoFor(productId, supplierId){
+  const b = PUR_INV_LIST.filter(i=>!i.voided && i.supplierId===supplierId && i.billNo && (i.items||[]).some(it=>it.productId===productId))
+    .sort((a,b2)=>String(b2.date).localeCompare(String(a.date)))[0];
+  return b ? b.billNo : '';
+}
 function pfPurchaseLines(){
   const lines = [];
   (typeof VARIANT_ROWS!=='undefined' ? VARIANT_ROWS : []).forEach((v,i)=>{
-    const prev = PF_OLD_PRODUCT ? (PF_OLD_PRODUCT.variants||[]).find(x=>x.sku && x.sku===(v.sku||'').trim()) : null;
+    const prev = pfPrevVariant(v);
     const added = (parseInt(v.stock)||0) - (prev ? Number(prev.stock||0) : 0);
     if(added>0) lines.push({label:[v.size,v.color].filter(Boolean).join('/') || (v.sku||'').trim() || (t('inv_variantFallbackPrefix')+(i+1)), qty:added, rate:parseFloat(v.costPrice)||0});
   });
   return lines;
 }
+function updatePfStockChanges(){
+  const box = document.getElementById('pf_stockChanges');
+  if(!box) return;
+  if(!PF_OLD_PRODUCT){ box.innerHTML = ''; return; }
+  const ch = []; let lowered = false;
+  VARIANT_ROWS.forEach((v,i)=>{
+    const prev = pfPrevVariant(v); if(!prev) return;
+    const a = Number(prev.stock||0), b = parseInt(v.stock)||0;
+    if(a===b) return;
+    ch.push(escapeHTML([v.size,v.color].filter(Boolean).join('/') || (v.sku||'').trim() || (t('inv_variantFallbackPrefix')+(i+1))) + ': ' + a + ' → ' + b + ' (' + (b>a?'+':'') + (b-a) + ')');
+    if(b<a) lowered = true;
+  });
+  let h = ch.length ? '<strong>' + escapeHTML(t('prod_stockChangesTitle')) + '</strong><br>' + ch.join('<br>') : '';
+  if(lowered){
+    const bills = PUR_INV_LIST.filter(i=>!i.voided && (i.items||[]).some(it=>it.productId===PF_OLD_PRODUCT.id)).map(i=>i.invoiceNumber + (i.billNo?' ('+i.billNo+')':''));
+    if(bills.length) h += '<div class="muted" style="margin-top:4px;">' + escapeHTML(fillTpl(t('prod_billNotChanged'), [bills.join(', ')])) + '</div>';
+  }
+  box.innerHTML = h;
+}
 function updatePfPurchaseSummary(){
+  updatePfStockChanges();
   if(!document.getElementById('pf_purSummary')) return;
   const rec = document.getElementById('pf_recordPurchase');
   const lines = (rec && !rec.checked) ? [] : pfPurchaseLines();
@@ -5291,6 +5376,7 @@ async function saveProductFromModal(productId){
   const cleanVariants = VARIANT_ROWS.map(v=>{
     const stock = parseInt(v.stock)||0;
     return {
+    __oi: (v._oi!=null ? v._oi : -1),
     sku: (v.sku||'').trim(),
     size: (v.size||'').trim(),
     color: (v.color||'').trim(),
@@ -5305,6 +5391,8 @@ async function saveProductFromModal(productId){
     saleStart: v.saleStart||'',
     saleEnd: v.saleEnd||''
   };}).filter(v=>v.sellPrice>0 || v.stock>0 || v.sku || v.size || v.color);
+  const origIdx = cleanVariants.map(v=>v.__oi);
+  cleanVariants.forEach(v=>{ delete v.__oi; });
 
   if(cleanVariants.length===0){ toast(t('toast_addVariantWithSellPrice'),'error'); return; }
 
@@ -5348,7 +5436,7 @@ async function saveProductFromModal(productId){
   if(vendorId && document.getElementById('pf_recordPurchase') && document.getElementById('pf_recordPurchase').checked){
     const lines = [];
     record.variants.forEach((v,i)=>{
-      const prev = oldProduct ? (oldProduct.variants||[]).find(x=>x.sku && x.sku===v.sku) : null;
+      const prev = (oldProduct && origIdx[i]>=0) ? ((oldProduct.variants||[])[origIdx[i]] || null) : null;
       const added = (Number(v.stock)||0) - (prev ? Number(prev.stock||0) : 0);
       if(added>0) lines.push({productId:savedId, variantIndex:i, qty:added, rate:Number(v.costPrice)||0});
     });
@@ -5936,10 +6024,14 @@ function printTestLabel(){
 async function openStockAdjustModal(productId){
   const product = await dbGet('products', productId);
   if(!product || !(product.variants||[]).length){ toast(t('toast_productNoVariants'),'error'); return; }
-  const variantOptions = product.variants.map((v,i)=>{
-    const label = [v.size,v.color].filter(Boolean).join('/') || v.sku || (t('inv_variantFallbackPrefix')+(i+1));
-    return `<option value="${i}">${escapeHTML(label)} — ${t('sa_skuPrefix')}${escapeHTML(v.sku||'-')} ${t('sa_currentPrefix')}${v.stock})</option>`;
-  }).join('');
+  const saLabelOf = (v,i)=>[v.size,v.color].filter(Boolean).join('/') || v.sku || (t('inv_variantFallbackPrefix')+(i+1));
+  // The variant list, narrowed by whatever is typed in the search box (size / colour / SKU, any order).
+  const saOptionsHTML = (q, keep)=>{
+    const rows = product.variants.map((v,i)=>({v,i})).filter(x=>searchMatch(q, [x.v.size, x.v.color, x.v.sku, saLabelOf(x.v,x.i)]));
+    if(!rows.length) return `<option value="" selected disabled>${escapeHTML(t('sa_noVariantMatch'))}</option>`;
+    return rows.map(({v,i})=>`<option value="${i}" ${String(i)===String(keep)?'selected':''}>${escapeHTML(saLabelOf(v,i))} — ${t('sa_skuPrefix')}${escapeHTML(v.sku||'-')} ${t('sa_currentPrefix')}${v.stock})</option>`).join('');
+  };
+  const variantOptions = saOptionsHTML('');
   const saSuppliers = (await scopedGetAll('suppliers')).sort((a,b)=>a.name.localeCompare(b.name));
   PUR_SUP_MAP = {}; saSuppliers.forEach(s=>{ PUR_SUP_MAP[s.id] = s; });
   await loadPurchaseBills();
@@ -5951,6 +6043,7 @@ async function openStockAdjustModal(productId){
       ${firmNote}
       <div class="field">
         <label>${t('vendor_labelVariant')}</label>
+        ${product.variants.length>1 ? `<input id="sa_search" autocomplete="off" placeholder="${escapeHTML(t('sa_searchPlaceholder'))}" style="margin-bottom:6px;">` : ''}
         <select id="sa_variant">${variantOptions}</select>
       </div>
       <div class="row">
@@ -6010,6 +6103,7 @@ async function openStockAdjustModal(productId){
       const recalc = ()=>{
         const vi = parseInt(document.getElementById('sa_variant').value);
         const v = product.variants[vi];
+        if(!v){ document.getElementById('sa_preview').textContent = ''; return; }
         const current = v.stock;
         const qty = Math.max(1, parseInt(document.getElementById('sa_qty').value)||1);
         const dir = document.getElementById('sa_direction').value;
@@ -6020,7 +6114,8 @@ async function openStockAdjustModal(productId){
       recalc();
       const saSummary = ()=>{
         const vi = parseInt(document.getElementById('sa_variant').value);
-        const v = product.variants[vi] || {};
+        const v = product.variants[vi];
+        if(!v){ purchaseSummaryRender('sa', [], product.taxRate); return; }
         const adding = document.getElementById('sa_direction').value==='add';
         const qty = Math.max(1, parseInt(document.getElementById('sa_qty').value)||1);
         const label = [v.size,v.color].filter(Boolean).join('/') || v.sku || (t('inv_variantFallbackPrefix')+(vi+1));
@@ -6036,7 +6131,7 @@ async function openStockAdjustModal(productId){
         if(vend) reasonSel.value = 'Purchased from Vendor';
         else if(reasonSel.value==='Purchased from Vendor') reasonSel.value = adding ? 'Found Extra' : 'Damaged';
         if(vend){
-          const v = product.variants[parseInt(document.getElementById('sa_variant').value)];
+          const v = product.variants[parseInt(document.getElementById('sa_variant').value)] || null;
           const costEl = document.getElementById('sa_cost');
           if(!costEl.dataset.touched) costEl.value = (v && v.costPrice) || 0;
         }
@@ -6049,7 +6144,25 @@ async function openStockAdjustModal(productId){
       document.getElementById('sa_variant').addEventListener('change', ()=>{ delete document.getElementById('sa_cost').dataset.touched; syncVendorBox(); });
       ['sa_direction','sa_vendor'].forEach(id=>document.getElementById(id).addEventListener('change', syncVendorBox));
       syncVendorBox();
+      const saSearch = document.getElementById('sa_search');
+      if(saSearch){
+        const sel = document.getElementById('sa_variant');
+        const apply = ()=>{
+          const keep = sel.value;
+          sel.innerHTML = saOptionsHTML(saSearch.value, keep);
+          document.getElementById('sa_save').disabled = !sel.value;
+          sel.dispatchEvent(new Event('input')); sel.dispatchEvent(new Event('change'));
+        };
+        saSearch.addEventListener('input', apply);
+        saSearch.addEventListener('keydown', e=>{
+          if(e.key!=='Enter') return;
+          e.preventDefault(); e.stopPropagation();
+          if(sel.value){ const q = document.getElementById('sa_qty'); q.focus(); q.select(); }
+        });
+        saSearch.focus();
+      }
       document.getElementById('sa_save').addEventListener('click', async ()=>{
+        if(!product.variants[parseInt(document.getElementById('sa_variant').value)]) return;
         const vi = parseInt(document.getElementById('sa_variant').value);
         const qty = Math.max(1, parseInt(document.getElementById('sa_qty').value)||1);
         const dir = document.getElementById('sa_direction').value;
@@ -6105,8 +6218,8 @@ async function showStockAdjustmentsLog(){
   const records = (await dbGetAll('stockAdjustments')).sort((a,b)=> new Date(b.date)-new Date(a.date));
   const PBILLS = await loadPurchaseBillMap();
   const productNames = ['all', ...new Set(records.map(r=>r.productName))];
-  const renderRows = (filter)=>{
-    const filtered = filter==='all'?records:records.filter(r=>r.productName===filter);
+  const renderRows = (filter, q)=>{
+    const filtered = records.filter(r=>(filter==='all' || r.productName===filter) && searchMatch(q, [r.productName, r.variantLabel, r.sku, r.reason, r.note, r.user, billTextOf(PBILLS[r.productId+':'+r.variantIndex])]));
     if(filtered.length===0) return `<tr><td colspan="6" class="muted">No stock adjustments recorded yet.</td></tr>`;
     return filtered.slice(0,150).map(r=>`
       <tr>
@@ -6122,9 +6235,12 @@ async function showStockAdjustmentsLog(){
   openModal({
     title:t('modal_stockAdjustmentsLog'),
     bodyHTML:`
-      <div class="field" style="max-width:240px;">
-        <label>${t('vendor_filterByProductLabel')}</label>
-        <select id="adjFilter">${productNames.map(n=>`<option value="${escapeHTML(n)}">${n==='all'?'All products':escapeHTML(n)}</option>`).join('')}</select>
+      <div class="row" style="align-items:flex-end;">
+        <div class="col field" style="max-width:240px;">
+          <label>${t('vendor_filterByProductLabel')}</label>
+          <select id="adjFilter">${productNames.map(n=>`<option value="${escapeHTML(n)}">${n==='all'?'All products':escapeHTML(n)}</option>`).join('')}</select>
+        </div>
+        <div class="col field"><input id="adjQ" autocomplete="off" placeholder="${escapeHTML(t('adj_searchPlaceholder'))}"></div>
       </div>
       <div style="max-height:400px;overflow:auto;margin-top:8px;">
         <table>
@@ -6135,9 +6251,9 @@ async function showStockAdjustmentsLog(){
     `,
     footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>`,
     onMount:()=>{
-      document.getElementById('adjFilter').addEventListener('change',(e)=>{
-        document.getElementById('adjRowsWrap').innerHTML = renderRows(e.target.value);
-      });
+      const redraw = ()=>{ document.getElementById('adjRowsWrap').innerHTML = renderRows(document.getElementById('adjFilter').value, document.getElementById('adjQ').value); };
+      document.getElementById('adjFilter').addEventListener('change', redraw);
+      document.getElementById('adjQ').addEventListener('input', redraw);
     }
   });
 }
@@ -8846,6 +8962,7 @@ function freshCart(){
 }
 let CART = freshCart();
 let BILL_SEARCH = '';
+let BILL_RENDER_SEQ = 0;
 // Keyboard-first product picking: every visible, in-stock variant button gets a slot in this
 // flattened list, and BILL_NAV_INDEX tracks which one is "highlighted" for Arrow Up/Down +
 // Enter — the same pattern as a search-suggestions dropdown, so billing needs no mouse at all.
@@ -8892,9 +9009,9 @@ async function doBillLookup(){
   if(!q){ wrap.innerHTML = ''; return; }
   const [rawBills, customers] = await Promise.all([scopedLiveBills(), scopedGetAll('customers')]);
   const bills = scopeBillsToActiveFirm(rawBills);
-  const matchingCustomerIds = new Set(customers.filter(c=>(c.phone||'').includes(q)).map(c=>c.id));
+  const matchingCustomerIds = new Set(customers.filter(c=>searchMatch(q, [c.name], [c.phone])).map(c=>c.id));
   const matches = bills.filter(b=>
-    b.invoiceNo.toLowerCase().includes(q) || (b.customerId && matchingCustomerIds.has(b.customerId))
+    searchMatch(q, [b.invoiceNo]) || (b.customerId && matchingCustomerIds.has(b.customerId))
   ).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,20);
   if(matches.length===0){
     wrap.innerHTML = `<p class="muted" style="font-size:12px;">No matching bills found.</p>`;
@@ -8950,7 +9067,7 @@ async function renderBilling(){
             <h2 class="section-title" style="margin-bottom:0;">${t('bill_findProduct')}</h2>
             <span class="muted" id="billProductCount" style="font-size:11.5px;"></span>
           </div>
-          <input id="billSearch" placeholder="${t('bill_searchPlaceholder')}" style="margin-top:10px;">
+          <input id="billSearch" placeholder="${t('bill_searchPlaceholder')}" value="${escapeHTML(BILL_SEARCH)}" autocomplete="off" style="margin-top:10px;">
           <div class="muted" style="font-size:10.5px;margin-top:6px;letter-spacing:.2px;">${t('bill_shortcutsHint')}</div>
           <div id="billProductResults" class="bill-product-list" style="margin-top:10px;height:min(62vh,620px);min-height:280px;overflow-y:auto;"></div>
         </div>
@@ -9222,13 +9339,14 @@ async function applyOrRemoveCoupon(){
 async function renderBillProductResults(){
   const wrap = document.getElementById('billProductResults');
   if(!wrap) return;
+  const rseq = ++BILL_RENDER_SEQ;
   let products = await scopedGetAll('products');
-  if(BILL_SEARCH){
-    const q = BILL_SEARCH.toLowerCase();
-    products = products.filter(p=> p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q) ||
-      (p.variants||[]).some(v=>(v.sku||'').toLowerCase().includes(q)));
-  }
-  products.sort((a,b)=>a.name.localeCompare(b.name));
+  if(rseq!==BILL_RENDER_SEQ) return;
+  // Search runs on each variant (name, brand, category, size, colour, SKU), so "kurta blue" or "shirt M" lists just those pieces.
+  const bq = srchNorm(BILL_SEARCH);
+  const showV = (p,v)=> !bq || searchMatch(bq, [p.name, p.brand, p.category, v.size, v.color, v.sku]);
+  if(bq) products = products.filter(p=>(p.variants||[]).some(v=>showV(p,v)));
+  products.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
   const countEl = document.getElementById('billProductCount');
   if(countEl) countEl.textContent = products.length ? t('bill_productCount').replace('{0}', products.length) : '';
   if(products.length===0){
@@ -9244,12 +9362,13 @@ async function renderBillProductResults(){
   // the plain total otherwise, so a single-shop install behaves exactly as it always has.
   BILL_NAV_ITEMS = [];
   products.forEach(p=>(p.variants||[]).forEach((v,i)=>{
+    if(!showV(p,v)) return;
     if(sellableStock(v) - stockHeldInOtherTabs(p.id, i) > 0) BILL_NAV_ITEMS.push({productId:p.id, variantIndex:i});
   }));
   // Auto-highlight the first match once there's an active search, so typing a few letters and
   // hitting Enter immediately adds the top result — but leave nothing highlighted when the box
   // is empty (browsing the full catalog), so Enter can't add a random item by accident.
-  BILL_NAV_INDEX = (BILL_SEARCH && BILL_NAV_ITEMS.length) ? 0 : -1;
+  BILL_NAV_INDEX = (bq && BILL_NAV_ITEMS.length) ? 0 : -1;
   wrap.innerHTML = products.map(p=>`
     <div style="border-bottom:1px solid var(--line);padding:5px 2px;">
       <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;line-height:1.25;">
@@ -9258,6 +9377,7 @@ async function renderBillProductResults(){
       </div>
       <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
         ${(p.variants||[]).map((v,i)=>{
+          if(!showV(p,v)) return '';
           const label = [v.size,v.color].filter(Boolean).join(' / ') || (v.sku || t('inv_defaultVariant'));
           const heldElsewhere = stockHeldInOtherTabs(p.id, i);
           const avail = Math.max(0, sellableStock(v) - heldElsewhere);
@@ -9300,14 +9420,8 @@ let BILL_CUST_NAV = -1;
 
 // Matches on name or phone so a long customer list never needs scrolling.
 function filterCustomers(list, q){
-  const s = (q||'').trim().toLowerCase();
-  if(!s) return list.slice(0, 50);
-  const digits = s.replace(/\D/g,'');
-  return list.filter(c=>{
-    const name = (c.name||'').toLowerCase();
-    const phone = (c.phone||'').replace(/\D/g,'');
-    return name.includes(s) || (digits && phone.includes(digits));
-  }).slice(0, 50);
+  if(!srchNorm(q)) return list.slice(0, 50);
+  return list.filter(c=>searchMatch(q, [c.name], [c.phone])).slice(0, 50);
 }
 
 function billCustomerLabel(c){
@@ -9359,7 +9473,7 @@ async function renderCustomerSelect(){
   const inp = document.getElementById('billCustomerSearch');
   if(!inp) return;
   const customers = await scopedGetAll('customers');
-  customers.sort((a,b)=>a.name.localeCompare(b.name));
+  customers.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
   BILL_CUST_LIST = customers.map(c=>({
     id:c.id, name:c.name, phone:c.phone||'',
     creditDue: (c.ledger||[]).reduce((s,l)=>s + (l.type==='sale' ? l.amount : -l.amount), 0)
@@ -10716,6 +10830,7 @@ async function showInvoiceModal(bill){
 <!-- MODULE:CUSTOMERS -->
 <script>
 let CUST_SEARCH = '';
+let CUST_RENDER_SEQ = 0;
 
 
 /* ---------- Credit reminders ----------
@@ -10851,12 +10966,11 @@ async function renderCustomers(){
 async function renderCustomerTable(){
   const wrap = document.getElementById('custTableWrap');
   if(!wrap) return;
+  const rseq = ++CUST_RENDER_SEQ;
   let customers = await scopedGetAll('customers');
-  if(CUST_SEARCH){
-    const q = CUST_SEARCH.toLowerCase();
-    customers = customers.filter(c=>c.name.toLowerCase().includes(q) || (c.phone||'').includes(q));
-  }
-  customers.sort((a,b)=>a.name.localeCompare(b.name));
+  if(rseq!==CUST_RENDER_SEQ) return;
+  if(srchNorm(CUST_SEARCH)) customers = customers.filter(c=>searchMatch(CUST_SEARCH, [c.name, c.city, c.email], [c.phone]));
+  customers.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
   if(customers.length===0){
     wrap.innerHTML = `<div class="empty-state">${t('cust_noCustomersYet')}</div>`;
     return;
@@ -14264,7 +14378,7 @@ async function renderVendorLedgerOverview(){
 
   const renderTable = ()=>{
     const q = (document.getElementById('vlSearch').value||'').trim().toLowerCase();
-    let list = suppliers.filter(s=> !q || s.name.toLowerCase().includes(q));
+    let list = suppliers.filter(s=> !q || searchMatch(q, [s.name, s.contactPerson, s.gstNumber, s.address], [s.phone, s.altPhone]));
     list.sort((a,b)=> (b.balanceDue||0)-(a.balanceDue||0));
     const tblWrap = document.getElementById('vlTableWrap');
     if(list.length===0){
@@ -14809,7 +14923,7 @@ async function viewSupplierLedger(supplierId){
           if(fromTs!=null && ts < fromTs) return false;
           if(toTs!=null && ts > toTs) return false;
           if(typeFilter!=='all' && r.type!==typeFilter && !(typeFilter==='payment' && false)) return false;
-          if(q && !((r.note||'')+' '+(r.billNo||'')+' '+(r.invoiceNo||'')).toLowerCase().includes(q)) return false;
+          if(q && !searchMatch(q, [r.note, r.billNo, r.invoiceNo, r.type, r.mode, r.amount])) return false;
           if(!showVoided && (r.voided || r.type==='reversal')) return false;
           if(gstFilter!=='all' && ledgerGstInfo(r).kind!==gstFilter) return false;
           return true;
