@@ -715,6 +715,10 @@ async function refreshFirmsCache(){
 function allFirms(){ return FIRMS_CACHE; }
 function activeFirms(){ return FIRMS_CACHE.filter(f=>f.active!==false); }
 function firmById(id){ return FIRMS_CACHE.find(f=>f.id===id) || null; }
+// Details a firm may keep for itself (logo, UPI ID, bill footer, GST state). Anything a firm does not own comes from Settings, shared by all firms.
+const FIRM_OWN_FIELDS = [['logo','firm_ownLogo'],['upiId','firm_ownUpi'],['billFooterText','firm_ownFooter'],['stateCode','firm_ownState']];
+function firmHasOwn(f, key){ return !!(f && Array.isArray(f.own) && f.own.includes(key)); }
+function firmValue(firmId, key){ const f = firmId ? firmById(firmId) : null; return firmHasOwn(f, key) ? f[key] : SETTINGS[key]; }
 function multiFirmInUse(){ return activeFirms().length > 1; }
 // The firm the app is currently "working as" — null/'all' means the combined/no-firm view.
 function activeFirmId(){ return (SETTINGS && SETTINGS.activeFirmId) || null; }
@@ -731,6 +735,8 @@ function billableFirmId(){
   const fid = activeFirmId();
   return (fid && fid!=='all') ? fid : null;
 }
+// The value for the screen's working firm (the shared one in the "All Firms (Combined)" view).
+function activeFirmValue(key){ return firmValue(billableFirmId(), key); }
 // Which firm a non-billing stock change (adjustment, purchase receipt, product edit) should
 // land in. Prefers the working firm; while viewing "All Firms (Combined)" falls back to the
 // first active firm rather than leaving stock unattributed to any firm.
@@ -1589,6 +1595,15 @@ const I18N = {
     wa_modeApp:'WhatsApp app (installed on this computer)',
     wa_modeWeb:'WhatsApp Web (in the browser)',
     wa_modeSaved:'WhatsApp setting saved',
+    firm_ownTitle:'Details printed on the bills of this firm',
+    firm_ownHint:'For each item choose: the same for all firms (from Settings), or different for this firm only.',
+    firm_ownLogo:'Logo',
+    firm_ownUpi:'UPI ID (for the pay QR)',
+    firm_ownFooter:'Bill footer text',
+    firm_ownState:'GST state (for the GST export)',
+    firm_sameAll:'Same for all firms (Settings)',
+    firm_ownOnly:'Different for this firm',
+    firm_sharedNote:'Used by every firm unless a firm has its own: Settings → Firms → Edit.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2190,6 +2205,15 @@ const I18N = {
     wa_modeApp:'व्हॉट्सअ‍ॅप अ‍ॅप (या कॉम्प्युटरवर इन्स्टॉल)',
     wa_modeWeb:'व्हॉट्सअ‍ॅप वेब (ब्राउझरमध्ये)',
     wa_modeSaved:'व्हॉट्सअ‍ॅप सेटिंग जतन केले',
+    firm_ownTitle:'या फर्मच्या बिलांवर छापले जाणारे तपशील',
+    firm_ownHint:'प्रत्येकासाठी निवडा: सर्व फर्मसाठी सारखे (सेटिंग्जमधून), किंवा फक्त या फर्मसाठी वेगळे.',
+    firm_ownLogo:'लोगो',
+    firm_ownUpi:'UPI आयडी (पे QR साठी)',
+    firm_ownFooter:'बिल फूटर मजकूर',
+    firm_ownState:'GST राज्य (GST निर्यातीसाठी)',
+    firm_sameAll:'सर्व फर्मसाठी सारखे (सेटिंग्ज)',
+    firm_ownOnly:'या फर्मसाठी वेगळे',
+    firm_sharedNote:'प्रत्येक फर्म वापरते, जोपर्यंत फर्मचे स्वतःचे नसते: सेटिंग्ज → फर्म → संपादन.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -2236,8 +2260,8 @@ function applySettingsToHeader(){
   if(_tl){ const _d = document.documentElement.getAttribute('data-theme')==='dark'; _tl.textContent = _d ? t('chrome_lightMode') : t('chrome_darkMode'); }
   const logoEl = document.querySelector('.sidebar .brand .logo');
   if(logoEl){
-    if(SETTINGS.logo){
-      logoEl.innerHTML = `<img src="${SETTINGS.logo}" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    if(activeFirmValue('logo')){
+      logoEl.innerHTML = `<img src="${activeFirmValue('logo')}" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
     } else {
       logoEl.textContent = (SETTINGS.name||'C').trim().charAt(0).toUpperCase() || 'C';
     }
@@ -3290,6 +3314,7 @@ function renderSettings(){
     </div>
     <div class="card" style="margin-top:14px;">
       <h2 class="section-title">${t('settings_shopLogoTitle')}</h2>
+      ${multiFirmInUse() ? `<p class="muted" style="font-size:11.5px;margin:-2px 0 8px;">${t('firm_sharedNote')}</p>` : ''}
       <p class="muted" style="font-size:12.5px;">${t('settings_shopLogoHint')}</p>
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
         <div id="logoPreviewWrap" style="width:64px;height:64px;border-radius:12px;border:1px solid var(--line);background:var(--paper-soft);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none;">
@@ -3305,6 +3330,7 @@ function renderSettings(){
     </div>
     <div class="card" style="margin-top:14px;">
       <h2 class="section-title">${t('settings_billPrintingTitle')}</h2>
+      ${multiFirmInUse() ? `<p class="muted" style="font-size:11.5px;margin:-2px 0 8px;">${t('firm_sharedNote')}</p>` : ''}
       <div class="field">
         <label>${t('settings_billPrintFormatLabel')}</label>
         <select id="set_papersize">
@@ -3328,6 +3354,7 @@ function renderSettings(){
     </div>
     <div class="card" style="margin-top:14px;">
       <h2 class="section-title">${t('settings_upiPaymentsTitle')}</h2>
+      ${multiFirmInUse() ? `<p class="muted" style="font-size:11.5px;margin:-2px 0 8px;">${t('firm_sharedNote')}</p>` : ''}
       <div class="field">
         <label>${t('settings_upiIdLabel')}</label>
         <input id="set_upi" value="${escapeHTML(SETTINGS.upiId||'')}" placeholder="${t('settings_upiPlaceholder')}">
@@ -3683,6 +3710,21 @@ async function openFirmModal(firmId){
         </div>
       </div>
       <p class="muted" style="font-size:11.5px;">${t('firm_invoiceSeriesHint')}</p>
+      <div style="border-top:1px dashed var(--line);margin:10px 0 4px;padding-top:8px;">
+        <div style="font-weight:700;font-size:13px;">${t('firm_ownTitle')}</div>
+        <p class="muted" style="font-size:11.5px;margin:2px 0 8px;">${t('firm_ownHint')}</p>
+        ${FIRM_OWN_FIELDS.map(([k,tk])=>`
+          <div class="field" style="margin-bottom:8px;">
+            <label>${t(tk)}</label>
+            <select id="fm_own_${k}"><option value="same">${t('firm_sameAll')}</option><option value="own" ${firmHasOwn(firm,k)?'selected':''}>${t('firm_ownOnly')}</option></select>
+            <div id="fm_val_${k}" style="display:${firmHasOwn(firm,k)?'':'none'};margin-top:6px;">${
+              k==='logo' ? `<div style="display:flex;align-items:center;gap:10px;"><div id="fm_logoPrev" style="width:48px;height:48px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--paper-soft);display:flex;align-items:center;justify-content:center;font-size:10px;"></div><input type="file" id="fm_logoFile" accept="image/*" style="font-size:12.5px;"><button type="button" class="btn btn-outline btn-sm" id="fm_logoClear">${t('settings_removeLogoBtn')}</button></div>`
+              : k==='upiId' ? `<input id="fm_upi" value="${escapeHTML(firmHasOwn(firm,k)?(firm.upiId||''):(SETTINGS.upiId||''))}" placeholder="${t('settings_upiPlaceholder')}">`
+              : k==='billFooterText' ? `<textarea id="fm_footer" rows="2" placeholder="${t('settings_billFooterPlaceholder')}">${escapeHTML(firmHasOwn(firm,k)?(firm.billFooterText||''):(SETTINGS.billFooterText||''))}</textarea>`
+              : `<select id="fm_state"><option value="">${t('settings_selectStateOption')}</option>${GST_STATE_CODES.map(s=>`<option value="${s.code}" ${(firmHasOwn(firm,k)?firm.stateCode:SETTINGS.stateCode)===s.code?'selected':''}>${s.code} — ${escapeHTML(gstStateName(s))}</option>`).join('')}</select>`
+            }</div>
+          </div>`).join('')}
+      </div>
       <div id="fm_error" class="muted" style="font-size:12px;color:var(--red);"></div>
     `,
     footerHTML: `
@@ -3690,6 +3732,19 @@ async function openFirmModal(firmId){
       <button class="btn btn-primary" id="fm_save">${firm?t('btn_saveChanges'):t('modal_addFirm')}</button>
     `,
     onMount: ()=>{
+      let fmLogo = firmHasOwn(firm,'logo') ? (firm.logo||'') : (SETTINGS.logo||'');
+      const drawFmLogo = ()=>{ const el = document.getElementById('fm_logoPrev'); if(el) el.innerHTML = fmLogo ? `<img src="${fmLogo}" style="width:100%;height:100%;object-fit:cover;">` : escapeHTML(t('settings_noLogo')); };
+      drawFmLogo();
+      FIRM_OWN_FIELDS.forEach(([k])=>{
+        document.getElementById('fm_own_'+k).addEventListener('change', e=>{ document.getElementById('fm_val_'+k).style.display = e.target.value==='own' ? '' : 'none'; });
+      });
+      document.getElementById('fm_logoFile').addEventListener('change', async (e)=>{
+        const file = e.target.files && e.target.files[0];
+        if(!file) return;
+        if(!file.type.startsWith('image/')){ toast(t('toast_chooseImageFile'),'error'); return; }
+        try{ fmLogo = await resizeImageToDataURL(file, 240, 240); drawFmLogo(); }catch(err){ toast(t('toast_couldNotLoadImage'),'error'); }
+      });
+      document.getElementById('fm_logoClear').addEventListener('click', ()=>{ fmLogo = ''; drawFmLogo(); });
       if(!firm){
         document.getElementById('fm_name').addEventListener('input', (e)=>{
           const prefixEl = document.getElementById('fm_prefix');
@@ -3712,11 +3767,17 @@ async function openFirmModal(firmId){
           address: document.getElementById('fm_address').value.trim(),
           invoicePrefix: prefix,
           invoiceCounter: Math.max(1, parseInt(document.getElementById('fm_counter').value)||1),
-          active: true
+          active: true,
+          own: FIRM_OWN_FIELDS.map(([k])=>k).filter(k=>document.getElementById('fm_own_'+k).value==='own')
         };
+        if(record.own.includes('logo')) record.logo = fmLogo;
+        if(record.own.includes('upiId')) record.upiId = document.getElementById('fm_upi').value.trim();
+        if(record.own.includes('billFooterText')) record.billFooterText = document.getElementById('fm_footer').value.trim();
+        if(record.own.includes('stateCode')) record.stateCode = document.getElementById('fm_state').value;
         if(firm){
           record.id = firm.id;
           record.createdAt = firm.createdAt;
+          record.active = firm.active!==false;
           await dbPut('firms', record);
           toast(t('toast_firmUpdated'),'success');
         } else {
@@ -3730,6 +3791,7 @@ async function openFirmModal(firmId){
         }
         await refreshFirmsCache();
         closeModal();
+        applySettingsToHeader();
         buildSidebarNav();
         renderFirmSwitcher();
         renderSettings();
@@ -10739,7 +10801,7 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
   const hAddress = billFirm ? (billFirm.address||'') : (SETTINGS.address||'');
   const hPhone = billFirm ? (billFirm.phone||'') : (SETTINGS.phone||'');
   const hGstin = billFirm ? (billFirm.gstin||'') : (SETTINGS.gstin||'');
-  const stateName = (GST_STATE_CODES.find(s=>s.code===SETTINGS.stateCode)||{}).name || '';
+  const stateName = (GST_STATE_CODES.find(s=>s.code===firmValue(bill.firmId,'stateCode'))||{}).name || '';
 
   // The HSN column only appears when the shop has actually filled HSN codes in, so a shop
   // that doesn't need them never prints an empty column.
@@ -10790,8 +10852,9 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
     </tr></thead>`;
 
   const logoSize = isThermal ? 52 : 78;
-  const logoHTML = SETTINGS.logo
-    ? `<div style="margin-bottom:4px;"><img src="${SETTINGS.logo}" style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;display:inline-block;"></div>` : '';
+  const billLogo = firmValue(bill.firmId, 'logo');
+  const logoHTML = billLogo
+    ? `<div style="margin-bottom:4px;"><img src="${billLogo}" style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;display:inline-block;"></div>` : '';
 
   // Intra-state sales split each rate's tax evenly into CGST + SGST, matching the GSTR-1 screen.
   // Tax that was added on top is part of the total; tax that is INCLUDED in the prices is
@@ -10838,14 +10901,15 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
   // by default even on a bill already marked paid. A shop that collects before printing can
   // switch it to "only when payment is pending" in Settings.
   const qrMode = SETTINGS.billQrMode || 'always';
-  if(SETTINGS.upiId && !docTitle && qrMode !== 'never'){
+  const billUpi = firmValue(bill.firmId, 'upiId');
+  if(billUpi && !docTitle && qrMode !== 'never'){
     const payable = bill.amountDue!=null ? bill.amountDue : bill.grandTotal;
     const paidSoFar = (bill.payments||[]).reduce((s,p)=>s+Number(p.amount||0),0);
     const stillDue = Math.round((Number(bill.creditAmount||0) > 0 ? Number(bill.creditAmount) : (payable - paidSoFar))*100)/100;
     // Scan for whatever is still owed; on a settled bill that is the full total.
     const payAmount = stillDue > 0 ? stillDue : Math.round(Number(payable||0)*100)/100;
     if(payAmount > 0 && (qrMode === 'always' || stillDue > 0)){
-      const qrSvg = renderUPIQRSVG(SETTINGS.upiId, SETTINGS.name, payAmount, bill.invoiceNo, isThermal?3:4);
+      const qrSvg = renderUPIQRSVG(billUpi, billShopName(bill), payAmount, bill.invoiceNo, isThermal?3:4);
       if(qrSvg){
         qrHTML = `<div style="text-align:center;border-top:1px solid #000;padding:${isThermal?'6px 4px':'10px 8px'};">
           <div style="display:inline-block;">${qrSvg}</div>
@@ -10855,7 +10919,7 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
     }
   }
 
-  const foot = (SETTINGS.billFooterText||'').trim() || t('print_thankYouShopping');
+  const foot = String(firmValue(bill.firmId, 'billFooterText')||'').trim() || t('print_thankYouShopping');
   const stack = isThermal;   // panels stack on a roll, sit side by side on A4
 
   return `
@@ -13745,10 +13809,15 @@ function promptPhoneThenOpen(text){
     }
   });
 }
+// The shop name for a bill: the firm the bill was issued under (also on a combined bill), else the shop-wide name from Settings.
+function billShopName(bill){
+  const f = bill && bill.firmId ? firmById(bill.firmId) : null;
+  return (f && f.name) || SETTINGS.name;
+}
 function buildInvoiceMessageText(bill, plain){
   const bold = (s)=> plain ? s : `*${s}*`;
   const lines = [];
-  lines.push(bold(SETTINGS.name));
+  lines.push(bold(billShopName(bill)));
   lines.push(`${t('wa_invoiceLabelPrefix')}${bill.invoiceNo}`);
   lines.push(`${t('wa_dateLabelPrefix')}${fmtDate(bill.date)}`);
   lines.push('');
@@ -13843,7 +13912,7 @@ function sendInvoiceOnWhatsApp(bill, phone, customerName){
   else { promptPhoneThenOpen(text); }
 }
 function sendInvoiceByEmail(bill, customerName){
-  const subject = encodeURIComponent(SETTINGS.name + t('wa_emailSubjectInvoiceSep') + bill.invoiceNo);
+  const subject = encodeURIComponent(billShopName(bill) + t('wa_emailSubjectInvoiceSep') + bill.invoiceNo);
   const body = encodeURIComponent(buildInvoiceMessageText(bill, true));
   openExternal('mailto:?subject='+subject+'&body='+body, '_blank');
 }
@@ -16827,7 +16896,7 @@ function buildGSTR1Json(filteredBills, periodToDate){
       rateMap[r.rate].sgst += r.sgst;
     });
   });
-  const pos = SETTINGS.stateCode || '';
+  const pos = activeFirmValue('stateCode') || '';
   // All sales are treated as B2C (no customer GSTIN is captured) and intra-state, same
   // assumption the GSTR-1 report tab already makes — adjust manually for interstate customers.
   const b2cs = Object.values(rateMap).map(r=>({
@@ -16929,7 +16998,7 @@ async function renderAccountantExports(){
     <div class="card">
       <h2 class="section-title">${iconSVG('accounts')} ${t('acct_accountantExportsHeading')}</h2>
       <p class="muted" style="font-size:12px;margin-top:-4px;">${t('acct_accountantExportsDesc')}</p>
-      ${SETTINGS.stateCode ? '' : `<p class="muted" style="font-size:12px;background:var(--paper-soft);border-radius:8px;padding:8px 10px;">${t('acct_stateTipPrefix')}<strong>${t('acct_stateWordBold')}</strong>${t('acct_stateTipSuffix')}</p>`}
+      ${activeFirmValue('stateCode') ? '' : `<p class="muted" style="font-size:12px;background:var(--paper-soft);border-radius:8px;padding:8px 10px;">${t('acct_stateTipPrefix')}<strong>${t('acct_stateWordBold')}</strong>${t('acct_stateTipSuffix')}</p>`}
       ${renderPeriodFilterHTML('ax')}
       <div id="axSummaryWrap" class="stat-tiles" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;"></div>
       <div class="row" style="gap:10px;flex-wrap:wrap;">
