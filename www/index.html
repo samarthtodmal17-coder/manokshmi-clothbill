@@ -716,7 +716,8 @@ function allFirms(){ return FIRMS_CACHE; }
 function activeFirms(){ return FIRMS_CACHE.filter(f=>f.active!==false); }
 function firmById(id){ return FIRMS_CACHE.find(f=>f.id===id) || null; }
 // Details a firm may keep for itself (logo, UPI ID, bill footer, GST state). Anything a firm does not own comes from Settings, shared by all firms.
-const FIRM_OWN_FIELDS = [['logo','firm_ownLogo'],['upiId','firm_ownUpi'],['billFooterText','firm_ownFooter'],['stateCode','firm_ownState']];
+const FIRM_OWN_FIELDS = [['logo','firm_ownLogo'],['upiId','firm_ownUpi'],['billFooterText','firm_ownFooter'],['stateCode','firm_ownState'],['invoiceReset','firm_ownInvReset']];
+const INVOICE_RESET_OPTIONS = [['never','inv_resetNever'],['day','inv_resetDay'],['month','inv_resetMonth'],['year','inv_resetYear'],['fy','inv_resetFy']];
 function firmHasOwn(f, key){ return !!(f && Array.isArray(f.own) && f.own.includes(key)); }
 function firmValue(firmId, key){ const f = firmId ? firmById(firmId) : null; return firmHasOwn(f, key) ? f[key] : SETTINGS[key]; }
 function multiFirmInUse(){ return activeFirms().length > 1; }
@@ -926,6 +927,9 @@ const DEFAULT_SETTINGS = {
   creditReminderDays:30,
   creditReminderTemplate:'Hello {name}, this is a gentle reminder from {shop}. An amount of {amount} is pending on your account for {days} days. Kindly arrange the payment at your convenience. Thank you!',
   invoiceCounter:1,
+  invoiceReset:'never',           // never | day | month | year | fy  (when the invoice counter goes back to 1)
+  invoiceTag:true,                // put the period in the number (INV-2627-0001) so a restarted counter never repeats a number
+  invoiceCounterPeriod:'',
   defaultTaxRate:5,
   defaultTaxInclusive:true,       // new products: price already includes GST (999 stays 999)
   requireCustomerOnBill:true,     // every bill needs a customer with name + mobile
@@ -1604,6 +1608,16 @@ const I18N = {
     firm_sameAll:'Same for all firms (Settings)',
     firm_ownOnly:'Different for this firm',
     firm_sharedNote:'Used by every firm unless a firm has its own: Settings → Firms → Edit.',
+    inv_resetLabel:'Invoice number restarts at 1',
+    inv_resetNever:'Never — keep counting forever',
+    inv_resetDay:'Every day',
+    inv_resetMonth:'Every month (on the 1st)',
+    inv_resetYear:'Every year (1 January)',
+    inv_resetFy:'Every financial year (1 April)',
+    inv_tagLabel:'Put the period in the number so it never repeats (for example INV-2627-0001)',
+    inv_nextPreview:'The next bill will be numbered: ',
+    inv_noTagWarn:'the same number will come again in every new period',
+    firm_ownInvReset:'Invoice number restart',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2214,6 +2228,16 @@ const I18N = {
     firm_sameAll:'सर्व फर्मसाठी सारखे (सेटिंग्ज)',
     firm_ownOnly:'या फर्मसाठी वेगळे',
     firm_sharedNote:'प्रत्येक फर्म वापरते, जोपर्यंत फर्मचे स्वतःचे नसते: सेटिंग्ज → फर्म → संपादन.',
+    inv_resetLabel:'इनव्हॉइस क्रमांक पुन्हा 1 पासून सुरू',
+    inv_resetNever:'कधीच नाही — सतत मोजत राहा',
+    inv_resetDay:'दररोज',
+    inv_resetMonth:'दर महिन्याला (1 तारखेला)',
+    inv_resetYear:'दर वर्षी (1 जानेवारी)',
+    inv_resetFy:'दर आर्थिक वर्षी (1 एप्रिल)',
+    inv_tagLabel:'क्रमांकात कालावधी जोडा म्हणजे तो पुन्हा येणार नाही (उदा. INV-2627-0001)',
+    inv_nextPreview:'पुढील बिलाचा क्रमांक: ',
+    inv_noTagWarn:'प्रत्येक नवीन कालावधीत तोच क्रमांक पुन्हा येईल',
+    firm_ownInvReset:'इनव्हॉइस क्रमांक रीस्टार्ट',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -2270,20 +2294,45 @@ function applySettingsToHeader(){
 // With 2+ firms in use, each firm keeps its own invoice series (its own prefix/counter on
 // the firm record) so two firms' bills never collide. A single-firm shop keeps using the
 // plain SETTINGS counter exactly as it always has — nothing changes for it.
+// ---- Invoice numbers: prefix + (period) + running counter. The counter can restart every day / month / year / financial year. ----
+function invoicePeriodKey(mode, d){
+  d = d || new Date();
+  const y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate(), p2 = n=>String(n).padStart(2,'0');
+  if(mode==='day') return p2(y%100)+p2(m)+p2(day);                 // 261014
+  if(mode==='month') return p2(y%100)+p2(m);                        // 2610
+  if(mode==='year') return String(y);                               // 2026
+  if(mode==='fy'){ const s = m>=4 ? y : y-1; return p2(s%100)+p2((s+1)%100); }   // 2627 (April–March)
+  return '';
+}
+// The rule that applies to a firm: its own when "Different for this firm" is set, else the shared one from Settings.
+function invoiceRule(firmId){
+  const f = firmId ? firmById(firmId) : null;
+  const own = firmHasOwn(f, 'invoiceReset');
+  const mode = (own ? f.invoiceReset : SETTINGS.invoiceReset) || 'never';
+  return {mode: ['day','month','year','fy'].includes(mode) ? mode : 'never', tag: own ? f.invoiceTag!==false : SETTINGS.invoiceTag!==false};
+}
+// What the next bill will be called (no side effects): a new period starts the counter again at 1.
+function invoiceNoPlan(firmId){
+  const firm = (firmId && multiFirmInUse()) ? firmById(firmId) : null;
+  const holder = firm || SETTINGS;
+  const rule = invoiceRule(firm ? firm.id : null);
+  const pk = invoicePeriodKey(rule.mode);
+  let num = holder.invoiceCounter || 1;
+  if(pk && holder.invoiceCounterPeriod && holder.invoiceCounterPeriod!==pk) num = 1;
+  const text = (holder.invoicePrefix || 'INV-') + (pk && rule.tag ? pk+'-' : '') + String(num).padStart(4,'0');
+  return {firm, rule, pk, num, text};
+}
 async function nextInvoiceNo(firmId){
-  if(firmId && multiFirmInUse()){
-    const firm = firmById(firmId);
-    if(firm){
-      const num = firm.invoiceCounter || 1;
-      firm.invoiceCounter = num + 1;
-      await dbPut('firms', firm);
-      await refreshFirmsCache();
-      return (firm.invoicePrefix || 'INV-') + String(num).padStart(4,'0');
-    }
+  const plan = invoiceNoPlan(firmId);
+  if(plan.firm){
+    plan.firm.invoiceCounter = plan.num + 1;
+    plan.firm.invoiceCounterPeriod = plan.pk;
+    await dbPut('firms', plan.firm);
+    await refreshFirmsCache();
+  } else {
+    await saveSettings({invoiceCounter: plan.num + 1, invoiceCounterPeriod: plan.pk});
   }
-  const num = SETTINGS.invoiceCounter || 1;
-  await saveSettings({invoiceCounter: num + 1});
-  return (SETTINGS.invoicePrefix || 'INV-') + String(num).padStart(4,'0');
+  return plan.text;
 }
 async function nextQuotationNo(){
   const num = SETTINGS.quotationCounter || 1;
@@ -3304,8 +3353,14 @@ function renderSettings(){
         </div>
         <div class="col field">
           <label>${t('settings_nextInvoiceNumber')}</label>
-          <input id="set_counter" type="number" min="1" value="${SETTINGS.invoiceCounter}">
+          <input id="set_counter" type="number" min="1" value="${invoiceNoPlan(null).num}">
         </div>
+      </div>
+      <div class="field">
+        <label>${t('inv_resetLabel')}</label>
+        <select id="set_invReset">${INVOICE_RESET_OPTIONS.map(([k,tk])=>`<option value="${k}" ${invoiceRule(null).mode===k?'selected':''}>${t(tk)}</option>`).join('')}</select>
+        <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:400;margin-top:6px;"><input type="checkbox" id="set_invTag" style="width:auto;" ${SETTINGS.invoiceTag!==false?'checked':''}> ${t('inv_tagLabel')}</label>
+        <div id="set_invPreview" class="muted" style="font-size:12px;margin-top:4px;"></div>
       </div>
       <div class="field">
         <label>${t('settings_lowStockThreshold')}</label>
@@ -3537,6 +3592,15 @@ function renderSettings(){
     await saveSettings({waOpenMode: e.target.value});
     toast(t('wa_modeSaved'),'success');
   });
+  const invPrev = ()=>{
+    const mode = document.getElementById('set_invReset').value, tag = document.getElementById('set_invTag').checked;
+    const pk = invoicePeriodKey(mode);
+    const txt = (document.getElementById('set_prefix').value.trim() || 'INV-') + (pk && tag ? pk+'-' : '') + String(Math.max(1, parseInt(document.getElementById('set_counter').value)||1)).padStart(4,'0');
+    document.getElementById('set_invPreview').textContent = t('inv_nextPreview') + txt + (mode!=='never' && !tag ? '  ·  ' + t('inv_noTagWarn') : '');
+    document.getElementById('set_invTag').parentElement.style.display = mode==='never' ? 'none' : 'flex';
+  };
+  ['set_invReset','set_invTag','set_prefix','set_counter'].forEach(id=>{ document.getElementById(id).addEventListener('input', invPrev); document.getElementById(id).addEventListener('change', invPrev); });
+  invPrev();
   LABEL_FIELDS.forEach(([k,cap])=>{
     const cb = document.getElementById('set_lbl_'+k);
     if(cb) cb.addEventListener('change', async ()=>{
@@ -3564,6 +3628,9 @@ function renderSettings(){
       requireCustomerOnBill: document.getElementById('set_reqCustomer').checked,
       invoicePrefix: document.getElementById('set_prefix').value.trim() || 'INV-',
       invoiceCounter: parseInt(document.getElementById('set_counter').value)||1,
+      invoiceReset: document.getElementById('set_invReset').value,
+      invoiceTag: document.getElementById('set_invTag').checked,
+      invoiceCounterPeriod: invoicePeriodKey(document.getElementById('set_invReset').value),
       lowStockDefault: parseInt(document.getElementById('set_lowstock').value)||0,
       billFooterText: (document.getElementById('set_bill_footer').value||'').trim(),
       creditReminderDays: Math.max(0, parseInt(document.getElementById('set_credit_days').value)||0),
@@ -3706,7 +3773,7 @@ async function openFirmModal(firmId){
         </div>
         <div class="col field">
           <label>${t('settings_nextInvoiceNumber')}</label>
-          <input id="fm_counter" type="number" min="1" value="${firm?(firm.invoiceCounter||1):1}">
+          <input id="fm_counter" type="number" min="1" value="${firm ? invoiceNoPlan(firm.id).num : 1}">
         </div>
       </div>
       <p class="muted" style="font-size:11.5px;">${t('firm_invoiceSeriesHint')}</p>
@@ -3718,7 +3785,8 @@ async function openFirmModal(firmId){
             <label>${t(tk)}</label>
             <select id="fm_own_${k}"><option value="same">${t('firm_sameAll')}</option><option value="own" ${firmHasOwn(firm,k)?'selected':''}>${t('firm_ownOnly')}</option></select>
             <div id="fm_val_${k}" style="display:${firmHasOwn(firm,k)?'':'none'};margin-top:6px;">${
-              k==='logo' ? `<div style="display:flex;align-items:center;gap:10px;"><div id="fm_logoPrev" style="width:48px;height:48px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--paper-soft);display:flex;align-items:center;justify-content:center;font-size:10px;"></div><input type="file" id="fm_logoFile" accept="image/*" style="font-size:12.5px;"><button type="button" class="btn btn-outline btn-sm" id="fm_logoClear">${t('settings_removeLogoBtn')}</button></div>`
+              k==='invoiceReset' ? `<select id="fm_invReset">${INVOICE_RESET_OPTIONS.map(([v,tk])=>`<option value="${v}" ${(firmHasOwn(firm,k)?firm.invoiceReset:(SETTINGS.invoiceReset||'never'))===v?'selected':''}>${t(tk)}</option>`).join('')}</select><label style="display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:400;margin-top:6px;"><input type="checkbox" id="fm_invTag" style="width:auto;" ${(firmHasOwn(firm,k)?firm.invoiceTag!==false:SETTINGS.invoiceTag!==false)?'checked':''}> ${t('inv_tagLabel')}</label>`
+              : k==='logo' ? `<div style="display:flex;align-items:center;gap:10px;"><div id="fm_logoPrev" style="width:48px;height:48px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--paper-soft);display:flex;align-items:center;justify-content:center;font-size:10px;"></div><input type="file" id="fm_logoFile" accept="image/*" style="font-size:12.5px;"><button type="button" class="btn btn-outline btn-sm" id="fm_logoClear">${t('settings_removeLogoBtn')}</button></div>`
               : k==='upiId' ? `<input id="fm_upi" value="${escapeHTML(firmHasOwn(firm,k)?(firm.upiId||''):(SETTINGS.upiId||''))}" placeholder="${t('settings_upiPlaceholder')}">`
               : k==='billFooterText' ? `<textarea id="fm_footer" rows="2" placeholder="${t('settings_billFooterPlaceholder')}">${escapeHTML(firmHasOwn(firm,k)?(firm.billFooterText||''):(SETTINGS.billFooterText||''))}</textarea>`
               : `<select id="fm_state"><option value="">${t('settings_selectStateOption')}</option>${GST_STATE_CODES.map(s=>`<option value="${s.code}" ${(firmHasOwn(firm,k)?firm.stateCode:SETTINGS.stateCode)===s.code?'selected':''}>${s.code} — ${escapeHTML(gstStateName(s))}</option>`).join('')}</select>`
@@ -3774,6 +3842,9 @@ async function openFirmModal(firmId){
         if(record.own.includes('upiId')) record.upiId = document.getElementById('fm_upi').value.trim();
         if(record.own.includes('billFooterText')) record.billFooterText = document.getElementById('fm_footer').value.trim();
         if(record.own.includes('stateCode')) record.stateCode = document.getElementById('fm_state').value;
+        if(record.own.includes('invoiceReset')){ record.invoiceReset = document.getElementById('fm_invReset').value; record.invoiceTag = document.getElementById('fm_invTag').checked; }
+        // the number in the box is the next number of the current period
+        { const mode = record.own.includes('invoiceReset') ? record.invoiceReset : (SETTINGS.invoiceReset||'never'); record.invoiceCounterPeriod = invoicePeriodKey(mode); }
         if(firm){
           record.id = firm.id;
           record.createdAt = firm.createdAt;
