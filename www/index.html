@@ -914,7 +914,7 @@ const DEFAULT_SETTINGS = {
   logo:'',
   paperSize:'thermal80',
   upiId:'',
-  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false, labelAutoClean:true, labelShowBrand:true,   // barcode label printer
+  labelPaper:'roll', labelWidthMm:50, labelHeightMm:25, labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelMethod:'driver', labelPrinter:'', labelDpi:203, labelRawGapMm:2, labelRawInvert:false, labelAutoClean:true, labelShowBrand:true, labelShowSku:true,   // barcode label printer
   billQrMode:'always',   // always | due | never
   loyaltyEnabled:false,
   loyaltyEarnPerRupee:100,
@@ -1534,6 +1534,10 @@ const I18N = {
     pi_goneTag:'Product deleted',
     pi_goneBanner:'{0} bill(s) below are for products that were deleted, but the supplier still owes the amount. If they were mistakes, press "Cancel bill" on them to remove the due balance.',
     pi_cancelBill:'Cancel bill',
+    prod_gridSkuLabel:'SKU prefix (optional)',
+    prod_gridSkuPlaceholder:'e.g. KUR',
+    prod_gridSkuHint:'Each variant gets its own SKU, like KUR-M-RED. Leave empty for automatic SKUs.',
+    lb_showSku:'Print SKU number under the barcode',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2095,6 +2099,10 @@ const I18N = {
     pi_goneTag:'प्रॉडक्ट हटवला',
     pi_goneBanner:'खालील {0} बिले हटवलेल्या प्रॉडक्टची आहेत, तरीही पुरवठादाराची बाकी दिसत आहे. चुकीची असतील तर त्यावर "बिल रद्द करा" दाबून बाकी काढून टाका.',
     pi_cancelBill:'बिल रद्द करा',
+    prod_gridSkuLabel:'SKU उपसर्ग (ऐच्छिक)',
+    prod_gridSkuPlaceholder:'उदा. KUR',
+    prod_gridSkuHint:'प्रत्येक व्हेरिएंटला स्वतःचा SKU मिळतो, जसे KUR-M-RED. रिकामे ठेवल्यास SKU आपोआप तयार होतात.',
+    lb_showSku:'बारकोडखाली SKU क्रमांक छापा',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -5020,6 +5028,10 @@ async function openProductModalCore(product, productId, title){
         <div class="col field"><label>${t('prod_colorsLabel')}</label><input id="grid_colors" placeholder="${t('prod_colorsPlaceholder')}"></div>
       </div>
       <div class="row">
+        <div class="col field" style="max-width:240px;"><label>${t('prod_gridSkuLabel')}</label><input id="grid_skuprefix" placeholder="${t('prod_gridSkuPlaceholder')}" autocomplete="off"></div>
+        <div class="col muted" style="font-size:11.5px;align-self:flex-end;padding-bottom:10px;">${t('prod_gridSkuHint')}</div>
+      </div>
+      <div class="row">
         <div class="col field"><label>${t('prod_costPriceAllLabel')}</label><input id="grid_cost" type="number" min="0" step="0.01" value="0"></div>
         <div class="col field"><label>${t('prod_sellPriceAllLabel')}</label><input id="grid_sell" type="number" min="0" step="0.01" value="0"></div>
         <div class="col field"><label>${t('prod_startingStockLabel')}</label><input id="grid_stock" type="number" min="0" value="0"></div>
@@ -5045,7 +5057,7 @@ async function openProductModalCore(product, productId, title){
         const panel = document.getElementById('gridToolWrap');
         panel.style.display = panel.style.display==='none' ? '' : 'none';
       });
-      document.getElementById('grid_generate').addEventListener('click', ()=>{
+      document.getElementById('grid_generate').addEventListener('click', async ()=>{
         const sizes = document.getElementById('grid_sizes').value.split(',').map(s=>s.trim()).filter(Boolean);
         const colors = document.getElementById('grid_colors').value.split(',').map(s=>s.trim()).filter(Boolean);
         if(sizes.length===0){ toast(t('toast_enterAtLeastOneSize'),'error'); return; }
@@ -5053,10 +5065,26 @@ async function openProductModalCore(product, productId, title){
         const sellPrice = parseFloat(document.getElementById('grid_sell').value)||0;
         const stock = parseInt(document.getElementById('grid_stock').value)||0;
         const colorList = colors.length ? colors : [''];
+        const skuPrefix = (document.getElementById('grid_skuprefix').value||'').trim();
+        // SKUs already taken: this form's rows + every other product (a clash gets a -2, -3 ... ending so a barcode scan never hits two variants)
+        const taken = new Set();
+        VARIANT_ROWS.forEach(v=>{ if(v.sku) taken.add(String(v.sku).toLowerCase()); });
+        if(skuPrefix){
+          (await dbGetAll('products')).forEach(pr=>{ if(pr.id!==productId) (pr.variants||[]).forEach(v=>{ if(v.sku) taken.add(String(v.sku).toLowerCase()); }); });
+        }
+        const normSku = s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]+/g,'');
+        const makeSku = (size, color)=>{
+          if(!skuPrefix) return '';
+          const base = [skuPrefix, size, color].map(normSku).filter(Boolean).join('-');
+          let sku = base, n = 2;
+          while(taken.has(sku.toLowerCase())){ sku = base + '-' + n; n++; }
+          taken.add(sku.toLowerCase());
+          return sku;
+        };
         const generated = [];
         sizes.forEach(size=>{
           colorList.forEach(color=>{
-            generated.push({ sku:'', size, color, costPrice, sellPrice, stock, lowStock:'' });
+            generated.push({ sku:makeSku(size, color), size, color, costPrice, sellPrice, stock, lowStock:'' });
           });
         });
         // Drop the single untouched starter row (if that's all there is) so the grid's
@@ -5451,6 +5479,7 @@ async function openBarcodeModal(productId){
             <select id="lb_rot">${[0,90,180,270].map(r=>`<option value="${r}" ${labelConfig().rot===r?'selected':''}>${r}°</option>`).join('')}</select></div>
         </div>
         <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin:2px 0 8px;"><input type="checkbox" id="lb_showbrand" style="width:auto;" ${labelConfig().showBrand?'checked':''}> ${t('lb_showBrand')}</label>
+        <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin:2px 0 8px;"><input type="checkbox" id="lb_showsku" style="width:auto;" ${labelConfig().showSku?'checked':''}> ${t('lb_showSku')}</label>
         <div id="lb_rawBox" style="display:${window.IS_TAURI?'':'none'};border-top:1px dashed var(--line);margin:4px 0 10px;padding-top:8px;">
           <div class="row" style="flex-wrap:wrap;">
             <div class="col field" style="min-width:260px;"><label>${t('lb_method')}</label>
@@ -5512,7 +5541,7 @@ async function openBarcodeModal(productId){
         if(hit){ document.getElementById('lb_w').value = hit[1]; document.getElementById('lb_h').value = hit[2]; }
         refreshPreview();
       });
-      ['lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot','lb_showbrand'].forEach(id=>{
+      ['lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot','lb_showbrand','lb_showsku'].forEach(id=>{
         const el = document.getElementById(id);
         el.addEventListener('input', ()=>{ if(id==='lb_w'||id==='lb_h') document.getElementById('lb_preset').value=''; refreshPreview(); });
         el.addEventListener('change', refreshPreview);
@@ -5532,7 +5561,7 @@ async function openBarcodeModal(productId){
         const c = readLabelCfgFromModal();
         // Remember the label setup so it only has to be done once per printer.
         await saveSettings({labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot,
-          labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert, labelAutoClean:c.autoClean, labelShowBrand:c.showBrand});
+          labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert, labelAutoClean:c.autoClean, labelShowBrand:c.showBrand, labelShowSku:c.showSku});
       };
       document.getElementById('lb_testBtn').addEventListener('click', async ()=>{ await saveLabelCfg(); printTestLabel(); });
       const cancelOldBtn = document.getElementById('lb_cancelOldBtn');
@@ -5575,7 +5604,8 @@ function labelConfig(src){
     rawGap: Math.max(0, num(src.labelRawGapMm, 2)),
     invert: src.labelRawInvert===true || src.labelRawInvert==='1' || src.labelRawInvert==='true',
     autoClean: !(src.labelAutoClean===false || src.labelAutoClean==='0' || src.labelAutoClean==='false'),
-    showBrand: !(src.labelShowBrand===false || src.labelShowBrand==='0' || src.labelShowBrand==='false')
+    showBrand: !(src.labelShowBrand===false || src.labelShowBrand==='0' || src.labelShowBrand==='false'),
+    showSku: !(src.labelShowSku===false || src.labelShowSku==='0' || src.labelShowSku==='false')
   };
 }
 function readLabelCfgFromModal(){
@@ -5585,7 +5615,8 @@ function readLabelCfgFromModal(){
     labelMethod: has('lb_method')?g('lb_method'):'driver', labelPrinter: has('lb_printer')?g('lb_printer'):'', labelDpi: has('lb_dpi')?g('lb_dpi'):203,
     labelRawGapMm: has('lb_rawgap')?g('lb_rawgap'):2, labelRawInvert: has('lb_invert') ? document.getElementById('lb_invert').checked : false,
     labelAutoClean: has('lb_autoclean') ? document.getElementById('lb_autoclean').checked : true,
-    labelShowBrand: has('lb_showbrand') ? document.getElementById('lb_showbrand').checked : true});
+    labelShowBrand: has('lb_showbrand') ? document.getElementById('lb_showbrand').checked : true,
+    labelShowSku: has('lb_showsku') ? document.getElementById('lb_showsku').checked : true});
 }
 // The physical page the printer receives (swapped when the label is fed sideways).
 function labelPageSize(cfg){
@@ -5595,6 +5626,7 @@ function labelPageSize(cfg){
 }
 function labelItemHTML(product, productId, v, i, extra, cfgIn){
   const showBrand = (cfgIn || labelConfig()).showBrand && !!String(product.brand||'').trim();
+  const showSku = (cfgIn || labelConfig()).showSku;
   const sku = v.sku || autoSKU(productId, i);
   const label = [v.size,v.color].filter(Boolean).join(' / ');
   const onSale = isVariantOnSale(v);
@@ -5604,6 +5636,7 @@ function labelItemHTML(product, productId, v, i, extra, cfgIn){
     <div class="lbl${extra||''}">
       ${SETTINGS.name?`<div class="lbl-shop">${escapeHTML(SETTINGS.name)}</div>`:''}
       ${bars}
+      ${showSku?`<div class="lbl-sku">${escapeHTML(sku)}</div>`:''}
       ${showBrand?`<div class="lbl-brand">${escapeHTML(String(product.brand).trim())}</div>`:''}
       <div class="lbl-name">${escapeHTML(product.name)}${label?(' — '+escapeHTML(label)):''}</div>
       <div class="lbl-price">${onSale
@@ -5617,7 +5650,7 @@ function buildLabelPage(items, cfg){
   const s = Math.min(cfg.w/50, cfg.h/25);            // scale text with the label size
   const pt = n => (Math.round(n*s*10)/10)+'pt';
   const pg = labelPageSize(cfg);
-  const bh = Math.round(cfg.h*(cfg.showBrand?0.27:0.34)*10)/10;
+  const bh = Math.round(cfg.h*(0.34 - (cfg.showBrand?0.06:0) - (cfg.showSku?0.04:0))*10)/10;
   const sideways = cfg.rot===90 || cfg.rot===270;
   const move = `translate(${cfg.offX}mm,${cfg.offY}mm)`;
   let place;
@@ -5638,6 +5671,7 @@ function buildLabelPage(items, cfg){
     .lbl.test{ border:0.35mm solid #000; }
     .lbl-shop{ font-size:${pt(6)}; letter-spacing:.2px; text-transform:uppercase; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.1; }
     .lbl svg{ display:block; width:90%; height:${bh}mm; flex:none; margin:0 auto; }
+    .lbl-sku{ font-size:${pt(5.5)}; letter-spacing:.3px; line-height:1.05; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
     .lbl-brand{ font-size:${pt(7)}; font-weight:800; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .lbl-name{ font-size:${pt(7.5)}; font-weight:700; line-height:1.15; max-height:2.35em; overflow:hidden; }
     .lbl-price{ font-size:${pt(9.5)}; font-weight:800; line-height:1.1; }
@@ -5659,6 +5693,7 @@ function labelItemData(product, productId, v, i){
   return {
     shop: SETTINGS.name || '', sku: v.sku || autoSKU(productId, i),
     brand: labelConfig().showBrand ? String(product.brand||'').trim() : '',
+    skuText: labelConfig().showSku ? (v.sku || autoSKU(productId, i)) : '',
     name: String(product.name||'') + (label ? (' — '+label) : ''),
     mrp: onSale ? fmtMoney(v.sellPrice) : '', priceText: fmtMoney(onSale ? variantSalePrice(v) : v.sellPrice)
   };
@@ -5681,16 +5716,18 @@ function drawRawLabel(ctx, d, x0, y0, wd, hd, cfg){
     return lines.map(l=>fit(l,f,maxW));
   };
   const gap = Math.max(1, Math.round(cfg.h*0.012*dpmm));
-  const shopF = font(6,false), nameF = font(7.5,true), priceF = font(9.5,true), mrpF = font(7.5,false), brandF = font(7,true);
+  const shopF = font(6,false), nameF = font(7.5,true), priceF = font(9.5,true), mrpF = font(7.5,false), brandF = font(7,true), skuF = font(5.5,false);
   const shopTxt = d.shop ? fit(String(d.shop).toUpperCase(), shopF, innerW) : '';
-  const lh = f=>Math.round(parseInt(f.match(/(\d+)px/)[1])*1.15);
+  const lh = (f,k)=>Math.round(parseInt(f.match(/(\d+)px/)[1])*(k||1.15));
   const nameLines = wrap(d.name||'', nameF, innerW, 2);
   let bh = Math.round(cfg.h*0.34*dpmm);
   const brandTxt = d.brand ? fit(String(d.brand), brandF, innerW) : '';
   const parts = [];
   if(shopTxt) parts.push({k:'shop', h:lh(shopF)});
   parts.push({k:'bar', h:bh});
-  if(brandTxt) parts.push({k:'brand', h:lh(brandF)});
+  const skuTxt = d.skuText ? fit(String(d.skuText), skuF, innerW) : '';
+  if(skuTxt) parts.push({k:'sku', h:lh(skuF,1.05)+2});       // +2 dots of air between the bars and the SKU text
+  if(brandTxt) parts.push({k:'brand', h:lh(brandF,1.08)});
   nameLines.forEach(()=>parts.push({k:'name', h:lh(nameF)}));
   parts.push({k:'price', h:lh(priceF)});
   let total = parts.reduce((a,b)=>a+b.h,0) + gap*(parts.length-1);
@@ -5705,6 +5742,7 @@ function drawRawLabel(ctx, d, x0, y0, wd, hd, cfg){
   let nameIdx = 0; const cx = x0 + wd/2;
   for(const pt of parts){
     if(pt.k==='shop'){ ctx.font = shopF; ctx.fillText(shopTxt, cx, y); }
+    else if(pt.k==='sku'){ ctx.font = skuF; ctx.fillText(skuTxt, cx, y+2); }
     else if(pt.k==='brand'){ ctx.font = brandF; ctx.fillText(brandTxt, cx, y); }
     else if(pt.k==='name'){ ctx.font = nameF; ctx.fillText(nameLines[nameIdx++], cx, y); }
     else if(pt.k==='price'){
@@ -5854,6 +5892,7 @@ function printBarcodeLabels(product, productId, qtyMap){
       .sheet{ display:flex; flex-wrap:wrap; gap:6mm; }
       .lbl{ width:45mm; border:1px dashed #999; padding:2mm 2mm 3mm; text-align:center; break-inside:avoid; }
       .lbl-shop{ font-size:7.5px; letter-spacing:.3px; text-transform:uppercase; color:#444; margin-bottom:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .lbl-sku{ font-size:8px; letter-spacing:.4px; margin-top:1px; }
       .lbl-brand{ font-size:9px; font-weight:800; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .lbl-name{ font-size:9px; font-weight:700; margin-top:1px; line-height:1.2;
                  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
