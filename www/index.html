@@ -1618,6 +1618,22 @@ const I18N = {
     inv_nextPreview:'The next bill will be numbered: ',
     inv_noTagWarn:'the same number will come again in every new period',
     firm_ownInvReset:'Invoice number restart',
+    gst_changeBtn:'Change GST type',
+    gst_changeTitle:'Change GST type — {0}',
+    gst_changeIntro:'Use this if the bill was saved as GST but is not GST, or the other way round. Stock is not touched. The GST report, the bill total and the supplier ledger are corrected, and the change is recorded on the bill.',
+    gst_toGst:'GST bill (counted in GST reports)',
+    gst_toNone:'Not-GST bill (kept out of GST reports)',
+    gst_rateLabel:'GST rate %',
+    gst_prevGst:'GST amount: {0} → {1}',
+    gst_prevTotal:'Bill total: {0} → {1}',
+    gst_prevUp:'The supplier balance goes UP by {0}',
+    gst_prevDown:'The supplier balance goes DOWN by {0}',
+    gst_prevSame:'The supplier balance does not change',
+    gst_saveBtn:'Change GST type',
+    gst_needRate:'Enter the GST rate',
+    gst_done:'GST type changed',
+    gst_approval:'Changing the GST type of a purchase bill',
+    gst_historyLine:'GST type changed ({0}): {1} → {2}, total {3} → {4}',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2238,6 +2254,22 @@ const I18N = {
     inv_nextPreview:'पुढील बिलाचा क्रमांक: ',
     inv_noTagWarn:'प्रत्येक नवीन कालावधीत तोच क्रमांक पुन्हा येईल',
     firm_ownInvReset:'इनव्हॉइस क्रमांक रीस्टार्ट',
+    gst_changeBtn:'GST प्रकार बदला',
+    gst_changeTitle:'GST प्रकार बदला — {0}',
+    gst_changeIntro:'बिल GST म्हणून सेव्ह झाले पण GST नाही (किंवा उलट) असेल तर हे वापरा. स्टॉकला हात लागत नाही. GST रिपोर्ट, बिलाची एकूण रक्कम आणि पुरवठादार खाते दुरुस्त होते, आणि बदल बिलावर नोंदवला जातो.',
+    gst_toGst:'GST बिल (GST रिपोर्टमध्ये धरले जाते)',
+    gst_toNone:'GST नसलेले बिल (GST रिपोर्टच्या बाहेर)',
+    gst_rateLabel:'GST दर %',
+    gst_prevGst:'GST रक्कम: {0} → {1}',
+    gst_prevTotal:'बिलाची एकूण रक्कम: {0} → {1}',
+    gst_prevUp:'पुरवठादाराची बाकी {0} ने वाढेल',
+    gst_prevDown:'पुरवठादाराची बाकी {0} ने कमी होईल',
+    gst_prevSame:'पुरवठादाराची बाकी बदलणार नाही',
+    gst_saveBtn:'GST प्रकार बदला',
+    gst_needRate:'GST दर टाका',
+    gst_done:'GST प्रकार बदलला',
+    gst_approval:'खरेदी बिलाचा GST प्रकार बदलणे',
+    gst_historyLine:'GST प्रकार बदलला ({0}): {1} → {2}, एकूण {3} → {4}',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -12934,6 +12966,103 @@ async function printPurchaseBill(invId){
   win.document.close();
   if(window.IS_TAURI){ win.focus(); win.print(); }
 }
+// ---- Fix a purchase bill that was saved with the wrong GST type (GST <-> Not GST) ----
+// Works on a copy: sets the GST rate on every item, re-works GST / total / status.
+function gstTypeApply(inv, mode, rate){
+  const c = JSON.parse(JSON.stringify(inv));
+  const r2 = x=>Math.round(x*100)/100;
+  c.gstMode = mode==='report' ? 'report' : 'none';
+  rate = c.gstMode==='report' ? Math.max(0, Number(rate)||0) : 0;
+  c.gstRate = rate;
+  if(c.source==='stock-entry'){
+    (c.items||[]).forEach(it=>{ it.gstRate = rate; });
+    recomputeStockBill(c);
+  } else {
+    const taxable = Math.max(0, (c.subtotal||0) - (c.discount||0));
+    c.taxableValue = taxable; c.gstAmount = r2(taxable*rate/100);
+    c.total = Math.max(0, r2(taxable + (c.freight||0) + (c.otherExpenses||0) + c.gstAmount));
+    delete c.gstSplits;
+    (c.items||[]).forEach(it=>{ if(it.gstRate!=null) it.gstRate = rate; });
+  }
+  const paid = invoicePaid(c);
+  c.status = paid<=0.001 ? 'unpaid' : (paid+0.01>=c.total ? 'paid' : 'partial');
+  return c;
+}
+async function openChangeGstModal(invId){
+  const inv = await dbGet('purchaseInvoices', invId);
+  if(!inv || inv.voided || inv.merged) return;
+  const isGst = inv.gstMode!=='none' && (inv.gstAmount||0)>0;
+  let defRate = Number(inv.gstRate)||0;
+  if(!defRate){
+    for(const it of (inv.items||[])){ const pr = await dbGet('products', it.productId); if(pr && Number(pr.taxRate)>0){ defRate = Number(pr.taxRate); break; } }
+  }
+  if(!defRate) defRate = 5;
+  openModal({
+    title: fillTpl(t('gst_changeTitle'), [inv.invoiceNumber||'']),
+    bodyHTML:`
+      <div class="muted" style="font-size:12.5px;margin-bottom:10px;">${escapeHTML(t('gst_changeIntro'))}</div>
+      <div class="field"><label>${escapeHTML(t('inv_gstStatus'))}</label>
+        <select id="cg_mode">
+          <option value="report" ${isGst?'':'selected'}>${escapeHTML(t('gst_toGst'))}</option>
+          <option value="none" ${isGst?'selected':''}>${escapeHTML(t('gst_toNone'))}</option>
+        </select></div>
+      <div class="field" id="cg_rateWrap"><label>${escapeHTML(t('gst_rateLabel'))}</label><input id="cg_rate" type="number" min="0" step="0.01" value="${defRate}"></div>
+      <div id="cg_preview" style="border:1px solid var(--line);background:var(--paper-soft);border-radius:9px;padding:9px 11px;font-size:13px;line-height:1.7;"></div>
+    `,
+    footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="cg_save">${escapeHTML(t('gst_saveBtn'))}</button>`,
+    onMount:()=>{
+      const modeEl = document.getElementById('cg_mode'), rateEl = document.getElementById('cg_rate');
+      const calc = ()=>{
+        const mode = modeEl.value;
+        document.getElementById('cg_rateWrap').style.display = mode==='none' ? 'none' : '';
+        const upd = gstTypeApply(inv, mode, rateEl.value);
+        const diff = Math.round((upd.total-inv.total)*100)/100;
+        document.getElementById('cg_preview').innerHTML =
+          '<div>'+escapeHTML(fillTpl(t('gst_prevGst'), [fmtMoney(inv.gstAmount||0), fmtMoney(upd.gstAmount||0)]))+'</div>'+
+          '<div>'+escapeHTML(fillTpl(t('gst_prevTotal'), [fmtMoney(inv.total), fmtMoney(upd.total)]))+'</div>'+
+          '<div><b>'+escapeHTML(diff>0 ? fillTpl(t('gst_prevUp'), [fmtMoney(diff)]) : (diff<0 ? fillTpl(t('gst_prevDown'), [fmtMoney(-diff)]) : t('gst_prevSame')))+'</b></div>';
+        return upd;
+      };
+      modeEl.addEventListener('change', calc); rateEl.addEventListener('input', calc); calc();
+      document.getElementById('cg_save').addEventListener('click', ()=>{
+        const mode = modeEl.value, rate = Math.max(0, parseFloat(rateEl.value)||0);
+        if(mode==='report' && rate<=0){ toast(t('gst_needRate'),'error'); return; }
+        requireOwnerApproval(t('gst_approval'), async ()=>{
+          const cur = await dbGet('purchaseInvoices', invId);
+          if(!cur || cur.voided || cur.merged) return;
+          const upd = gstTypeApply(cur, mode, rate);
+          const diff = r2m(upd.total - cur.total);
+          const lbl = (m,rt)=> m==='report' ? ('GST '+rt+'%') : 'Not GST';
+          const stamp = stampNow();
+          if(cur.supplierId){
+            const sup = await dbGet('suppliers', cur.supplierId);
+            const rows = (sup.ledger||[]).filter(l=>l.type==='purchase' && l.invoiceId===cur.id && !l.voided);
+            if(rows.length){
+              const last = rows[rows.length-1];
+              const b0 = sup.balanceDue||0, a0 = sup.advanceBalance||0;
+              let nb = r2m(b0+diff), na = a0;
+              if(nb<0){ na = r2m(na-nb); nb = 0; }
+              if(nb>0.004 && na>0.004){ const m = Math.min(nb, na); nb = r2m(nb-m); na = r2m(na-m); }
+              sup.balanceDue = nb; sup.advanceBalance = Math.max(0, na);
+              last.amount = r2m((last.amount||0)+diff);
+              last.bal = r2m((last.bal||0) + (sup.balanceDue-b0));
+              last.adv = r2m((last.adv||0) + (sup.advanceBalance-a0));
+              rows.forEach((l,i)=>{ l.gst = {mode:upd.gstMode, rate:upd.gstRate, amount: i===0 ? (upd.gstAmount||0) : 0}; });
+              last.note = (last.note||'') + ' [GST type corrected: '+lbl(cur.gstMode==='none'?'none':'report', cur.gstRate||0)+' → '+lbl(upd.gstMode, upd.gstRate)+']';
+              supAudit(sup, 'gst type changed', (cur.invoiceNumber||'')+': '+lbl(cur.gstMode==='none'?'none':'report', cur.gstRate||0)+' → '+lbl(upd.gstMode, upd.gstRate)+', total '+cur.total+' → '+upd.total);
+              await dbPut('suppliers', sup);
+            }
+          }
+          upd.gstChanges = (cur.gstChanges||[]).concat([{at:stamp.at, by:stamp.by, from:cur.gstMode==='none'?'none':'report', fromRate:cur.gstRate||0, to:upd.gstMode, toRate:upd.gstRate, oldTotal:cur.total, newTotal:upd.total, oldGst:cur.gstAmount||0, newGst:upd.gstAmount||0}]);
+          await dbPut('purchaseInvoices', upd);
+          closeModal();
+          toast(t('gst_done'),'success');
+          try{ await refreshSupplierSurfaces(); }catch(e){}
+        });
+      });
+    }
+  });
+}
 function viewPurchaseInvoiceDetail(invId){
   dbGet('purchaseInvoices', invId).then(inv=>{
     const rows = (inv.items||[]).map(it=>`
@@ -12957,6 +13086,7 @@ function viewPurchaseInvoiceDetail(invId){
           <div><span class="muted">${t('inv_billDate')}:</span> ${fmtDate(inv.date)}</div>
           ${inv.enteredAt?`<div><span class="muted">${t('inv_enteredAt')}:</span> ${fmtStamp(inv.enteredAt)}${inv.enteredBy?' · '+escapeHTML(inv.enteredBy):''}</div>`:''}
           <div><span class="muted">${t('inv_gstStatus')}:</span> <strong>${escapeHTML(gstLabel)}</strong></div>
+          ${(inv.gstChanges||[]).map(g=>`<div class="muted" style="font-size:11.5px;">${escapeHTML(fillTpl(t('gst_historyLine'), [fmtStamp(g.at)+(g.by?' · '+g.by:''), (g.from==='none'?'Not GST':'GST '+g.fromRate+'%'), (g.to==='none'?'Not GST':'GST '+g.toRate+'%'), fmtMoney(g.oldTotal), fmtMoney(g.newTotal)]))}</div>`).join('')}
           ${(inv.mergedFrom&&inv.mergedFrom.length)?`<div><span class="muted">${t('inv_mergedFrom')}:</span> ${inv.mergedFrom.map(m=>escapeHTML(m.invoiceNumber)+(m.billNo?' ('+escapeHTML(m.billNo)+')':'')+' '+fmtMoney(m.total)).join(' · ')}</div>`:''}
         </div>
         <table><thead><tr><th>${t('th_item')}</th><th class="num">${t('th_qty')}</th><th class="num">${t('th_rate')}</th><th class="num">${t('th_amount')}</th></tr></thead><tbody>${rows}</tbody></table>
@@ -12981,6 +13111,7 @@ function viewPurchaseInvoiceDetail(invId){
       footerHTML:`
         <button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
         <button class="btn btn-outline" onclick="printPurchaseBill(${inv.id})">${t('pb_printBtn')}</button>
+        ${(!inv.voided && !inv.merged) ? `<button class="btn btn-outline" onclick="closeModal();openChangeGstModal(${inv.id})">${t('gst_changeBtn')}</button>` : ''}
         ${!inv.voided ? `<button class="btn btn-outline" style="color:var(--red);" onclick="closeModal();openVoidInvoiceModal(${inv.id})">${t('inv_voidBill')}</button>` : ''}
         ${(status!=='paid' && status!=='void' && status!=='merged' && inv.supplierId) ? `<button class="btn btn-primary" onclick="closeModal();openVendorPaymentModal(${inv.supplierId}, ${inv.id})">${t('vendor_recordPaymentBtn')}</button>` : ''}
       `
