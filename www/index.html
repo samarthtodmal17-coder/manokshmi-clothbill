@@ -1634,6 +1634,7 @@ const I18N = {
     gst_done:'GST type changed',
     gst_approval:'Changing the GST type of a purchase bill',
     gst_historyLine:'GST type changed ({0}): {1} → {2}, total {3} → {4}',
+    sa_lastVendor:'Last bought from: {0} (you can change it)',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2270,6 +2271,7 @@ const I18N = {
     gst_done:'GST प्रकार बदलला',
     gst_approval:'खरेदी बिलाचा GST प्रकार बदलणे',
     gst_historyLine:'GST प्रकार बदलला ({0}): {1} → {2}, एकूण {3} → {4}',
+    sa_lastVendor:'शेवटचे यांच्याकडून घेतले: {0} (बदलता येईल)',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -6377,6 +6379,18 @@ async function openStockAdjustModal(productId){
   const saSuppliers = (await scopedGetAll('suppliers')).sort((a,b)=>a.name.localeCompare(b.name));
   PUR_SUP_MAP = {}; saSuppliers.forEach(s=>{ PUR_SUP_MAP[s.id] = s; });
   await loadPurchaseBills();
+  const saAllInvs = (await scopedGetAll('purchaseInvoices')).filter(i=>!i.voided && !i.merged && i.supplierId);
+  // The vendor this stock was bought from: the latest bill that has this size/colour, else any bill of this product, else the product's usual vendor.
+  const saSuggestVendor = (vi)=>{
+    const okSup = id=>saSuppliers.find(s=>s.id===id && s.active!==false);
+    const stamp = i=>new Date(i.enteredAt||i.date||0).getTime() || 0;
+    const mine = saAllInvs.filter(i=>(i.items||[]).some(it=>it.productId===product.id)).sort((a,b)=>stamp(b)-stamp(a) || b.id-a.id);
+    const exact = mine.find(i=>(i.items||[]).some(it=>it.productId===product.id && it.variantIndex===vi) && okSup(i.supplierId));
+    if(exact) return okSup(exact.supplierId);
+    const any = mine.find(i=>okSup(i.supplierId));
+    if(any) return okSup(any.supplierId);
+    return product.preferredSupplierId ? (okSup(product.preferredSupplierId)||null) : null;
+  };
   const firmNote = multiFirmInUse() ? `<p class="muted" style="font-size:12px;margin:-4px 0 8px;">${t('sa_adjustingPrefix')}${escapeHTML((firmById(product.firmId)||{}).name||'—')}'s stock of this product.</p>` : '';
 
   openModal({
@@ -6407,6 +6421,7 @@ async function openStockAdjustModal(productId){
             <option value="">${t('sa_noVendorOption')}</option>
             ${saSuppliers.map(s=>`<option value="${s.id}">${supplierOptionLabel(s)}</option>`).join('')}
           </select>
+          <div id="sa_vendorSuggest" class="muted" style="font-size:11.5px;margin-top:4px;"></div>
         </div>
         <div id="sa_vendorExtra" style="display:none;">
           ${billNoFieldHTML('sa')}
@@ -6486,6 +6501,34 @@ async function openStockAdjustModal(productId){
       document.getElementById('sa_variant').addEventListener('change', ()=>{ delete document.getElementById('sa_cost').dataset.touched; syncVendorBox(); });
       ['sa_direction','sa_vendor'].forEach(id=>document.getElementById(id).addEventListener('change', syncVendorBox));
       syncVendorBox();
+      // --- vendor suggestion: choosing "Purchased from Vendor" fills in the vendor this stock was bought from (can be changed) ---
+      const saVend = document.getElementById('sa_vendor'), saReason = document.getElementById('sa_reason');
+      let autoVendor = '';
+      const curVi = ()=>{ const n = parseInt(document.getElementById('sa_variant').value); return isNaN(n) ? -1 : n; };
+      const showSuggest = ()=>{
+        const sg = saSuggestVendor(curVi());
+        document.getElementById('sa_vendorSuggest').textContent = sg ? fillTpl(t('sa_lastVendor'), [sg.name]) : '';
+        return sg;
+      };
+      const applyVendor = id=>{
+        saVend.value = id ? String(id) : '';
+        syncBillNoField('sa', id ? parseInt(id) : null, true);
+        syncVendorBox();
+      };
+      saVend.addEventListener('change', ()=>{ autoVendor = ''; });          // the person picked / cleared it: leave it alone from now on
+      saReason.addEventListener('change', ()=>{
+        const adding = document.getElementById('sa_direction').value==='add';
+        if(saReason.value==='Purchased from Vendor'){
+          if(adding && !saVend.value){ const sg = showSuggest(); if(sg){ applyVendor(sg.id); autoVendor = String(sg.id); } }
+        } else if(saVend.value){
+          applyVendor('');                                                    // another reason = not a purchase
+        }
+      });
+      document.getElementById('sa_variant').addEventListener('change', ()=>{
+        const sg = showSuggest();
+        if(autoVendor && saVend.value===autoVendor && sg && String(sg.id)!==autoVendor){ applyVendor(sg.id); autoVendor = String(sg.id); }
+      });
+      showSuggest();
       const saSearch = document.getElementById('sa_search');
       if(saSearch){
         const sel = document.getElementById('sa_variant');
