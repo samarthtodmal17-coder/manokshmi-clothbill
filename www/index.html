@@ -1663,6 +1663,21 @@ const I18N = {
     print_scanUpiPart:'Scan to pay {0} (UPI part of this bill)',
     cb_autoSingle:'All items on this bill belong to {0}, so the bill is issued under {0}.',
     cb_mixedNote:'Items are from different firms, so the bill is issued under the firm chosen above.',
+    sales_printDayCloseBtn:'Print Day Closing',
+    dcs_modalTitle:'Print Day Closing',
+    dcs_dateLabel:'Day',
+    dcs_statusClosed:'This day is closed. The saved day closing will be printed.',
+    dcs_statusOpen:'This day is not closed yet. A summary of the day will be printed. To record the counted cash, use Day Close in Accounts.',
+    dcs_printBtn:'Print',
+    dcs_openDayClose:'Go to Day Close',
+    dcs_notClosedTag:'(summary - day not closed yet)',
+    dcs_salesHeading:'SALES',
+    dcs_bills:'Bills',
+    dcs_totalSales:'Total sales',
+    dcs_onCredit:'Given on credit',
+    dcs_collectedHeading:'COLLECTED BY MODE',
+    dcs_cashHeading:'CASH DRAWER',
+    dcs_printedAt:'Printed',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2305,6 +2320,21 @@ const I18N = {
     print_scanUpiPart:'{0} भरण्यासाठी स्कॅन करा (या बिलातील UPI भाग)',
     cb_autoSingle:'या बिलातील सर्व आयटम {0} चे आहेत, म्हणून बिल {0} च्या नावे निघेल.',
     cb_mixedNote:'आयटम वेगवेगळ्या फर्मचे आहेत, म्हणून बिल वर निवडलेल्या फर्मच्या नावे निघेल.',
+    sales_printDayCloseBtn:'दिवस बंद प्रिंट करा',
+    dcs_modalTitle:'दिवस बंद प्रिंट करा',
+    dcs_dateLabel:'दिवस',
+    dcs_statusClosed:'हा दिवस बंद झाला आहे. जतन केलेले दिवस बंद प्रिंट होईल.',
+    dcs_statusOpen:'हा दिवस अजून बंद केलेला नाही. दिवसाचा सारांश प्रिंट होईल. मोजलेली रोख नोंदवण्यासाठी अकाउंट्समधील दिवस बंद वापरा.',
+    dcs_printBtn:'प्रिंट',
+    dcs_openDayClose:'दिवस बंद कडे जा',
+    dcs_notClosedTag:'(सारांश - दिवस अजून बंद नाही)',
+    dcs_salesHeading:'विक्री',
+    dcs_bills:'बिले',
+    dcs_totalSales:'एकूण विक्री',
+    dcs_onCredit:'उधारीवर दिले',
+    dcs_collectedHeading:'प्रकारानुसार जमा',
+    dcs_cashHeading:'गल्ला (रोख)',
+    dcs_printedAt:'प्रिंट',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -11910,6 +11940,7 @@ async function renderSales(){
       </div>
       <div class="col" style="flex:0 0 auto;">
         <button class="btn btn-outline" id="noBillReturnBtn" title="${t('bill_returnWithoutBillTooltip')}">${t('sales_returnNoBillBtn')}</button>
+        <button class="btn btn-outline" id="salesPrintDayCloseBtn">${t('sales_printDayCloseBtn')}</button>
       </div>
     </div>
     <div class="stat-tiles" id="salesStatTiles"></div>
@@ -11952,6 +11983,7 @@ async function renderSales(){
     renderSalesData();
   });
   document.getElementById('noBillReturnBtn').addEventListener('click', openNoBillReturnModal);
+  document.getElementById('salesPrintDayCloseBtn').addEventListener('click', ()=>openPrintDayCloseModal());
   await renderSalesData();
 }
 
@@ -16998,6 +17030,88 @@ async function printDayClose(closeId){
   w.document.write(html);
   w.document.close();
   setTimeout(()=>{ w.print(); }, 250);
+}
+
+// ---- Print Day Closing from the Sales window ----
+function dcOpenPrintWin(html){
+  const w = (window.IS_TAURI && window.openPrintWindow) ? window.openPrintWindow() : window.open('', '_blank');
+  if(!w){ toast(t('toast_allowPopupsToPrint'),'error'); return; }
+  w.document.write(html); w.document.close();
+  if(window.IS_TAURI){ w.focus(); w.print(); } else setTimeout(()=>{ w.print(); }, 250);
+}
+// Day summary for a day that has not been closed yet (sales, money collected by mode, cash expected in the drawer).
+async function printDaySummary(dateISO){
+  const bills = scopeBillsToActiveFirm(await scopedLiveBills()).filter(b=>inRange(b.date, dateISO, dateISO));
+  const cash = await computeDayCash(dateISO);
+  const byMode = {};
+  bills.forEach(b=>(b.payments||[]).forEach(p=>{ if(p.amount) byMode[p.mode||'Cash'] = (byMode[p.mode||'Cash']||0) + Number(p.amount); }));
+  const r2 = n=>Math.round(n*100)/100;
+  const total = r2(bills.reduce((s,b)=>s+(b.grandTotal||0),0));
+  const credit = r2(bills.reduce((s,b)=>s+Number(b.creditAmount||0),0));
+  const expected = r2(cash.openingCash + cash.cashIn - cash.cashOut);
+  const shopName = ((billableFirmId() && firmById(billableFirmId())) || {}).name || SETTINGS.name || '';
+  const row = (l,v,bold)=>`<tr><td${bold?' style="font-weight:700;border-top:1px solid #000;"':''}>${l}</td><td class="num"${bold?' style="font-weight:700;border-top:1px solid #000;"':''}>${v}</td></tr>`;
+  const modeRows = Object.entries(byMode).map(([m,v])=>row(escapeHTML(dv(m)), fmtMoney(v))).join('');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(t('dc_printTitle'))}</title>
+    <style>
+      body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:18px;color:#000;}
+      h1{font-size:16px;letter-spacing:.14em;text-align:center;margin:0 0 2px;}
+      h2{font-size:19px;text-align:center;margin:0 0 2px;}
+      .muted{color:#555;font-size:12px;text-align:center;margin-bottom:14px;}
+      h3{font-size:12px;letter-spacing:.1em;margin:12px 0 2px;border-bottom:1px dashed #000;padding-bottom:2px;}
+      table{width:100%;border-collapse:collapse;font-size:13.5px;} td{padding:4px 4px;}
+      .num{text-align:right;font-variant-numeric:tabular-nums;}
+      .box{border:2px solid #000;padding:12px 14px;max-width:420px;margin:0 auto;}
+      .sig{margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:#555;}
+      @media print{ @page{ margin:12mm; } }
+    </style></head><body><div class="box">
+      <h1>${escapeHTML(t('dc_printTitle'))}</h1>
+      <h2>${escapeHTML(shopName)}</h2>
+      <div class="muted">${fmtDate(dateISO+'T12:00:00')}<br>${escapeHTML(t('dcs_notClosedTag'))}</div>
+      <h3>${escapeHTML(t('dcs_salesHeading'))}</h3>
+      <table>${row(escapeHTML(t('dcs_bills')), bills.length)}${row(escapeHTML(t('dcs_totalSales')), fmtMoney(total), true)}${credit>0?row(escapeHTML(t('dcs_onCredit')), fmtMoney(credit)):''}</table>
+      <h3>${escapeHTML(t('dcs_collectedHeading'))}</h3>
+      <table>${modeRows || row('—','')}</table>
+      <h3>${escapeHTML(t('dcs_cashHeading'))}</h3>
+      <table>
+        ${row(escapeHTML(t('dc_openingFloat')), fmtMoney(cash.openingCash))}
+        ${row(escapeHTML(t('dc_cashSales')), '+ '+fmtMoney(cash.cashIn))}
+        ${row(escapeHTML(t('dc_cashPaidOut')), '- '+fmtMoney(cash.cashOut))}
+        ${row(escapeHTML(t('dc_expectedInDrawer')), fmtMoney(expected), true)}
+        ${cash.otherIn>0 ? row(escapeHTML(t('dc_otherModes')), fmtMoney(cash.otherIn)) : ''}
+      </table>
+      <div class="sig"><span>${escapeHTML(t('dcs_printedAt'))} ${escapeHTML(fmtStamp(new Date().toISOString()))}</span><span>${escapeHTML(t('dc_ownerSign'))}</span></div>
+    </div></body></html>`;
+  dcOpenPrintWin(html);
+}
+async function openPrintDayCloseModal(dateISO){
+  dateISO = dateISO || todayISO();
+  openModal({
+    title: t('dcs_modalTitle'),
+    bodyHTML:`
+      <div class="field"><label>${t('dcs_dateLabel')}</label><input type="date" id="pdc_date" value="${dateISO}"></div>
+      <div id="pdc_status" class="muted" style="font-size:12.5px;"></div>`,
+    footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
+      <button class="btn btn-outline" id="pdc_goClose">${t('dcs_openDayClose')}</button>
+      <button class="btn btn-primary" id="pdc_print">${t('dcs_printBtn')}</button>`,
+    onMount:()=>{
+      const dEl = document.getElementById('pdc_date');
+      const paint = async ()=>{
+        const saved = await dayCloseFor(dEl.value || todayISO());
+        document.getElementById('pdc_status').textContent = saved ? t('dcs_statusClosed') : t('dcs_statusOpen');
+      };
+      dEl.addEventListener('change', paint); paint();
+      document.getElementById('pdc_print').addEventListener('click', async ()=>{
+        const d = dEl.value || todayISO();
+        const saved = await dayCloseFor(d);
+        closeModal();
+        if(saved) printDayClose(saved.id); else printDaySummary(d);
+      });
+      document.getElementById('pdc_goClose').addEventListener('click', ()=>{
+        closeModal(); ACC_STATE.subtab = 'dayclose'; showView('accounts');
+      });
+    }
+  });
 }
 
 /* ---- Day Book / Cash Book ---- */
