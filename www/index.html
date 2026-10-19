@@ -727,6 +727,29 @@ function isCombinedFirmView(){ return activeFirmId()==='all'; }
 // Combined billing: in the "All Firms (Combined)" view a bill may hold items of several firms. Each item's stock is cut from
 // the firm that owns that product; the bill itself is issued under ONE firm (name, GSTIN, invoice number) chosen on the billing screen.
 function combinedBilling(){ return multiFirmInUse() && !billableFirmId(); }
+// Combined view: if every item on the bill belongs to ONE firm, the bill is issued under that firm automatically
+// (its name, GSTIN, invoice series, logo, UPI, footer). Only a mixed bill uses the "Issue this bill under" choice.
+function cartSingleFirmId(){
+  const ids = [...new Set(((typeof CART!=='undefined' && CART.items) || []).map(it=>it.stockFirmId).filter(Boolean))];
+  return (ids.length===1 && activeFirms().some(f=>f.id===ids[0])) ? ids[0] : null;
+}
+function cartBillFirmId(){
+  const b = billableFirmId(); if(b) return b;
+  if(!combinedBilling()) return null;
+  return cartSingleFirmId() || combinedIssueFirmId();
+}
+function updateIssueFirmUI(){
+  const sel = document.getElementById('cbIssueFirm'), note = document.getElementById('cbAutoNote');
+  if(!sel) return;
+  const one = cartSingleFirmId();
+  if(one){
+    sel.value = String(one); sel.disabled = true;
+    if(note) note.textContent = fillTpl(t('cb_autoSingle'), [(firmById(one)||{}).name||'']);
+  } else {
+    sel.disabled = false; sel.value = String(combinedIssueFirmId());
+    if(note) note.textContent = (CART.items||[]).length ? t('cb_mixedNote') : '';
+  }
+}
 function combinedIssueFirmId(){
   const f = SETTINGS && SETTINGS.combinedBillFirmId;
   return (f && activeFirms().some(x=>x.id===f)) ? f : ((activeFirms()[0]||{}).id || null);
@@ -1638,6 +1661,8 @@ const I18N = {
     pay_qrScan:'Scan to pay {0} by UPI',
     pay_qrNoUpiId:'To show a UPI QR here, add your UPI ID in Settings.',
     print_scanUpiPart:'Scan to pay {0} (UPI part of this bill)',
+    cb_autoSingle:'All items on this bill belong to {0}, so the bill is issued under {0}.',
+    cb_mixedNote:'Items are from different firms, so the bill is issued under the firm chosen above.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2278,6 +2303,8 @@ const I18N = {
     pay_qrScan:'UPI ने {0} भरण्यासाठी स्कॅन करा',
     pay_qrNoUpiId:'येथे UPI QR दिसण्यासाठी सेटिंग्जमध्ये तुमचा UPI ID टाका.',
     print_scanUpiPart:'{0} भरण्यासाठी स्कॅन करा (या बिलातील UPI भाग)',
+    cb_autoSingle:'या बिलातील सर्व आयटम {0} चे आहेत, म्हणून बिल {0} च्या नावे निघेल.',
+    cb_mixedNote:'आयटम वेगवेगळ्या फर्मचे आहेत, म्हणून बिल वर निवडलेल्या फर्मच्या नावे निघेल.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -9446,6 +9473,7 @@ async function renderBilling(){
       <div style="font-size:12.5px;">${t('cb_banner')}</div>
       <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-top:6px;">${t('cb_issueUnder')}:
         <select id="cbIssueFirm" style="max-width:240px;" onchange="saveSettings({combinedBillFirmId:parseInt(this.value)})">${activeFirms().map(f=>`<option value="${f.id}" ${f.id===combinedIssueFirmId()?'selected':''}>${escapeHTML(f.name)}</option>`).join('')}</select></label>
+      <div id="cbAutoNote" class="muted" style="font-size:12px;margin-top:4px;"></div>
     </div>` : '';
   el.innerHTML = `
     ${cbBanner}
@@ -10057,6 +10085,7 @@ function computeTotals(cartArg){
   return {subtotal, itemDiscount, taxTotal, taxIncluded, taxAdded, autoTierDiscount, overallDiscount, couponDiscount, packagingCharge, deliveryCharge, roundOff, grandTotal};
 }
 function renderBillTotals(){
+  try{ updateIssueFirmUI(); }catch(e){}
   const wrap = document.getElementById('billTotalsWrap');
   if(!wrap) return;
   const tot = computeTotals();
@@ -10292,7 +10321,7 @@ async function saveCurrentAsQuotation(){
   const record = {
     quoteNumber,
     date: new Date().toISOString(),
-    firmId: billableFirmId() || (combinedBilling() ? combinedIssueFirmId() : null),
+    firmId: cartBillFirmId(),
     customerId: CART.customerId,
     items: CART.items.map(it=>({...it})),
     overallDiscount: CART.overallDiscount, overallDiscountType: CART.overallDiscountType,
@@ -10693,7 +10722,7 @@ async function openCheckoutModal(){
           const upiAmt = Math.round(upiModes.reduce((s,m)=>s+(perMode[m]||0),0)*100)/100;
           if(qrBox){
             if(upiAmt > 0){
-              const qFirm = billableFirmId() || (combinedBilling() ? combinedIssueFirmId() : null);
+              const qFirm = cartBillFirmId();
               const upiId = firmValue(qFirm, 'upiId');
               const qName = ((qFirm && firmById(qFirm)) || {}).name || SETTINGS.name;
               if(upiId){
@@ -10818,7 +10847,7 @@ async function finalizeCheckout(tot, getAmountDue){
   // Combined "All Firms" view is for reporting only — a sale must belong to one real firm
   // so its stock and invoice number go to the right place.
   const cmbMode = combinedBilling();
-  const saleFirmId = billableFirmId() || (cmbMode ? combinedIssueFirmId() : null);
+  const saleFirmId = cartBillFirmId();
   const stockFirmQty = {};
 
   // Re-validate stock right before committing (in case of concurrent changes)
