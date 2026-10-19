@@ -1678,6 +1678,20 @@ const I18N = {
     dcs_collectedHeading:'COLLECTED BY MODE',
     dcs_cashHeading:'CASH DRAWER',
     dcs_printedAt:'Printed',
+    auth_lockedMsg:'Too many wrong PIN tries. Please wait {0} and try again.',
+    auth_secFmt:'{0} sec',
+    auth_idleLocked:'Locked after no activity. Sign in to continue.',
+    staff_idleMinFmt:'{0} min',
+    staff_idleOff:'Off (never lock)',
+    staff_idleLockTitle:'Auto-lock',
+    staff_idleLockHint:'If nobody touches the computer for this long, the app asks for the PIN again. The bill being made is kept.',
+    cust_creditLimitLabel:'Credit limit (₹) - leave empty for no limit',
+    pay_limitOver:'Credit limit crossed: this bill makes the customer due {0}, limit is {1}. Ask the owner to enter the PIN to continue.',
+    pay_limitOverOwner:'Credit limit crossed: this bill makes the customer due {0}, limit is {1}. You are the owner, so you may continue.',
+    pay_limitPinLabel:'Owner PIN to allow this',
+    pay_limitPinNeeded:'Owner PIN is needed to go over the credit limit',
+    action_deleteCustomer:'Deleting a customer',
+    act_credit_limit:'Credit limit crossed',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2335,6 +2349,20 @@ const I18N = {
     dcs_collectedHeading:'प्रकारानुसार जमा',
     dcs_cashHeading:'गल्ला (रोख)',
     dcs_printedAt:'प्रिंट',
+    auth_lockedMsg:'चुकीचे PIN खूप वेळा टाकले. कृपया {0} थांबा आणि पुन्हा प्रयत्न करा.',
+    auth_secFmt:'{0} सेकंद',
+    auth_idleLocked:'काही वेळ वापर न झाल्याने लॉक झाले. पुढे जाण्यासाठी लॉगिन करा.',
+    staff_idleMinFmt:'{0} मिनिटे',
+    staff_idleOff:'बंद (कधीच लॉक नको)',
+    staff_idleLockTitle:'ऑटो-लॉक',
+    staff_idleLockHint:'इतका वेळ संगणक वापरला गेला नाही तर अ‍ॅप पुन्हा PIN मागेल. सुरू असलेले बिल तसेच राहते.',
+    cust_creditLimitLabel:'उधारी मर्यादा (₹) - मर्यादा नको असल्यास रिकामे ठेवा',
+    pay_limitOver:'उधारी मर्यादा ओलांडली: या बिलाने ग्राहकाची बाकी {0} होते, मर्यादा {1} आहे. पुढे जाण्यासाठी मालकाला PIN टाकायला सांगा.',
+    pay_limitOverOwner:'उधारी मर्यादा ओलांडली: या बिलाने ग्राहकाची बाकी {0} होते, मर्यादा {1} आहे. तुम्ही मालक आहात, त्यामुळे पुढे जाऊ शकता.',
+    pay_limitPinLabel:'हे चालू देण्यासाठी मालकाचा PIN',
+    pay_limitPinNeeded:'उधारी मर्यादा ओलांडण्यासाठी मालकाचा PIN लागतो',
+    action_deleteCustomer:'ग्राहक काढून टाकणे',
+    act_credit_limit:'उधारी मर्यादा ओलांडली',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -2543,7 +2571,7 @@ async function verifyActMonth(key){
   return {ok:!bad.length, bad, count:list.length};
 }
 function actKindLabel(k){ const key = 'act_'+k; const v = t(key); return v===key ? String(k).replace(/_/g,' ') : v; }
-const ACT_RISKY = ['cart_remove','bill_dropped','bill_cancel','bill_reprint','discount_approved','return','stock_change','product_edit','product_delete','expense_delete','day_reopen','login_failed','pin_failed','restore','owner_pin_change','staff_pin_change','sup_void','sup_merge'];
+const ACT_RISKY = ['cart_remove','bill_dropped','bill_cancel','bill_reprint','discount_approved','return','stock_change','product_edit','product_delete','expense_delete','day_reopen','login_failed','pin_failed','restore','owner_pin_change','staff_pin_change','sup_void','sup_merge','credit_limit'];
 
 // --- automatic logging of watched store writes (no screen can skip it) ---
 (function(){
@@ -2576,8 +2604,7 @@ const ACT_RISKY = ['cart_remove','bill_dropped','bill_cancel','bill_reprint','di
         const o = SETTINGS.users, n = newVals.users;
         const on = (o.staff||[]).map(s=>s.name).sort().join(','), nn = (n.staff||[]).map(s=>s.name).sort().join(',');
         if(on!==nn) logAct('staff_change', 'Staff: '+(nn||'(none)'));
-        if(o.ownerPin && n.ownerPin && o.ownerPin!==n.ownerPin) logAct('owner_pin_change', 'Owner PIN was changed');
-        (n.staff||[]).forEach(s=>{ const os = (o.staff||[]).find(x=>x.id===s.id); if(os && os.pin!==s.pin) logAct('staff_pin_change', 'PIN changed for '+s.name); });
+        if(o!==n && o.ownerPinHash && n.ownerPinHash && o.ownerPinHash!==n.ownerPinHash) logAct('owner_pin_change', 'Owner PIN was changed');
       }
       if(newVals && ('guardOn' in newVals || 'guardMaxDiscountPct' in newVals)) logAct('guard_rules', 'Discount limit '+(newVals.guardOn===false?'OFF':(newVals.guardMaxDiscountPct==null?'':newVals.guardMaxDiscountPct+'%')));
     }catch(e){}
@@ -2623,9 +2650,9 @@ function guardAsk({title, lines}){
         const go = ()=>{
           const reason = document.getElementById('ga_reason').value.trim();
           const pin = document.getElementById('ga_pin').value.trim();
-          const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
           if(reason.length<4){ document.getElementById('ga_err').textContent = t('guard_reasonShort'); return; }
-          if(!ownerPin || pin!==ownerPin){ document.getElementById('ga_err').textContent = t('guard_pinWrong'); logAct('pin_failed','Wrong Owner PIN tried to approve: '+title); return; }
+          const _pr = hasOwnerPin() ? checkOwnerPin(pin) : 'bad';
+          if(_pr!=='ok'){ document.getElementById('ga_err').textContent = pinErrText(_pr,'guard_pinWrong'); if(_pr==='bad') logAct('pin_failed','Wrong Owner PIN tried to approve: '+title); return; }
           finish({approved:true, reason});
           closeModal();
         };
@@ -3068,13 +3095,13 @@ function requireOwnerApproval(actionLabel, onApproved){
     onMount:()=>{
       const tryApprove = ()=>{
         const pin = document.getElementById('oa_pin').value.trim();
-        const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
-        if(pin && ownerPin && pin===ownerPin){
+        const _r = checkOwnerPin(pin);
+        if(_r==='ok'){
           closeModal();
           onApproved();
         } else {
-          document.getElementById('oa_error').textContent = 'Incorrect PIN';
-          logAct('pin_failed', 'Wrong Owner PIN tried for: '+actionLabel);
+          document.getElementById('oa_error').textContent = pinErrText(_r,'auth_incorrectPin');
+          if(_r==='bad') logAct('pin_failed', 'Wrong Owner PIN tried for: '+actionLabel);
         }
       };
       document.getElementById('oa_go').addEventListener('click', tryApprove);
@@ -5880,8 +5907,8 @@ async function deleteProductConfirm(productId){
         if(cb && cb.checked){
           const reason = document.getElementById('dp_reasonIn').value.trim();
           if(reason.length<4){ toast(t('toast_voidReasonShort'),'error'); return; }
-          const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
-          if(ownerPin && document.getElementById('dp_pinIn').value.trim()!==ownerPin){ toast(t('toast_voidPinWrong'),'error'); logAct('pin_failed','Wrong Owner PIN tried to cancel a supplier bill while deleting a product'); return; }
+          const _pr = hasOwnerPin() ? checkOwnerPin(document.getElementById('dp_pinIn').value) : 'ok';
+          if(_pr!=='ok'){ toast(pinErrText(_pr,'toast_voidPinWrong'),'error'); if(_pr==='bad') logAct('pin_failed','Wrong Owner PIN tried to cancel a supplier bill while deleting a product'); return; }
           for(const inv of onlyThis){
             let ok = false;
             if(inv.supplierId){
@@ -10688,6 +10715,10 @@ async function openCheckoutModal(){
       <button type="button" class="btn btn-outline btn-sm" id="payFullCreditBtn" ${!CART.customerId?'disabled title="Select a customer first"':''}>Full Credit</button>
     </div>
     <div id="payRemainingWrap" style="margin-top:10px;font-size:13px;"></div>
+    <div id="creditLimitWrap" style="display:none;margin-top:8px;border:1px solid var(--red);border-radius:9px;padding:8px 10px;">
+      <div id="creditLimitMsg" style="font-size:13px;font-weight:700;color:var(--red);"></div>
+      <div id="creditLimitPinRow" style="margin-top:6px;"><label style="font-size:12px;">${t('pay_limitPinLabel')}</label><input id="coLimitPin" class="pin-input" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+    </div>
     <div id="payQrBox" style="display:none;margin-top:10px;text-align:center;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;color:#111;"></div>
 
     <div id="splitPayWrap" style="display:none;margin-top:6px;border-top:1px solid var(--line);padding-top:10px;">
@@ -10745,6 +10776,17 @@ async function openCheckoutModal(){
           rw.innerHTML = `<span class="tag tag-red">Entered amount exceeds total by ${fmtMoney(-remaining)}</span>`;
           creditDisplay.value = fmtMoney(0);
         }
+        try{
+          const lw = document.getElementById('creditLimitWrap');
+          if(lw){
+            const li = creditLimitInfo(customer, remaining > 0.01 ? remaining : 0);
+            if(li){
+              lw.style.display = '';
+              document.getElementById('creditLimitMsg').textContent = fillTpl(t(isOwner() ? 'pay_limitOverOwner' : 'pay_limitOver'), [fmtMoney(li.after), fmtMoney(li.limit)]);
+              document.getElementById('creditLimitPinRow').style.display = isOwner() ? 'none' : '';
+            } else lw.style.display = 'none';
+          }
+        }catch(e){}
         // UPI QR for exactly the amount typed against UPI (works for a full UPI payment and for a split)
         try{
           const qrBox = document.getElementById('payQrBox');
@@ -10845,6 +10887,19 @@ async function openCheckoutModal(){
 }
 
 async function finalizeCheckout(tot, getAmountDue){
+  if(window.__co_busy) return;          // a second click while the first is still saving
+  window.__co_busy = true;
+  const _b = document.getElementById('confirmCheckoutBtn'); if(_b) _b.disabled = true;
+  try{ return await finalizeCheckoutInner(tot, getAmountDue); }
+  finally{ window.__co_busy = false; const b2 = document.getElementById('confirmCheckoutBtn'); if(b2) b2.disabled = false; }
+}
+function creditLimitInfo(customer, creditAmt){
+  const lim = Number(customer && customer.creditLimit) || 0;
+  if(!(lim > 0) || !(creditAmt > 0.005)) return null;
+  const after = Math.round(((customer.creditBalance||0) + creditAmt)*100)/100;
+  return after > lim + 0.005 ? {limit:lim, after, due:(customer.creditBalance||0)} : null;
+}
+async function finalizeCheckoutInner(tot, getAmountDue){
   const amountDue = getAmountDue ? getAmountDue() : tot.grandTotal;
   const redeemPts = (SETTINGS.loyaltyEnabled && CART.customerId) ? Math.max(0, parseInt(document.getElementById('redeemPoints')?.value)||0) : 0;
   const redeemValue = redeemPts * (SETTINGS.loyaltyRedeemValue||1);
@@ -10871,6 +10926,28 @@ async function finalizeCheckout(tot, getAmountDue){
     if(redeemPts > 0 && redeemPts > (customer.loyaltyPoints||0)){
       toast(t('toast_notEnoughLoyaltyPoints'),'error');
       return;
+    }
+  }
+
+  // Credit limit: a cashier needs the owner's PIN to put a customer over their limit; the owner may go over.
+  let limitInfo = null, limitBy = null;
+  if(customer){
+    limitInfo = creditLimitInfo(customer, remaining > 0.01 ? remaining : 0);
+    if(limitInfo){
+      if(isOwner()){ limitBy = (CURRENT_USER && CURRENT_USER.name) || t('staff_ownerTag'); }
+      else {
+        const pinEl = document.getElementById('coLimitPin');
+        const pv = pinEl ? pinEl.value.trim() : '';
+        if(!pv){ toast(t('pay_limitPinNeeded'),'error'); if(pinEl) pinEl.focus(); return; }
+        const lr = hasOwnerPin() ? checkOwnerPin(pv) : 'bad';
+        if(lr!=='ok'){
+          toast(pinErrText(lr,'guard_pinWrong'),'error');
+          if(lr==='bad') logAct('pin_failed','Wrong Owner PIN tried to exceed the credit limit of '+customer.name);
+          if(pinEl){ pinEl.value=''; pinEl.focus(); }
+          return;
+        }
+        limitBy = t('staff_ownerTag');
+      }
     }
   }
 
@@ -10945,12 +11022,14 @@ async function finalizeCheckout(tot, getAmountDue){
     // Who was logged in and processed this sale — powers the Staff Sales Performance report.
     soldByKey: CURRENT_USER ? staffKeyFor(CURRENT_USER) : 'owner',
     soldByName: CURRENT_USER ? CURRENT_USER.name : t('staff_ownerTag'),
+    ...(limitInfo ? {creditLimitOver:{limit:limitInfo.limit, after:limitInfo.after, approvedBy:limitBy}} : {}),
     // Manual discounts and price cuts on this bill, and who approved them if the staff limit was passed.
     guard: {manual:_gv.manual, pct:_gv.pct, base:_gv.base, drops:_gv.drops,
             approvedBy:(CART.guardApproval||{}).by||null, reason:(CART.guardApproval||{}).reason||null}
   };
   const billId = await dbAdd('bills', bill);
   bill.id = billId;
+  if(limitInfo) logAct('credit_limit', (customer.name||'')+': due would be '+fmtMoney(limitInfo.after)+' against a limit of '+fmtMoney(limitInfo.limit)+' - approved by '+limitBy+' ('+invoiceNo+')');
 
   let leftoverExchangeCredit = 0;
   const exchangeCreditApplied = CART.exchangeCredit || 0;
@@ -11628,6 +11707,7 @@ function openCustomerModal(customerId){
           <div class="col field"><label>${t('cust_birthdayLabel')}</label><input id="cf_birthday" type="date" value="${customer&&customer.birthday?customer.birthday:''}"></div>
           <div class="col field"><label>${t('cust_anniversaryLabel')}</label><input id="cf_anniversary" type="date" value="${customer&&customer.anniversary?customer.anniversary:''}"></div>
         </div>
+        ${isOwner()?`<div class="field"><label>${t('cust_creditLimitLabel')}</label><input id="cf_limit" type="number" min="0" step="1" value="${customer&&customer.creditLimit?customer.creditLimit:''}"></div>`:''}
       `,
       footerHTML:`
         <button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button>
@@ -11645,11 +11725,14 @@ function openCustomerModal(customerId){
           if(dup){ toast(t('toast_mobileAlreadyUsed').replace('{0}', dup.name),'error'); document.getElementById('cf_phone').focus(); return; }
           const birthday = document.getElementById('cf_birthday').value || '';
           const anniversary = document.getElementById('cf_anniversary').value || '';
+          const limEl = document.getElementById('cf_limit');
+          const creditLimit = limEl ? Math.max(0, Math.round((parseFloat(limEl.value)||0)*100)/100) : 0;
           if(customer){
             customer.name=name; customer.phone=phone; customer.birthday=birthday; customer.anniversary=anniversary;
+            if(limEl) customer.creditLimit = creditLimit;
             await dbPut('customers', customer);
           } else {
-            await dbAdd('customers', {name, phone, birthday, anniversary, firmId: firmIdForStockOps(), creditBalance:0, storeCredit:0, ledger:[], loyaltyPoints:0, pointsLedger:[]});
+            await dbAdd('customers', {name, phone, birthday, anniversary, creditLimit, firmId: firmIdForStockOps(), creditBalance:0, storeCredit:0, ledger:[], loyaltyPoints:0, pointsLedger:[]});
           }
           closeModal();
           toast(t('toast_saved'),'success');
@@ -11660,7 +11743,8 @@ function openCustomerModal(customerId){
   });
 }
 
-async function deleteCustomerConfirm(customerId){
+async function deleteCustomerConfirm(customerId, approved){
+  if(!approved && !isOwner()){ requireOwnerApproval(t('action_deleteCustomer'), ()=>deleteCustomerConfirm(customerId, true)); return; }
   const customer = await dbGet('customers', customerId);
   if(customer.creditBalance>0){
     toast(t('toast_cannotDeleteCustomerCredit'),'error');
@@ -15122,8 +15206,8 @@ async function openMergeModal(ids){
         const reason = document.getElementById('mg_reason').value.trim();
         if(!billNo){ toast(t('toast_mgBillNo'),'error'); return; }
         if(reason.length<4){ toast(t('toast_mgReason'),'error'); return; }
-        const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
-        if(ownerPin && document.getElementById('mg_pin').value.trim()!==ownerPin){ toast(t('toast_mgPin'),'error'); logAct('pin_failed','Wrong Owner PIN tried to merge supplier bills'); return; }
+        const _pr = hasOwnerPin() ? checkOwnerPin(document.getElementById('mg_pin').value) : 'ok';
+        if(_pr!=='ok'){ toast(pinErrText(_pr,'toast_mgPin'),'error'); if(_pr==='bad') logAct('pin_failed','Wrong Owner PIN tried to merge supplier bills'); return; }
         const res = await executeMerge(ids, billNo, document.getElementById('mg_date').value, reason);
         if(res!==true){ if(res) toast(t(res),'error'); return; }
         closeModal(); toast(t('toast_mgDone'),'success'); await refreshSupplierSurfaces();
@@ -15235,8 +15319,8 @@ async function openVoidModal(supplierId, entryId, opts){
       document.getElementById('vd_go').addEventListener('click', async ()=>{
         const reason = document.getElementById('vd_reason').value.trim();
         if(reason.length<4){ toast(t('toast_voidReasonShort'),'error'); return; }
-        const ownerPin = SETTINGS.users && SETTINGS.users.ownerPin;
-        if(ownerPin && document.getElementById('vd_pin').value.trim()!==ownerPin){ toast(t('toast_voidPinWrong'),'error'); logAct('pin_failed','Wrong Owner PIN tried to void a supplier entry'); return; }
+        const _pr = hasOwnerPin() ? checkOwnerPin(document.getElementById('vd_pin').value) : 'ok';
+        if(_pr!=='ok'){ toast(pinErrText(_pr,'toast_voidPinWrong'),'error'); if(_pr==='bad') logAct('pin_failed','Wrong Owner PIN tried to void a supplier entry'); return; }
         const stockEl = document.getElementById('vd_stock');
         const ok = await executeVoid(supplierId, entryId, opts.invId||null, reason, stockEl ? stockEl.checked : false);
         if(!ok) return;
@@ -17657,10 +17741,169 @@ async function deleteAlterationConfirm(jobId){
 let CURRENT_USER = null;
 const SESSION_KEY = 'boutique_session_v1';
 
+/* ===== PIN safety (v0.1.37) =====
+   PINs and the recovery code are never stored as typed any more - only a salted, stretched SHA-256 fingerprint.
+   Wrong tries are counted across every PIN box in the app: 5 wrong = locked for 1 minute, 10 = 5 minutes,
+   15 or more = 15 minutes. The counter survives a reload. */
+function _sha256hex(str){
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const s = unescape(encodeURIComponent(str));
+  const bytes = []; for(let i=0;i<s.length;i++) bytes.push(s.charCodeAt(i));
+  const bitLen = bytes.length * 8;
+  bytes.push(0x80);
+  while(bytes.length % 64 !== 56) bytes.push(0);
+  const hi = Math.floor(bitLen / 0x100000000), lo = bitLen >>> 0;
+  bytes.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
+  let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+  const w = new Array(64);
+  const rotr = (x,n)=>(x>>>n)|(x<<(32-n));
+  for(let o=0;o<bytes.length;o+=64){
+    for(let i=0;i<16;i++) w[i] = (bytes[o+i*4]<<24)|(bytes[o+i*4+1]<<16)|(bytes[o+i*4+2]<<8)|bytes[o+i*4+3];
+    for(let i=16;i<64;i++){
+      const s0 = rotr(w[i-15],7)^rotr(w[i-15],18)^(w[i-15]>>>3);
+      const s1 = rotr(w[i-2],17)^rotr(w[i-2],19)^(w[i-2]>>>10);
+      w[i] = (w[i-16]+s0+w[i-7]+s1)|0;
+    }
+    let a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;
+    for(let i=0;i<64;i++){
+      const S1 = rotr(e,6)^rotr(e,11)^rotr(e,25);
+      const ch = (e&f)^(~e&g);
+      const t1 = (h+S1+ch+K[i]+w[i])|0;
+      const S0 = rotr(a,2)^rotr(a,13)^rotr(a,22);
+      const mj = (a&b)^(a&c)^(b&c);
+      const t2 = (S0+mj)|0;
+      h=g; g=f; f=e; e=(d+t1)|0; d=c; c=b; b=a; a=(t1+t2)|0;
+    }
+    h0=(h0+a)|0; h1=(h1+b)|0; h2=(h2+c)|0; h3=(h3+d)|0; h4=(h4+e)|0; h5=(h5+f)|0; h6=(h6+g)|0; h7=(h7+h)|0;
+  }
+  return [h0,h1,h2,h3,h4,h5,h6,h7].map(x=>('00000000'+(x>>>0).toString(16)).slice(-8)).join('');
+}
+function _pinStretch(secret, salt){
+  let h = _sha256hex(salt + ':' + secret);
+  for(let i=0;i<3000;i++) h = _sha256hex(h + salt + secret);
+  return h;
+}
+function _rndHex(n){
+  const a = new Uint8Array(n);
+  try{ (window.crypto||window.msCrypto).getRandomValues(a); }catch(e){ for(let i=0;i<n;i++) a[i] = Math.floor(Math.random()*256); }
+  return Array.from(a, b=>('0'+b.toString(16)).slice(-2)).join('');
+}
+function makePinHash(secret){ const salt = _rndHex(8); return 'h1$' + salt + '$' + _pinStretch(String(secret), salt); }
+function pinHashMatches(stored, secret){
+  if(!stored || secret==null || secret==='') return false;
+  const p = String(stored).split('$');
+  return p.length===3 && p[0]==='h1' && _pinStretch(String(secret), p[1]) === p[2];
+}
+function _normRecovery(c){ return String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+
+const PINLOCK_KEY = 'boutique_pinlock_v1';
+function _plRead(){
+  try{ const o = JSON.parse(localStorage.getItem(PINLOCK_KEY)||'null'); if(o) return o; }catch(e){}
+  return window.__plMem || {n:0, until:0};
+}
+function _plWrite(o){ window.__plMem = o; try{ localStorage.setItem(PINLOCK_KEY, JSON.stringify(o)); }catch(e){} }
+function pinLockSecs(){ const o = _plRead(); const s = Math.ceil(((o.until||0) - Date.now())/1000); return s>0 ? s : 0; }
+function pinFailed(){
+  const o = _plRead(); o.n = (o.n||0) + 1;
+  if(o.n % 5 === 0){ const step = Math.min(2, o.n/5 - 1); o.until = Date.now() + [60,300,900][step]*1000; }
+  _plWrite(o);
+}
+function pinPassed(){ _plWrite({n:0, until:0}); }
+function pinLockMsg(){
+  const s = pinLockSecs();
+  const txt = s>=60 ? t('staff_idleMinFmt').replace('{0}', Math.ceil(s/60)) : t('auth_secFmt').replace('{0}', s);
+  return t('auth_lockedMsg').replace('{0}', txt);
+}
+// 'ok' | 'bad' | 'locked'
+function _pinCheck(entered, hashField, plainField, obj){
+  if(pinLockSecs() > 0) return 'locked';
+  const pin = String(entered==null ? '' : entered).trim();
+  if(!pin) return 'bad';
+  let ok = false;
+  if(obj && obj[hashField]) ok = pinHashMatches(obj[hashField], pin);
+  else if(obj && obj[plainField]) ok = (pin === String(obj[plainField]));   // old data not yet converted
+  if(ok){ pinPassed(); return 'ok'; }
+  pinFailed(); return 'bad';
+}
+function hasOwnerPin(){ const u = SETTINGS && SETTINGS.users; return !!(u && (u.ownerPinHash || u.ownerPin)); }
+function checkOwnerPin(pin){ return _pinCheck(pin, 'ownerPinHash', 'ownerPin', SETTINGS && SETTINGS.users); }
+function checkStaffPin(s, pin){ return _pinCheck(pin, 'pinHash', 'pin', s); }
+function checkRecoveryCode(code){
+  if(pinLockSecs() > 0) return 'locked';
+  const c = _normRecovery(code), u = (SETTINGS && SETTINGS.users) || {};
+  let ok = false;
+  if(c){
+    if(u.recoveryHash) ok = pinHashMatches(u.recoveryHash, c);
+    else if(u.recoveryCode) ok = (c === _normRecovery(u.recoveryCode));
+  }
+  if(ok){ pinPassed(); return 'ok'; }
+  if(c) pinFailed();
+  return 'bad';
+}
+function pinErrText(r, badKey){ return (r==='locked' || pinLockSecs()>0) ? pinLockMsg() : t(badKey); }
+// Turn PINs saved the old way (as typed) into fingerprints, once.
+async function migratePins(){
+  const u = SETTINGS && SETTINGS.users; if(!u) return;
+  let ch = false;
+  if(u.ownerPin){ if(!u.ownerPinHash) u.ownerPinHash = makePinHash(u.ownerPin); delete u.ownerPin; ch = true; }
+  if(u.recoveryCode){ if(!u.recoveryHash) u.recoveryHash = makePinHash(_normRecovery(u.recoveryCode)); delete u.recoveryCode; ch = true; }
+  (u.staff||[]).forEach(s=>{ if(s.pin){ if(!s.pinHash) s.pinHash = makePinHash(s.pin); delete s.pin; ch = true; } });
+  if(ch) await saveSettings({users:u});
+}
+
+/* ---- Auto-lock after no activity (default 10 minutes, Settings can change or switch it off) ---- */
+let LAST_ACTIVITY = Date.now(), IDLE_TIMER = null, LAST_LOCKED = null, LOCK_VIEW = null;
+function idleMinutes(){ const v = SETTINGS && SETTINGS.idleLockMinutes; return (v===undefined || v===null) ? 10 : (Number(v)||0); }
+function touchActivity(){ LAST_ACTIVITY = Date.now(); }
+function startIdleWatch(){
+  if(IDLE_TIMER) return;
+  ['mousemove','mousedown','keydown','touchstart','wheel','click'].forEach(ev=>document.addEventListener(ev, touchActivity, true));
+  IDLE_TIMER = setInterval(idleTick, 10000);
+}
+function idleTick(){
+  if(!CURRENT_USER) return;
+  const m = idleMinutes(); if(!m) return;
+  if(window.__co_busy){ touchActivity(); return; }
+  if(Date.now() - LAST_ACTIVITY >= m*60000) lockApp();
+}
+function lockApp(){
+  if(!CURRENT_USER) return;
+  LAST_LOCKED = CURRENT_USER;
+  const act = document.querySelector('[id^="view-"].active');
+  LOCK_VIEW = act ? act.id.slice(5) : null;
+  CURRENT_USER = null;
+  try{ closeModal(); }catch(e){}
+  showLoginScreen(LAST_LOCKED.role==='cashier' ? 'staff' : 'owner', t('auth_idleLocked'));
+}
+async function finishLogin(user){
+  CURRENT_USER = user;
+  hideAuthScreen();
+  const L = LAST_LOCKED; LAST_LOCKED = null;
+  const resumed = !!(L && L.role===user.role && L.id===user.id);
+  if(!resumed){ if(L) await recordCheckOut(L); await recordCheckIn(user); }
+  touchActivity();
+  await onAuthResolved();
+  if(resumed && LOCK_VIEW) showView(LOCK_VIEW);
+  LOCK_VIEW = null;
+}
+
+/* One click = one action. A second click on the same Save / Confirm / Add button inside a dialog within
+   a short moment is ignored, so a nervous double-click can never make two bills or add stock twice. */
+(function(){
+  const seen = new WeakMap();
+  document.addEventListener('click', function(e){
+    const b = (e.target && e.target.closest) ? e.target.closest('#modalFooter button.btn-primary, #modalFooter button.btn-gold, #modalFooter button.btn-danger, #modalFooter button.btn-success') : null;
+    if(!b) return;
+    const now = Date.now(), last = seen.get(b) || 0;
+    if(now - last < 900){ e.stopImmediatePropagation(); e.preventDefault(); return; }
+    seen.set(b, now);
+  }, true);
+})();
+
 function getSavedSession(){
   try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||'null'); }catch(e){ return null; }
 }
-function saveSession(user){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }catch(e){} }
+function saveSession(user){ /* v0.1.37: sign-in is no longer remembered across restarts */ }
 function clearSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
 
 /* ---- Attendance (recorded on explicit login/logout, not on silent session restore) ---- */
@@ -17705,33 +17948,22 @@ function hideAuthScreen(){
 
 async function initAuth(){
   const users = SETTINGS.users;
-  if(!users || !users.ownerPin){
+  if(!users || !(users.ownerPinHash || users.ownerPin)){
     showOwnerSetupScreen();
     return;
   }
-  const saved = getSavedSession();
-  if(saved && saved.role==='owner'){
-    CURRENT_USER = {role:'owner', name:t('staff_ownerTag')};
-    hideAuthScreen();
-    await onAuthResolved();
-    return;
-  }
-  if(saved && saved.role==='cashier'){
-    const staff = (users.staff||[]).find(s=>s.id===saved.id);
-    if(staff){
-      CURRENT_USER = {role:'cashier', name:staff.name, id:staff.id};
-      hideAuthScreen();
-      await onAuthResolved();
-      return;
-    }
-  }
+  await migratePins();
+  clearSession();          // an old remembered sign-in from before v0.1.37 must not skip the PIN
+  startIdleWatch();
   showLoginScreen('owner');
 }
 
 function generateRecoveryCode(){
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid confusion
   let code = '';
-  for(let i=0;i<8;i++){ code += chars[Math.floor(Math.random()*chars.length)]; if(i===3) code+='-'; }
+  const rnd = new Uint8Array(8);
+  try{ crypto.getRandomValues(rnd); }catch(e){ for(let i=0;i<8;i++) rnd[i] = Math.floor(Math.random()*256); }
+  for(let i=0;i<8;i++){ code += chars[rnd[i] % chars.length]; if(i===3) code+='-'; }
   return code;
 }
 
@@ -17753,7 +17985,7 @@ function showOwnerSetupScreen(){
     if(!/^\d{4,6}$/.test(p1)){ err.textContent=t('auth_pinMustBe46'); return; }
     if(p1!==p2){ err.textContent=t('auth_pinsDoNotMatch'); return; }
     const recoveryCode = generateRecoveryCode();
-    await saveSettings({ users: { ownerPin:p1, recoveryCode, staff:[] } });
+    await saveSettings({ users: { ownerPinHash:makePinHash(p1), recoveryHash:makePinHash(_normRecovery(recoveryCode)), staff:[] } });
     showRecoveryCodeScreen(recoveryCode, true);
   });
 }
@@ -17775,10 +18007,10 @@ function showRecoveryCodeScreen(code, isFirstTime){
   document.getElementById('recovery_continue').addEventListener('click', async ()=>{
     if(isFirstTime){
       CURRENT_USER = {role:'owner', name:t('staff_ownerTag')};
-      saveSession({role:'owner'});
       hideAuthScreen();
       toast(t('toast_ownerPinCreated'),'success');
       await recordCheckIn(CURRENT_USER);
+      startIdleWatch(); touchActivity();
       await onAuthResolved();
     } else {
       showLoginScreen('owner');
@@ -17804,12 +18036,13 @@ function showForgotPinScreen(){
     const code = document.getElementById('rec_code').value.trim().toUpperCase();
     const newPin = document.getElementById('rec_newpin').value.trim();
     const err = document.getElementById('rec_err');
-    if(code !== (SETTINGS.users.recoveryCode||'').toUpperCase()){ err.textContent = t('auth_recoveryIncorrect'); return; }
+    const rc = checkRecoveryCode(code);
+    if(rc!=='ok'){ err.textContent = pinErrText(rc, 'auth_recoveryIncorrect'); if(rc==='bad') logAct('login_failed','Wrong recovery code tried'); return; }
     if(!/^\d{4,6}$/.test(newPin)){ err.textContent = t('auth_newPinMustBe46'); return; }
     const users = SETTINGS.users;
-    users.ownerPin = newPin;
+    users.ownerPinHash = makePinHash(newPin); delete users.ownerPin;
     const newRecoveryCode = generateRecoveryCode();
-    users.recoveryCode = newRecoveryCode;
+    users.recoveryHash = makePinHash(_normRecovery(newRecoveryCode)); delete users.recoveryCode;
     await saveSettings({users});
     toast(t('toast_pinReset'),'success');
     showRecoveryCodeScreen(newRecoveryCode, false);
@@ -17820,13 +18053,14 @@ function showForgotPinScreen(){
 window.resetShopPIN = async function(){
   if(!db) await openDB();
   const users = SETTINGS.users;
-  if(users){ delete users.ownerPin; delete users.recoveryCode; users.staff = []; await saveSettings({users}); }
+  if(users){ delete users.ownerPin; delete users.recoveryCode; delete users.ownerPinHash; delete users.recoveryHash; users.staff = []; await saveSettings({users}); }
+  pinPassed();
   clearSession();
   console.log('PIN lock cleared. Reload the page to set up a new owner PIN. Your products, bills and customers were not touched.');
   location.reload();
 };
 
-function showLoginScreen(activeTab){
+function showLoginScreen(activeTab, note){
   showAuthScreen();
   activeTab = activeTab || 'owner';
   const staff = (SETTINGS.users && SETTINGS.users.staff) || [];
@@ -17834,6 +18068,7 @@ function showLoginScreen(activeTab){
     <div class="logo">B</div>
     <h2 style="text-align:center;">${escapeHTML(SETTINGS.name||t('auth_defaultShopName'))}</h2>
     <p class="sub">${t('auth_signInToContinue')}</p>
+    ${note?`<p class="sub" style="color:var(--wine);font-weight:700;">${escapeHTML(note)}</p>`:''}
     <p class="sub" style="margin-top:-6px;font-size:11px;opacity:.8;">${t('brand_productLine')}</p>
     <div class="auth-tabs" id="authTabs">
       <button data-tab="owner" class="${activeTab==='owner'?'active':''}">${t('staff_ownerTag')}</button>
@@ -17861,15 +18096,12 @@ function showLoginScreen(activeTab){
   const ownerGo = document.getElementById('login_owner_go');
   if(ownerGo) ownerGo.addEventListener('click', async ()=>{
     const pin = document.getElementById('login_owner_pin').value.trim();
-    if(pin && pin === SETTINGS.users.ownerPin){
-      CURRENT_USER = {role:'owner', name:t('staff_ownerTag')};
-      saveSession({role:'owner'});
-      hideAuthScreen();
-      await recordCheckIn(CURRENT_USER);
-      await onAuthResolved();
+    const r = checkOwnerPin(pin);
+    if(r==='ok'){
+      await finishLogin({role:'owner', name:t('staff_ownerTag')});
     } else {
-      document.getElementById('login_err').textContent = t('auth_incorrectPin');
-      logAct('login_failed', 'Wrong PIN tried on the Owner login');
+      document.getElementById('login_err').textContent = pinErrText(r, 'auth_incorrectPin');
+      if(r==='bad') logAct('login_failed', 'Wrong PIN tried on the Owner login');
     }
   });
   const staffGo = document.getElementById('login_staff_go');
@@ -17877,15 +18109,12 @@ function showLoginScreen(activeTab){
     const id = parseInt(document.getElementById('login_staff_select').value);
     const pin = document.getElementById('login_staff_pin').value.trim();
     const s = (SETTINGS.users.staff||[]).find(x=>x.id===id);
-    if(s && pin && pin===s.pin){
-      CURRENT_USER = {role:'cashier', name:s.name, id:s.id};
-      saveSession({role:'cashier', id:s.id});
-      hideAuthScreen();
-      await recordCheckIn(CURRENT_USER);
-      await onAuthResolved();
+    const r = s ? checkStaffPin(s, pin) : (pinLockSecs()>0 ? 'locked' : 'bad');
+    if(r==='ok'){
+      await finishLogin({role:'cashier', name:s.name, id:s.id});
     } else {
-      document.getElementById('login_err').textContent = t('auth_incorrectPin');
-      logAct('login_failed', 'Wrong PIN tried for staff login: '+(s?s.name:'?'));
+      document.getElementById('login_err').textContent = pinErrText(r, 'auth_incorrectPin');
+      if(r==='bad') logAct('login_failed', 'Wrong PIN tried for staff login: '+(s?s.name:'?'));
     }
   });
 }
@@ -17903,6 +18132,7 @@ function updateUserChip(){
 async function doLogout(){
   await recordCheckOut(CURRENT_USER);
   clearSession();
+  LAST_LOCKED = null; LOCK_VIEW = null;
   CURRENT_USER = null;
   showLoginScreen('owner');
 }
@@ -17924,6 +18154,11 @@ function renderStaffManagement(){
       <button class="btn btn-outline btn-sm" id="addStaffBtn" style="margin-top:10px;">${t('staff_addStaffBtn')}</button>
       <h3 class="sub-title">${t('staff_ownerPinSubtitle')}</h3>
       <button class="btn btn-outline btn-sm" id="changeOwnerPinBtn">${t('staff_changeOwnerPinBtn')}</button>
+      <h3 class="sub-title">${t('staff_idleLockTitle')}</h3>
+      <p class="muted" style="font-size:12px;">${t('staff_idleLockHint')}</p>
+      <select id="idleLockSel" style="max-width:220px;">
+        ${[0,5,10,15,30].map(m=>`<option value="${m}" ${idleMinutes()===m?'selected':''}>${m===0?t('staff_idleOff'):t('staff_idleMinFmt').replace('{0}',m)}</option>`).join('')}
+      </select>
       <h3 class="sub-title">${t('staff_attendanceSubtitle')}</h3>
       <p class="muted" style="font-size:12px;">${t('staff_attendanceHint')}</p>
       <button class="btn btn-outline btn-sm" id="viewAttendanceBtn">${t('staff_viewAttendanceLogBtn')}</button>
@@ -17949,9 +18184,9 @@ function wireStaffManagement(){
           const pin = document.getElementById('st_pin').value.trim();
           if(!name){ toast(t('toast_nameRequired'),'error'); return; }
           if(!/^\d{4,6}$/.test(pin)){ toast(t('toast_pinLength'),'error'); return; }
-          const users = SETTINGS.users || {ownerPin:'', staff:[]};
+          const users = SETTINGS.users || {staff:[]};
           users.staff = users.staff || [];
-          users.staff.push({id: Date.now(), name, pin});
+          users.staff.push({id: Date.now(), name, pinHash: makePinHash(pin)});
           await saveSettings({users});
           closeModal();
           toast(t('toast_staffAdded'),'success');
@@ -17959,6 +18194,12 @@ function wireStaffManagement(){
         });
       }
     });
+  });
+  const idleSel = document.getElementById('idleLockSel');
+  if(idleSel) idleSel.addEventListener('change', async ()=>{
+    await saveSettings({idleLockMinutes: Number(idleSel.value)||0});
+    touchActivity();
+    toast(t('toast_saved'),'success');
   });
   const attendanceBtn = document.getElementById('viewAttendanceBtn');
   if(attendanceBtn) attendanceBtn.addEventListener('click', showAttendanceLog);
@@ -17977,10 +18218,12 @@ function wireStaffManagement(){
         document.getElementById('co_save').addEventListener('click', async ()=>{
           const current = document.getElementById('co_current').value.trim();
           const next = document.getElementById('co_new').value.trim();
-          if(current!==SETTINGS.users.ownerPin){ toast(t('toast_currentPinIncorrect'),'error'); return; }
+          const cr = checkOwnerPin(current);
+          if(cr!=='ok'){ toast(pinErrText(cr, 'toast_currentPinIncorrect'),'error'); return; }
           if(!/^\d{4,6}$/.test(next)){ toast(t('toast_newPinLength'),'error'); return; }
-          const users = SETTINGS.users; users.ownerPin = next;
+          const users = SETTINGS.users; users.ownerPinHash = makePinHash(next); delete users.ownerPin;
           await saveSettings({users});
+          logAct('owner_pin_change', 'Owner PIN was changed');
           closeModal();
           toast(t('toast_ownerPinUpdated'),'success');
         });
@@ -17999,7 +18242,7 @@ async function editStaffPin(staffId){
         if(!/^\d{4,6}$/.test(pin)){ toast(t('toast_pinLength'),'error'); return; }
         const users = SETTINGS.users;
         const s = users.staff.find(x=>x.id===staffId);
-        if(s) s.pin = pin;
+        if(s){ s.pinHash = makePinHash(pin); delete s.pin; logAct('staff_pin_change', 'PIN changed for '+s.name); }
         await saveSettings({users});
         closeModal();
         toast(t('toast_pinUpdated'),'success');
