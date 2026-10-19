@@ -9684,13 +9684,10 @@ async function renderTodaysSalesStrip(){
   const bills = scopeBillsToActiveFirm(await scopedLiveBills());
   const todayStr = new Date().toDateString();
   const todays = bills.filter(b=>new Date(b.date).toDateString()===todayStr);
-  const salesTotal = todays.reduce((sum,b)=>sum+(b.grandTotal||0),0);
-  const cashTotal = todays.reduce((sum,b)=>sum+((b.payments||[]).filter(p=>p.mode==='Cash').reduce((s,p)=>s+p.amount,0)),0);
+  // Sales and cash collected are no longer shown in the billing window (they are on the Dashboard and in Accounts).
   wrap.innerHTML = `
-    <div class="stat-tiles" style="grid-template-columns:repeat(3,1fr);">
+    <div class="stat-tiles" style="grid-template-columns:1fr;">
       <div class="stat-tile"><div class="label">${t('bill_billsToday')}</div><div class="value">${todays.length}</div></div>
-      <div class="stat-tile"><div class="label">${t('bill_salesToday')}</div><div class="value">${fmtMoney(salesTotal)}</div></div>
-      <div class="stat-tile"><div class="label">${t('bill_cashCollectedToday')}</div><div class="value">${fmtMoney(cashTotal)}</div></div>
     </div>
   `;
 }
