@@ -1635,6 +1635,9 @@ const I18N = {
     gst_approval:'Changing the GST type of a purchase bill',
     gst_historyLine:'GST type changed ({0}): {1} → {2}, total {3} → {4}',
     sa_lastVendor:'Last bought from: {0} (you can change it)',
+    pay_qrScan:'Scan to pay {0} by UPI',
+    pay_qrNoUpiId:'To show a UPI QR here, add your UPI ID in Settings.',
+    print_scanUpiPart:'Scan to pay {0} (UPI part of this bill)',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2272,6 +2275,9 @@ const I18N = {
     gst_approval:'खरेदी बिलाचा GST प्रकार बदलणे',
     gst_historyLine:'GST प्रकार बदलला ({0}): {1} → {2}, एकूण {3} → {4}',
     sa_lastVendor:'शेवटचे यांच्याकडून घेतले: {0} (बदलता येईल)',
+    pay_qrScan:'UPI ने {0} भरण्यासाठी स्कॅन करा',
+    pay_qrNoUpiId:'येथे UPI QR दिसण्यासाठी सेटिंग्जमध्ये तुमचा UPI ID टाका.',
+    print_scanUpiPart:'{0} भरण्यासाठी स्कॅन करा (या बिलातील UPI भाग)',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -10623,6 +10629,7 @@ async function openCheckoutModal(){
       <button type="button" class="btn btn-outline btn-sm" id="payFullCreditBtn" ${!CART.customerId?'disabled title="Select a customer first"':''}>Full Credit</button>
     </div>
     <div id="payRemainingWrap" style="margin-top:10px;font-size:13px;"></div>
+    <div id="payQrBox" style="display:none;margin-top:10px;text-align:center;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;color:#111;"></div>
 
     <div id="splitPayWrap" style="display:none;margin-top:6px;border-top:1px solid var(--line);padding-top:10px;">
       <div class="row" style="flex-wrap:wrap;">
@@ -10679,6 +10686,27 @@ async function openCheckoutModal(){
           rw.innerHTML = `<span class="tag tag-red">Entered amount exceeds total by ${fmtMoney(-remaining)}</span>`;
           creditDisplay.value = fmtMoney(0);
         }
+        // UPI QR for exactly the amount typed against UPI (works for a full UPI payment and for a split)
+        try{
+          const qrBox = document.getElementById('payQrBox');
+          const upiModes = enabledModes.filter(m=>/upi/i.test(m));
+          const upiAmt = Math.round(upiModes.reduce((s,m)=>s+(perMode[m]||0),0)*100)/100;
+          if(qrBox){
+            if(upiAmt > 0){
+              const qFirm = billableFirmId() || (combinedBilling() ? combinedIssueFirmId() : null);
+              const upiId = firmValue(qFirm, 'upiId');
+              const qName = ((qFirm && firmById(qFirm)) || {}).name || SETTINGS.name;
+              if(upiId){
+                qrBox.innerHTML = `<div style="display:inline-block;">${renderUPIQRSVG(upiId, qName, upiAmt, 'Bill payment', 5)}</div>` +
+                  `<div style="font-weight:700;margin-top:2px;">${escapeHTML(fillTpl(t('pay_qrScan'), [fmtMoney(upiAmt)]))}</div>` +
+                  `<div style="font-size:11.5px;color:#555;">${escapeHTML(upiId)}</div>`;
+              } else {
+                qrBox.innerHTML = `<div style="font-size:12.5px;color:#555;">${escapeHTML(t('pay_qrNoUpiId'))}</div>`;
+              }
+              qrBox.style.display = '';
+            } else { qrBox.style.display = 'none'; qrBox.innerHTML = ''; }
+          }
+        }catch(e){}
         if(hasCash){
           const cashCard = document.getElementById('cashTenderedCard');
           if(perMode['Cash'] > 0){ cashCard.style.display=''; }
@@ -11050,13 +11078,16 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
     const paidSoFar = (bill.payments||[]).reduce((s,p)=>s+Number(p.amount||0),0);
     const stillDue = Math.round((Number(bill.creditAmount||0) > 0 ? Number(bill.creditAmount) : (payable - paidSoFar))*100)/100;
     // Scan for whatever is still owed; on a settled bill that is the full total.
-    const payAmount = stillDue > 0 ? stillDue : Math.round(Number(payable||0)*100)/100;
+    // Split payment (e.g. ₹500 cash + ₹300 UPI): the QR is for the UPI part only, not the whole bill.
+    const upiPart = Math.round((bill.payments||[]).filter(p=>/upi/i.test(p.mode||'')).reduce((s,p)=>s+Number(p.amount||0),0)*100)/100;
+    const upiSplit = qrMode === 'always' && upiPart > 0 && upiPart + 0.009 < Number(bill.grandTotal||0);
+    const payAmount = upiPart > 0 && qrMode === 'always' ? upiPart : (stillDue > 0 ? stillDue : Math.round(Number(payable||0)*100)/100);
     if(payAmount > 0 && (qrMode === 'always' || stillDue > 0)){
       const qrSvg = renderUPIQRSVG(billUpi, billShopName(bill), payAmount, bill.invoiceNo, isThermal?3:4);
       if(qrSvg){
         qrHTML = `<div style="text-align:center;border-top:1px solid #000;padding:${isThermal?'6px 4px':'10px 8px'};">
           <div style="display:inline-block;">${qrSvg}</div>
-          <div style="font-size:${isThermal?'.82em':'.85em'};" class="muted">${t('print_scanToPay')}${fmtMoney(payAmount)}${t('print_viaUpi')}</div>
+          <div style="font-size:${isThermal?'.82em':'.85em'};" class="muted">${upiSplit ? escapeHTML(fillTpl(t('print_scanUpiPart'), [fmtMoney(payAmount)])) : (t('print_scanToPay')+fmtMoney(payAmount)+t('print_viaUpi'))}</div>
         </div>`;
       }
     }
