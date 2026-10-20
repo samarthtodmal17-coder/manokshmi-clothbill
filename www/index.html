@@ -1692,6 +1692,42 @@ const I18N = {
     pay_limitPinNeeded:'Owner PIN is needed to go over the credit limit',
     action_deleteCustomer:'Deleting a customer',
     act_credit_limit:'Credit limit crossed',
+    sales_paidLater:'paid after billing',
+    sales_dueLine:'Due {0}',
+    pay_receiveBtn:'Receive payment',
+    pay_receiveTitle:'Receive payment - {0}',
+    pay_dueOnBill:'Due on this bill',
+    pay_receiveHint:'Saved in the customer account and the Day Book today, with your name.',
+    pay_nothingDue:'Nothing is due on this bill',
+    pay_forBill:'For bill',
+    pay_oldestFirst:'Oldest bills first (automatic)',
+    cust_payTooMuch:'That is more than the customer owes ({0}).',
+    cust_payTooMuchBill:'That is more than is due on this bill ({0}).',
+    pay_creditStatus:'Credit on this bill',
+    pay_creditGiven:'Given on credit',
+    pay_dueWord:'due',
+    pay_olderPayments:'settled by older payments recorded before bills were linked',
+    print_paidLater:'Paid later',
+    print_balanceDueNow:'Balance due',
+    edit_btn:'Edit',
+    edit_tag:'Edited',
+    edit_title:'Edit bill {0}',
+    edit_saveBtn:'Save changes',
+    edit_intro:'You can change the customer, how each payment was taken, and add a remark. Items, prices and amounts cannot change - cancel the bill and make a new one for that. Every change is recorded with your name.',
+    edit_paymentModes:'Payment mode',
+    edit_modeHint:'Only the mode can change, not the amount.',
+    edit_remark:'Remark (internal)',
+    edit_reason:'Why is it being changed? (required)',
+    edit_reasonPh:'e.g. customer paid by UPI, not cash',
+    edit_errReason:'Please write the reason (at least 4 letters)',
+    edit_nothing:'Nothing was changed',
+    edit_errDayClosed:'That day is already closed, so the payment mode cannot change. Reopen the day first.',
+    edit_lockCustomer:'The customer cannot be changed because credit, points or store credit on this bill belong to them. Cancel and re-bill instead.',
+    edit_lockReturns:'A return was made on this bill, so it is locked.',
+    edit_saved:'Bill updated',
+    edit_history:'Changes made to this bill',
+    act_credit_payment:'Credit payment received',
+    act_bill_edit:'Bill edited',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2363,6 +2399,42 @@ const I18N = {
     pay_limitPinNeeded:'उधारी मर्यादा ओलांडण्यासाठी मालकाचा PIN लागतो',
     action_deleteCustomer:'ग्राहक काढून टाकणे',
     act_credit_limit:'उधारी मर्यादा ओलांडली',
+    sales_paidLater:'बिलानंतर भरले',
+    sales_dueLine:'बाकी {0}',
+    pay_receiveBtn:'पैसे घ्या',
+    pay_receiveTitle:'पैसे घ्या - {0}',
+    pay_dueOnBill:'या बिलावर बाकी',
+    pay_receiveHint:'ग्राहकाच्या खात्यात आणि आजच्या डे बुकमध्ये तुमच्या नावासह नोंद होते.',
+    pay_nothingDue:'या बिलावर काही बाकी नाही',
+    pay_forBill:'कोणत्या बिलासाठी',
+    pay_oldestFirst:'सर्वात जुनी बिले आधी (आपोआप)',
+    cust_payTooMuch:'ग्राहकाकडे बाकी आहे त्यापेक्षा जास्त ({0}).',
+    cust_payTooMuchBill:'या बिलावर बाकी आहे त्यापेक्षा जास्त ({0}).',
+    pay_creditStatus:'या बिलावरील उधारी',
+    pay_creditGiven:'उधारीवर दिले',
+    pay_dueWord:'बाकी',
+    pay_olderPayments:'बिलांशी जोडणीच्या आधी नोंदवलेल्या जुन्या पेमेंटने फेडले',
+    print_paidLater:'नंतर भरले',
+    print_balanceDueNow:'बाकी रक्कम',
+    edit_btn:'बदल करा',
+    edit_tag:'बदललेले',
+    edit_title:'बिल {0} मध्ये बदल',
+    edit_saveBtn:'बदल जतन करा',
+    edit_intro:'ग्राहक, प्रत्येक पेमेंट कसे घेतले आणि शेरा बदलता येतो. वस्तू, किंमत आणि रक्कम बदलता येत नाही - त्यासाठी बिल रद्द करून नवे बिल करा. प्रत्येक बदल तुमच्या नावासह नोंदवला जातो.',
+    edit_paymentModes:'पेमेंट प्रकार',
+    edit_modeHint:'फक्त प्रकार बदलता येतो, रक्कम नाही.',
+    edit_remark:'शेरा (अंतर्गत)',
+    edit_reason:'बदल का करत आहात? (आवश्यक)',
+    edit_reasonPh:'उदा. ग्राहकाने रोख नाही तर UPI ने दिले',
+    edit_errReason:'कृपया कारण लिहा (किमान 4 अक्षरे)',
+    edit_nothing:'काहीही बदलले नाही',
+    edit_errDayClosed:'तो दिवस आधीच बंद झाला आहे, त्यामुळे पेमेंट प्रकार बदलता येत नाही. आधी दिवस पुन्हा उघडा.',
+    edit_lockCustomer:'या बिलावरील उधारी, पॉइंट किंवा स्टोअर क्रेडिट ग्राहकाशी जोडलेले असल्याने ग्राहक बदलता येत नाही. रद्द करून पुन्हा बिल करा.',
+    edit_lockReturns:'या बिलावर परतावा झाला आहे, त्यामुळे ते लॉक आहे.',
+    edit_saved:'बिल अद्ययावत झाले',
+    edit_history:'या बिलात केलेले बदल',
+    act_credit_payment:'उधारीचे पैसे मिळाले',
+    act_bill_edit:'बिल बदलले',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -2571,7 +2643,7 @@ async function verifyActMonth(key){
   return {ok:!bad.length, bad, count:list.length};
 }
 function actKindLabel(k){ const key = 'act_'+k; const v = t(key); return v===key ? String(k).replace(/_/g,' ') : v; }
-const ACT_RISKY = ['cart_remove','bill_dropped','bill_cancel','bill_reprint','discount_approved','return','stock_change','product_edit','product_delete','expense_delete','day_reopen','login_failed','pin_failed','restore','owner_pin_change','staff_pin_change','sup_void','sup_merge','credit_limit'];
+const ACT_RISKY = ['cart_remove','bill_dropped','bill_cancel','bill_reprint','discount_approved','return','stock_change','product_edit','product_delete','expense_delete','day_reopen','login_failed','pin_failed','restore','owner_pin_change','staff_pin_change','sup_void','sup_merge','credit_limit','bill_edit','credit_payment'];
 
 // --- automatic logging of watched store writes (no screen can skip it) ---
 (function(){
@@ -10176,7 +10248,8 @@ let BILL_TABS = [];         // [{id, firmId, label, cart, createdAt}]
 let ACTIVE_TAB_ID = null;
 let TAB_SAVE_TIMER = null;
 
-function tabsFirmId(){ return billableFirmId() || firmIdForStockOps() || null; }
+// The combined view keeps its own set of open bills ('all'); before, it borrowed the first firm's tabs and could not open a new one.
+function tabsFirmId(){ return billableFirmId() || (combinedBilling() ? 'all' : (firmIdForStockOps() || null)); }
 function activeBillTab(){ return BILL_TABS.find(x=>x.id===ACTIVE_TAB_ID) || null; }
 
 function billTabTitle(tab, index){
@@ -10264,7 +10337,6 @@ async function switchBillTab(id){
 }
 
 async function newBillTab(){
-  if(!requireWorkingFirm(t('tabs_newBill'))) return;
   if(BILL_TABS.length >= MAX_BILL_TABS){ toast(t('toast_tooManyOpenBills').replace('{0}', MAX_BILL_TABS),'error'); return; }
   await flushTabSave();
   const tab = {id:newTabId(), firmId:tabsFirmId(), label:'', cart:freshCart(), createdAt:new Date().toISOString()};
@@ -11195,6 +11267,10 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
     totals += line(t('print_amountPayable'), fmtMoney(bill.amountDue!=null?bill.amountDue:bill.grandTotal), {bold:true});
   }
   if(bill.creditAmount>0) totals += line(t('print_onCredit'), fmtMoney(bill.creditAmount), {bold:true});
+  if(bill.creditAmount>0 && bill._dueNow!=null && bill._dueNow < Number(bill.creditAmount)-0.004){
+    totals += line(t('print_paidLater'), '-'+fmtMoney(Math.round((Number(bill.creditAmount)-bill._dueNow)*100)/100));
+    totals += line(t('print_balanceDueNow'), fmtMoney(bill._dueNow), {bold:true});
+  }
   if(bill.pointsEarned>0) totals += line(t('print_loyaltyPointsEarned'), '+'+bill.pointsEarned);
   if(bill.cashTendered!=null){
     totals += line(t('print_cashTendered'), fmtMoney(bill.cashTendered));
@@ -11214,7 +11290,7 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
   if(billUpi && !docTitle && qrMode !== 'never'){
     const payable = bill.amountDue!=null ? bill.amountDue : bill.grandTotal;
     const paidSoFar = (bill.payments||[]).reduce((s,p)=>s+Number(p.amount||0),0);
-    const stillDue = Math.round((Number(bill.creditAmount||0) > 0 ? Number(bill.creditAmount) : (payable - paidSoFar))*100)/100;
+    const stillDue = Math.round((Number(bill.creditAmount||0) > 0 ? Number(bill._dueNow!=null ? bill._dueNow : bill.creditAmount) : (payable - paidSoFar))*100)/100;
     // Scan for whatever is still owed; on a settled bill that is the full total.
     // Split payment (e.g. ₹500 cash + ₹300 UPI): the QR is for the UPI part only, not the whole bill.
     const upiPart = Math.round((bill.payments||[]).filter(p=>/upi/i.test(p.mode||'')).reduce((s,p)=>s+Number(p.amount||0),0)*100)/100;
@@ -11329,6 +11405,10 @@ async function showInvoiceModal(bill){
     const c = await dbGet('customers', bill.customerId);
     if(c) customerName = c.name + (c.phone?(' — '+c.phone):'');
   }
+  // A reprint shows what is still due today (not the amount that was due when the bill was made).
+  const _st = await billCreditState(bill);
+  if(_st) bill._dueNow = _st.due;
+  const infoPanel = await billInfoPanelHTML(bill);
   const invoiceHTML = buildInvoiceContentHTML(bill, customerName, 'a4');
   let customerPhone = null;
   if(bill.customerId){
@@ -11346,16 +11426,23 @@ async function showInvoiceModal(bill){
           <option value="a4" ${SETTINGS.paperSize==='a4'?'selected':''}>${t('print_a4LetterOption')}</option>
         </select>
       </div>
+      ${infoPanel}
       ${invoiceHTML}
     `,
     footerHTML: `
       <button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
+      ${(_st && _st.due>0.004 && !bill.cancelled)?`<button class="btn btn-primary" id="receiveInvoiceBtn">${t('pay_receiveBtn')}</button>`:''}
+      ${!bill.cancelled?`<button class="btn btn-outline" id="editInvoiceBtn">${t('edit_btn')}</button>`:''}
       <button class="btn btn-outline" id="emailInvoiceBtn">${iconSVG('mail',15)} ${t('vendor_emailLabel')}</button>
       <button class="btn btn-whatsapp" id="waInvoiceBtn">${iconSVG('whatsapp',15)} ${t('print_sendViaWhatsAppBtn')}</button>
       <button class="btn btn-whatsapp" id="waImgBtn">${iconSVG('whatsapp',15)} ${t('wa_imgBtn')}</button>
       <button class="btn btn-primary" id="printInvoiceBtn">${t('print_printBtn')}</button>
     `,
     onMount:()=>{
+      const rcv = document.getElementById('receiveInvoiceBtn');
+      if(rcv) rcv.addEventListener('click', ()=>{ closeModal(); openReceiveBillPaymentModal(bill.id, ()=>viewBillDetail(bill.id)); });
+      const edt = document.getElementById('editInvoiceBtn');
+      if(edt) edt.addEventListener('click', ()=>{ closeModal(); openEditBillModal(bill.id); });
       document.getElementById('printInvoiceBtn').addEventListener('click', ()=>{
         actBillPrinted(bill);
         const format = document.getElementById('invoicePaperFormat').value;
@@ -11772,10 +11859,11 @@ async function viewCustomerLedger(customerId){
     <tr>
       <td>${fmtDate(l.date)}</td>
       <td>${l.type==='sale'?'<span class="tag tag-red">Sale (credit)</span>':'<span class="tag tag-green">Payment</span>'}</td>
-      <td>${escapeHTML(l.note||'')}</td>
+      <td>${escapeHTML(l.note||'')}${l.by?` <span class="muted" style="font-size:11px;">· ${escapeHTML(l.by)}</span>`:''}</td>
       <td class="num">${fmtMoney(l.amount)}</td>
     </tr>
   `).join('');
+  const _openBills = customerBillDues(customer, (await dbGetAll('bills')).filter(b=>b.customerId===customer.id)).filter(r=>r.due>0.004);
   const showPoints = !!SETTINGS.loyaltyEnabled;
   const pointsLedger = (customer.pointsLedger||[]).slice().sort((a,b)=> new Date(b.date)-new Date(a.date));
   const pointsRows = pointsLedger.map(l=>`
@@ -11797,8 +11885,10 @@ async function viewCustomerLedger(customerId){
       <div class="row" style="align-items:flex-end;">
         <div class="col field"><label>${t('cust_recordPaymentLabel')}</label><input id="lp_amount" type="number" min="0" step="0.01"></div>
         <div class="col field"><label>${t('acct_csvMode')}</label>
-          <select id="lp_mode"><option value="Cash">${t('cust_cashOption')}</option><option value="UPI">${t('cust_upiOption')}</option><option value="Card">${t('cust_cardOption')}</option></select>
+          <select id="lp_mode">${enabledPayModes().map(m=>`<option value="${escapeHTML(m)}">${escapeHTML(dv(m))}</option>`).join('')}</select>
         </div>
+        ${_openBills.length?`<div class="col field"><label>${t('pay_forBill')}</label>
+          <select id="lp_bill"><option value="">${t('pay_oldestFirst')}</option>${_openBills.map(r=>`<option value="${r.bill.id}">${escapeHTML(r.bill.invoiceNo)} — ${fmtMoney(r.due)}</option>`).join('')}</select></div>`:''}
         <div class="col" style="flex:0 0 auto;"><button class="btn btn-primary" id="lp_save">${t('cust_recordBtn')}</button></div>
       </div>
       <h3 class="sub-title">${t('cust_creditHistoryTitle')}</h3>
@@ -11817,11 +11907,9 @@ async function viewCustomerLedger(customerId){
         const amount = parseFloat(document.getElementById('lp_amount').value)||0;
         if(amount<=0){ toast(t('toast_enterValidAmount'),'error'); return; }
         const mode = document.getElementById('lp_mode').value;
-        const fresh = await dbGet('customers', customerId);
-        fresh.creditBalance = Math.max(0, (fresh.creditBalance||0) - amount);
-        fresh.ledger = fresh.ledger||[];
-        fresh.ledger.push({date:new Date().toISOString(), type:'payment', amount, mode, note:mode+' payment'});
-        await dbPut('customers', fresh);
+        const billSel = document.getElementById('lp_bill');
+        const res = await recordCustomerPayment({customerId, amount, mode, billId: billSel && billSel.value ? parseInt(billSel.value) : null});
+        if(!res.ok){ if(res.err!=='busy') toast(payErrText(res),'error'); return; }
         toast(t('toast_paymentRecorded'),'success');
         closeModal();
         await renderCustomerTable();
@@ -12109,16 +12197,29 @@ async function renderSalesData(){
         customerCache[b.customerId] = await dbGet('customers', b.customerId);
       }
     }
+    // What each credit bill still owes, worked out from the customer's ledger (so a payment taken later shows here).
+    const dueByBill = {};
+    const everyBill = await dbGetAll('bills');
+    for(const cid of Object.keys(customerCache)){
+      const c = customerCache[cid]; if(!c) continue;
+      customerBillDues(c, everyBill.filter(x=>x.customerId===c.id)).forEach(r=>{ dueByBill[r.bill.id] = r; });
+    }
     histWrap.innerHTML = `
       <table>
         <thead><tr><th>${t('th_invoice')}</th><th>${t('th_date')}</th><th>${t('th_customer')}</th><th class="num">${t('th_amount')}</th><th>${t('th_status')}</th><th></th></tr></thead>
         <tbody>
           ${bills.map(b=>{
             const cust = b.customerId ? customerCache[b.customerId] : null;
+            const dr = dueByBill[b.id];
+            const hasCredit = Number(b.creditAmount||0) > 0 && dr;
+            const settledLater = hasCredit && dr.due <= 0.004;
+            const stillDue = hasCredit && dr.due > 0.004;
             const statusTag = b.cancelled ? `<span class="tag tag-grey">${t('sales_cancelledTag')}</span>`
-              : b.status==='paid' ? `<span class="tag tag-green">${t('sales_paidTag')}</span>`
-              : b.status==='partial' ? `<span class="tag tag-amber">${t('sales_partialTag')}</span>`
+              : (b.status==='paid' || settledLater) ? `<span class="tag tag-green">${t('sales_paidTag')}</span>${settledLater?`<br><span class="muted" style="font-size:11px;">${t('sales_paidLater')}</span>`:''}`
+              : (b.status==='partial' || (stillDue && dr.due < Number(b.creditAmount)-0.004)) ? `<span class="tag tag-amber">${t('sales_partialTag')}</span>`
               : `<span class="tag tag-red">${t('sales_creditTag')}</span>`;
+            const dueLine = (!b.cancelled && stillDue) ? `<br><span class="muted" style="font-size:11px;">${fillTpl(t('sales_dueLine'), [fmtMoney(dr.due)])}</span>` : '';
+            const editedTag = (b.edits||[]).length ? ` <span class="tag" style="font-size:10px;" title="${escapeHTML((b.edits[b.edits.length-1].by||'')+' · '+fmtDateTime(b.edits[b.edits.length-1].at))}">${t('edit_tag')}</span>` : '';
             const reasonLine = b.cancelled && b.cancelReason
               ? `<br><span class="muted" style="font-size:11px;">${escapeHTML(b.cancelReason)}</span>` : '';
             return `<tr${b.cancelled?' class="row-cancelled"':''}>
@@ -12126,9 +12227,11 @@ async function renderSalesData(){
               <td>${fmtDate(b.date)}</td>
               <td>${cust?escapeHTML(cust.name):t('bill_walkIn')}</td>
               <td class="num">${fmtMoney(b.grandTotal)}</td>
-              <td>${statusTag}</td>
+              <td>${statusTag}${dueLine}${editedTag}</td>
               <td style="white-space:nowrap;">
                 <button class="btn btn-outline btn-sm" onclick="viewBillDetail(${b.id})">${t('sales_viewBtn')}</button>
+                ${(!b.cancelled && stillDue)?`<button class="btn btn-primary btn-sm" onclick="openReceiveBillPaymentModal(${b.id})">${t('pay_receiveBtn')}</button>`:''}
+                ${!b.cancelled?`<button class="btn btn-outline btn-sm" onclick="openEditBillModal(${b.id})">${t('edit_btn')}</button>`:''}
                 ${b.cancelled?'':`<button class="btn btn-outline btn-sm" onclick="openReturnModal(${b.id})">${t('sales_returnExchangeBtn')}</button>`}
                 ${(!b.cancelled && isOwner())?`<button class="btn btn-danger btn-sm" onclick="openCancelBillModal(${b.id})">${t('sales_cancelBillBtn')}</button>`:''}
               </td>
@@ -12183,6 +12286,249 @@ async function viewBillDetail(billId){
   if(bill) showInvoiceModal(bill);
 }
 
+/* ---------- Credit payments tied to bills (v0.1.38) ----------
+   A payment received from a customer is posted to the customer's ledger (and so to the Day Book on the day the money
+   came in) AND tagged with the bill it settles, so the bill's own status always agrees with the customer's balance.
+   Payments recorded before this version carry no bill tag; they are applied to the oldest unpaid bills on screen. */
+function r2c(n){ return Math.round((Number(n)||0)*100)/100; }
+function ledgerSettlesBill(l, billId){
+  return l.type==='payment' && l.billId===billId && l.source!=='store_credit' && l.source!=='booking_advance';
+}
+function billLinkedSettled(customer, bill){
+  return r2c(((customer&&customer.ledger)||[]).filter(l=>ledgerSettlesBill(l, bill.id)).reduce((s,l)=>s+Number(l.amount||0),0));
+}
+// [{bill, settled, due}] oldest bill first, for one customer. `bills` = that customer's bills (cancelled ones are skipped).
+function customerBillDues(customer, bills){
+  const mine = (bills||[]).filter(b=>b.customerId===customer.id && !b.cancelled && Number(b.creditAmount||0)>0)
+    .sort((a,b)=> (new Date(a.date)-new Date(b.date)) || (a.id-b.id));
+  const rows = mine.map(b=>{ const s = billLinkedSettled(customer,b); return {bill:b, settled:s, due:Math.max(0, r2c(Number(b.creditAmount)-s)), legacy:0}; });
+  const totalDue = r2c(rows.reduce((s,r)=>s+r.due,0));
+  let unlinked = Math.max(0, r2c(totalDue - (customer.creditBalance||0)));
+  rows.forEach(r=>{ if(unlinked>0.004 && r.due>0.004){ const take = Math.min(unlinked, r.due); r.due = r2c(r.due-take); r.legacy = r2c(take); unlinked = r2c(unlinked-take); } });
+  return rows;
+}
+function enabledPayModes(){
+  const m = (SETTINGS.enabledPaymentModes && SETTINGS.enabledPaymentModes.length) ? SETTINGS.enabledPaymentModes : ['Cash','UPI','Card'];
+  const out = m.filter(x=>!/credit|store/i.test(x));
+  return out.length ? out : ['Cash'];
+}
+function whoAmI(){ return (typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER.name : t('staff_ownerTag'); }
+
+// One engine for every "customer paid" entry: customer ledger, bill link, who/when, and over-payment check.
+async function recordCustomerPayment(o){
+  if(window.__cp_busy) return {ok:false, err:'busy'};
+  window.__cp_busy = true;
+  try{
+    const amount = r2c(o.amount);
+    if(!(amount > 0)) return {ok:false, err:'toast_enterValidAmount'};
+    const fresh = await dbGet('customers', o.customerId);
+    if(!fresh) return {ok:false, err:'toast_enterValidAmount'};
+    const bills = (await dbGetAll('bills')).filter(b=>b.customerId===fresh.id);
+    const dues = customerBillDues(fresh, bills);
+    const balance = r2c(fresh.creditBalance||0);
+    if(amount > balance + 0.005) return {ok:false, err:'cust_payTooMuch', due:balance};
+    let targets = [], remaining = amount;
+    if(o.billId){
+      const row = dues.find(d=>d.bill.id===o.billId);
+      if(!row || amount > row.due + 0.005) return {ok:false, err:'cust_payTooMuchBill', due: row ? row.due : 0};
+      targets.push({bill:row.bill, amt:amount});
+    } else {
+      for(const row of dues){
+        if(remaining <= 0.004) break;
+        if(row.due <= 0.004) continue;
+        const take = Math.min(remaining, row.due);
+        targets.push({bill:row.bill, amt:r2c(take)}); remaining = r2c(remaining - take);
+      }
+      if(remaining > 0.004) targets.push({bill:null, amt:remaining});
+    }
+    const now = new Date().toISOString(), by = whoAmI(), mode = o.mode || 'Cash';
+    fresh.ledger = fresh.ledger || [];
+    targets.forEach(tg=>{
+      const row = {date:now, at:now, by, type:'payment', amount:tg.amt, mode, source:'credit_collection',
+        note: mode+' payment'+(tg.bill?(' — '+tg.bill.invoiceNo):'')+(o.note?(' · '+o.note):'')};
+      if(tg.bill){ row.billId = tg.bill.id; row.invoiceNo = tg.bill.invoiceNo; row.firmId = tg.bill.firmId||null; }
+      fresh.ledger.push(row);
+    });
+    fresh.creditBalance = Math.max(0, r2c(balance - amount));
+    await dbPut('customers', fresh);
+    logAct('credit_payment', fresh.name+' paid '+fmtMoney(amount)+' by '+mode+(o.billId&&targets[0]?(' for '+targets[0].bill.invoiceNo):'')+' - recorded by '+by, {a:amount});
+    return {ok:true, count:targets.length};
+  } finally { window.__cp_busy = false; }
+}
+function payErrText(res){
+  if(res.err==='cust_payTooMuch') return fillTpl(t('cust_payTooMuch'), [fmtMoney(res.due)]);
+  if(res.err==='cust_payTooMuchBill') return fillTpl(t('cust_payTooMuchBill'), [fmtMoney(res.due)]);
+  return t(res.err);
+}
+
+// What the Sales list and the bill window show for one bill, from the customer's ledger.
+async function billCreditState(bill){
+  if(!(Number(bill.creditAmount||0) > 0) || !bill.customerId) return null;
+  const cust = await dbGet('customers', bill.customerId); if(!cust) return null;
+  const bills = (await dbGetAll('bills')).filter(b=>b.customerId===cust.id);
+  const row = customerBillDues(cust, bills).find(r=>r.bill.id===bill.id);
+  const settled = billLinkedSettled(cust, bill);
+  return {cust, due: row ? row.due : 0, settled, legacy: row ? row.legacy : 0};
+}
+
+function openReceiveBillPaymentModal(billId, after){
+  dbGet('bills', billId).then(async bill=>{
+    if(!bill || bill.cancelled) return;
+    const st = await billCreditState(bill);
+    if(!st || st.due <= 0.004){ toast(t('pay_nothingDue')); return; }
+    openModal({
+      title: fillTpl(t('pay_receiveTitle'), [bill.invoiceNo]),
+      bodyHTML: `
+        <div class="stat-tiles" style="grid-template-columns:1fr 1fr;margin-bottom:10px;">
+          <div class="stat-tile"><div class="label">${t('th_customer')}</div><div class="value small">${escapeHTML(st.cust.name)}</div></div>
+          <div class="stat-tile"><div class="label">${t('pay_dueOnBill')}</div><div class="value small">${fmtMoney(st.due)}</div></div>
+        </div>
+        <div class="row">
+          <div class="col field"><label>${t('cust_recordPaymentLabel')}</label><input id="rp_amount" type="number" min="0" step="0.01" value="${st.due}"></div>
+          <div class="col field"><label>${t('acct_csvMode')}</label><select id="rp_mode">${enabledPayModes().map(m=>`<option value="${escapeHTML(m)}">${escapeHTML(dv(m))}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>${t('th_note')}</label><input id="rp_note" maxlength="80"></div>
+        <p class="muted" style="font-size:12px;">${t('pay_receiveHint')}</p>`,
+      footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="rp_go">${t('cust_recordBtn')}</button>`,
+      onMount: ()=>{
+        document.getElementById('rp_go').addEventListener('click', async ()=>{
+          const res = await recordCustomerPayment({customerId:st.cust.id, billId, amount:parseFloat(document.getElementById('rp_amount').value)||0,
+            mode:document.getElementById('rp_mode').value, note:document.getElementById('rp_note').value.trim()});
+          if(!res.ok){ if(res.err!=='busy') toast(payErrText(res),'error'); return; }
+          toast(t('toast_paymentRecorded'),'success'); closeModal();
+          if(typeof renderSalesData==='function') await renderSalesData();
+          if(typeof renderCustomerTable==='function' && document.getElementById('custTableWrap')) await renderCustomerTable();
+          if(after) after();
+        });
+      }
+    });
+  });
+}
+
+/* ---------- Edit a bill (safe fields only) ----------
+   Customer (only while no credit/points hang on it), the mode each payment was taken in, and an internal remark.
+   Items, prices and amounts are locked - cancel and re-bill for those. Every edit keeps before/after, who and when. */
+const BILL_EDIT_ACT = 'bill_edit';
+async function billEditLocks(bill){
+  const locks = [];
+  const hasPoints = Number(bill.pointsEarned||0)>0 || Number(bill.pointsRedeemed||0)>0;
+  if(Number(bill.creditAmount||0)>0 || hasPoints) locks.push(t('edit_lockCustomer'));
+  else if(bill.customerId){
+    const c = await dbGet('customers', bill.customerId);
+    if(c && storeCreditUsedOnBill(c, bill.id)>0) locks.push(t('edit_lockCustomer'));
+  }
+  if(await billHasReturns(bill.id)) locks.push(t('edit_lockReturns'));
+  return locks;
+}
+function openEditBillModal(billId){
+  requireOwnerApproval(t('edit_btn'), ()=>doOpenEditBillModal(billId));
+}
+async function doOpenEditBillModal(billId){
+  const bill = await dbGet('bills', billId);
+  if(!bill) return;
+  if(bill.cancelled){ toast(t('toast_billAlreadyCancelled'),'error'); return; }
+  const locks = await billEditLocks(bill);
+  const returned = await billHasReturns(billId);
+  const customers = (await scopedGetAll('customers')).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+  const custLocked = locks.includes(t('edit_lockCustomer')) || returned;
+  const modes = [...new Set([...enabledPayModes(), ...(bill.payments||[]).map(p=>p.mode)])];
+  openModal({
+    title: fillTpl(t('edit_title'), [bill.invoiceNo]),
+    bodyHTML: `
+      <p class="muted" style="font-size:12.5px;margin-top:0;">${t('edit_intro')}</p>
+      <div class="field"><label>${t('th_customer')}</label>
+        <select id="eb_cust" ${custLocked?'disabled':''}>
+          <option value="">${escapeHTML(t('bill_walkIn'))}</option>
+          ${customers.map(c=>`<option value="${c.id}" ${c.id===bill.customerId?'selected':''}>${escapeHTML(c.name)}${c.phone?(' — '+escapeHTML(c.phone)):''}</option>`).join('')}
+        </select>
+        ${custLocked?`<div class="muted" style="font-size:11.5px;">${escapeHTML(t('edit_lockCustomer'))}</div>`:''}
+      </div>
+      ${(bill.payments||[]).length ? `<div class="field"><label>${t('edit_paymentModes')}</label>
+        ${(bill.payments||[]).map((p,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+          <select id="eb_mode_${i}" ${returned?'disabled':''} style="flex:1;">${modes.map(m=>`<option value="${escapeHTML(m)}" ${m===p.mode?'selected':''}>${escapeHTML(dv(m))}</option>`).join('')}</select>
+          <span class="num" style="min-width:90px;text-align:right;">${fmtMoney(p.amount)}</span></div>`).join('')}
+        ${returned?`<div class="muted" style="font-size:11.5px;">${escapeHTML(t('edit_lockReturns'))}</div>`:`<div class="muted" style="font-size:11.5px;">${escapeHTML(t('edit_modeHint'))}</div>`}
+      </div>` : ''}
+      <div class="field"><label>${t('edit_remark')}</label><input id="eb_remark" maxlength="160" value="${escapeHTML(bill.remark||'')}"></div>
+      <div class="field"><label>${t('edit_reason')}</label><input id="eb_reason" maxlength="120" placeholder="${escapeHTML(t('edit_reasonPh'))}"></div>
+      <div id="eb_err" class="muted" style="font-size:12px;color:var(--red);"></div>`,
+    footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="eb_go">${t('edit_saveBtn')}</button>`,
+    onMount: ()=>{
+      document.getElementById('eb_go').addEventListener('click', async ()=>{
+        const err = document.getElementById('eb_err');
+        const reason = document.getElementById('eb_reason').value.trim();
+        const res = await applyBillEdit(billId, {
+          customerId: custLocked ? undefined : (document.getElementById('eb_cust').value ? parseInt(document.getElementById('eb_cust').value) : null),
+          modes: (bill.payments||[]).map((p,i)=>{ const el = document.getElementById('eb_mode_'+i); return el ? el.value : p.mode; }),
+          remark: document.getElementById('eb_remark').value.trim(),
+          reason
+        });
+        if(!res.ok){ err.textContent = res.msg; return; }
+        closeModal(); toast(t('edit_saved'),'success');
+        if(typeof renderSalesData==='function') await renderSalesData();
+      });
+    }
+  });
+}
+async function applyBillEdit(billId, v){
+  const bill = await dbGet('bills', billId);
+  if(!bill || bill.cancelled) return {ok:false, msg:t('toast_billAlreadyCancelled')};
+  if((v.reason||'').length < 4) return {ok:false, msg:t('edit_errReason')};
+  const changes = [];
+  const custName = async (id)=>{ if(!id) return t('bill_walkIn'); const c = await dbGet('customers', id); return c ? c.name : ('#'+id); };
+  const locks = await billEditLocks(bill);
+  const returned = await billHasReturns(billId);
+  if(v.customerId !== undefined && (v.customerId||null) !== (bill.customerId||null)){
+    if(locks.includes(t('edit_lockCustomer')) || returned) return {ok:false, msg:t('edit_lockCustomer')};
+    changes.push({field:'customer', label:t('th_customer'), from: await custName(bill.customerId), to: await custName(v.customerId)});
+  }
+  const newPayments = (bill.payments||[]).map((p,i)=>({...p, mode: (v.modes && v.modes[i]) || p.mode}));
+  const modeDiff = newPayments.some((p,i)=>p.mode !== bill.payments[i].mode);
+  if(modeDiff){
+    if(returned) return {ok:false, msg:t('edit_lockReturns')};
+    const day = (bill.date||'').slice(0,10);
+    const closed = (await dbGetAll('dayCloses')).some(c=>c.date===day && ((c.firmId||null)===(bill.firmId||null) || !multiFirmInUse() || combinedBilling()));
+    if(closed) return {ok:false, msg:t('edit_errDayClosed')};
+    newPayments.forEach((p,i)=>{ if(p.mode !== bill.payments[i].mode) changes.push({field:'payment', label:t('edit_paymentModes')+' '+fmtMoney(p.amount), from:dv(bill.payments[i].mode), to:dv(p.mode)}); });
+  }
+  if((v.remark||'') !== (bill.remark||'')) changes.push({field:'remark', label:t('edit_remark'), from:bill.remark||'—', to:v.remark||'—'});
+  if(!changes.length) return {ok:false, msg:t('edit_nothing')};
+  const now = new Date().toISOString(), by = whoAmI();
+  if(changes.some(c=>c.field==='customer')) bill.customerId = v.customerId || null;
+  if(modeDiff) bill.payments = newPayments;
+  bill.remark = v.remark || '';
+  bill.edits = bill.edits || [];
+  bill.edits.push({at:now, by, reason:v.reason, changes});
+  await dbPut('bills', bill);
+  logAct(BILL_EDIT_ACT, bill.invoiceNo+': '+changes.map(c=>c.label+' '+c.from+' -> '+c.to).join('; ')+' - '+v.reason, {a:bill.grandTotal||0});
+  return {ok:true};
+}
+
+// Panel shown above the bill in the bill window (not printed): payments received later and the edit history.
+async function billInfoPanelHTML(bill){
+  let html = '';
+  const st = await billCreditState(bill);
+  if(st){
+    const cust = st.cust;
+    const rows = (cust.ledger||[]).filter(l=>ledgerSettlesBill(l, bill.id)).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    html += `<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12.5px;">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><strong>${t('pay_creditStatus')}</strong>
+        <span>${t('pay_creditGiven')}: ${fmtMoney(bill.creditAmount)} · ${st.due>0.004?`<span class="tag tag-red">${fmtMoney(st.due)} ${t('pay_dueWord')}</span>`:`<span class="tag tag-green">${t('sales_paidTag')}</span>`}</span></div>
+      ${rows.map(l=>`<div class="muted">${fmtDate(l.date)} · ${fmtMoney(l.amount)} · ${escapeHTML(dv(l.mode||''))}${l.by?(' · '+escapeHTML(l.by)):''}</div>`).join('')}
+      ${st.legacy>0.004?`<div class="muted">${fmtMoney(st.legacy)} ${t('pay_olderPayments')}</div>`:''}
+    </div>`;
+  }
+  if((bill.edits||[]).length){
+    html += `<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12.5px;">
+      <strong>${t('edit_history')}</strong>
+      ${bill.edits.map(e=>`<div style="margin-top:4px;"><span class="muted">${escapeHTML(fmtDateTime(e.at))} · ${escapeHTML(e.by||'')}</span> — ${escapeHTML(e.reason||'')}
+        ${(e.changes||[]).map(c=>`<div style="padding-left:10px;">${escapeHTML(c.label)}: <s>${escapeHTML(String(c.from))}</s> → <strong>${escapeHTML(String(c.to))}</strong></div>`).join('')}</div>`).join('')}
+    </div>`;
+  }
+  if(bill.remark) html += `<div class="muted" style="font-size:12.5px;margin-bottom:8px;">${t('edit_remark')}: ${escapeHTML(bill.remark)}</div>`;
+  return html;
+}
+
 /* ---------- Cancel a bill ----------
    A mis-keyed bill used to be uncorrectable: Return/Exchange assumes the goods come back,
    so a wrong amount stayed in the day book, P&L and GST returns forever. Cancelling keeps
@@ -12207,16 +12553,18 @@ async function doOpenCancelBillModal(billId){
 
   const customer = bill.customerId ? await dbGet('customers', bill.customerId) : null;
   const effects = [];
+  const laterPaid = customer ? billLinkedSettled(customer, bill) : 0;
+  const creditOpen = Math.max(0, r2c(Number(bill.creditAmount||0) - laterPaid));
   const totalQty = (bill.items||[]).reduce((n,it)=>n+Number(it.qty||0),0);
   if(totalQty>0) effects.push(t('cancel_effectStock').replace('{0}', totalQty));
   if(customer){
-    if(bill.creditAmount>0) effects.push(t('cancel_effectCredit').replace('{0}', fmtMoney(bill.creditAmount)).replace('{1}', customer.name));
+    if(creditOpen>0) effects.push(t('cancel_effectCredit').replace('{0}', fmtMoney(creditOpen)).replace('{1}', customer.name));
     if(bill.pointsEarned>0) effects.push(t('cancel_effectPointsEarned').replace('{0}', bill.pointsEarned));
     if(bill.pointsRedeemed>0) effects.push(t('cancel_effectPointsRedeemed').replace('{0}', bill.pointsRedeemed));
     const scUsed = storeCreditUsedOnBill(customer, billId);
     if(scUsed>0) effects.push(t('cancel_effectStoreCredit').replace('{0}', fmtMoney(scUsed)));
   }
-  const paidTotal = (bill.payments||[]).reduce((n,p)=>n+Number(p.amount||0),0);
+  const paidTotal = r2c((bill.payments||[]).reduce((n,p)=>n+Number(p.amount||0),0) + laterPaid);
   if(paidTotal>0) effects.push(t('cancel_effectRefund').replace('{0}', fmtMoney(paidTotal)));
 
   openModal({
@@ -12286,10 +12634,13 @@ async function cancelBill(billId, reason){
     if(customer){
       const when = new Date().toISOString();
       const ref = t('cancel_ledgerNote').replace('{0}', bill.invoiceNo);
-      if(bill.creditAmount>0){
-        customer.creditBalance = Math.max(0, Math.round(((customer.creditBalance||0) - bill.creditAmount)*100)/100);
+      // Only the part still unpaid comes off the account; what the customer already paid later is refunded
+      // (those ledger rows carry this bill's id, so the Day Book drops them together with the cancelled bill).
+      const openCredit = Math.max(0, r2c(Number(bill.creditAmount||0) - billLinkedSettled(customer, bill)));
+      if(openCredit>0){
+        customer.creditBalance = Math.max(0, Math.round(((customer.creditBalance||0) - openCredit)*100)/100);
         customer.ledger = customer.ledger||[];
-        customer.ledger.push({date:when, type:'cancellation', amount:-bill.creditAmount, billId, note:ref});
+        customer.ledger.push({date:when, type:'cancellation', amount:-openCredit, billId, note:ref});
       }
       const scUsed = storeCreditUsedOnBill(customer, billId);
       if(scUsed>0){
@@ -14247,7 +14598,7 @@ function buildInvoiceMessageText(bill, plain){
   if(bill.packagingCharge>0) lines.push(`${t('wa_packagingLabelPrefix')}${fmtMoney(bill.packagingCharge)}`);
   if(bill.deliveryCharge>0) lines.push(`${t('wa_deliveryLabelPrefix')}${fmtMoney(bill.deliveryCharge)}`);
   lines.push(`${t('vendor_totalPrefix')}${fmtMoney(bill.grandTotal)}`);
-  if(bill.creditAmount>0) lines.push(`${t('wa_balanceDueLabelPrefix')}${fmtMoney(bill.creditAmount)}`);
+  if(bill.creditAmount>0){ const _d = bill._dueNow!=null ? bill._dueNow : bill.creditAmount; if(_d>0.004) lines.push(`${t('wa_balanceDueLabelPrefix')}${fmtMoney(_d)}`); }
   lines.push('');
   lines.push(t('print_thankYouShopping'));
   return lines.join('\n');
