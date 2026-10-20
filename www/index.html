@@ -1808,6 +1808,21 @@ const I18N = {
     ret_paidEach:'Customer paid {0} each after discount',
     ret_pointsBack:'{0} loyalty points back',
     ret_afterDiscount:'(full price {0}, discount kept)',
+    ret_exchanged:'Exchanged',
+    ret_storeCreditTag:'Added to store credit',
+    ret_reduceCreditTag:'Deducted from credit due',
+    ret_cashRefund:'Refunded in cash',
+    ret_newBill:'new bill {0}',
+    ret_netAfter:'Net after returns',
+    ret_exchangeFor:'Exchange against {0} — credit {1}',
+    ret_blockTitle:'RETURNED / EXCHANGED',
+    ret_itemTag:'Returned ×{0}',
+    ret_tagReturned:'Returned',
+    ret_tagPart:'Part returned',
+    ret_listLine:'{0} of {1} pcs back · {2}',
+    ret_tile:'Returned / exchanged',
+    ret_exchCashBack:'Exchange balance paid back — ',
+    ret_exchPending:'Exchange pending (no new bill yet)',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2595,6 +2610,21 @@ const I18N = {
     ret_paidEach:'सूट वजा करून ग्राहकाने प्रत्येकी {0} दिले',
     ret_pointsBack:'{0} लॉयल्टी पॉइंट परत',
     ret_afterDiscount:'(पूर्ण किंमत {0}, सूट वजा)',
+    ret_exchanged:'अदलाबदल',
+    ret_storeCreditTag:'स्टोअर क्रेडिटमध्ये जमा',
+    ret_reduceCreditTag:'उधारीतून वजा',
+    ret_cashRefund:'रोख परत केले',
+    ret_newBill:'नवे बिल {0}',
+    ret_netAfter:'परताव्यानंतर निव्वळ',
+    ret_exchangeFor:'{0} च्या बदल्यात — क्रेडिट {1}',
+    ret_blockTitle:'परत / अदलाबदल',
+    ret_itemTag:'परत ×{0}',
+    ret_tagReturned:'परत केले',
+    ret_tagPart:'अंशतः परत',
+    ret_listLine:'{1} पैकी {0} नग परत · {2}',
+    ret_tile:'परत / अदलाबदल',
+    ret_exchCashBack:'अदलाबदलीची उरलेली रक्कम परत — ',
+    ret_exchPending:'अदलाबदल बाकी (नवे बिल नाही)',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -11546,6 +11576,7 @@ async function finalizeCheckoutInner(tot, getAmountDue){
     creditAmount: remaining>0.01 ? remaining : 0,
     status: remaining>0.01 ? (paid>0?'partial':'credit') : 'paid',
     // Who was logged in and processed this sale — powers the Staff Sales Performance report.
+    ...(CART.exchangeFrom ? {exchangeFrom: {...CART.exchangeFrom}} : {}),
     soldByKey: CURRENT_USER ? staffKeyFor(CURRENT_USER) : 'owner',
     soldByName: CURRENT_USER ? CURRENT_USER.name : t('staff_ownerTag'),
     ...(limitInfo ? {creditLimitOver:{limit:limitInfo.limit, after:limitInfo.after, approvedBy:limitBy}} : {}),
@@ -11555,6 +11586,10 @@ async function finalizeCheckoutInner(tot, getAmountDue){
   };
   const billId = await dbAdd('bills', bill);
   bill.id = billId;
+  if(CART.exchangeFrom && CART.exchangeFrom.returnId){
+    try{ const _rr = await dbGet('returns', CART.exchangeFrom.returnId);
+      if(_rr){ _rr.exchangedToBillId = billId; _rr.exchangedToInvoice = invoiceNo; await dbPut('returns', _rr); } }catch(e){}
+  }
   if(limitInfo) logAct('credit_limit', (customer.name||'')+': due would be '+fmtMoney(limitInfo.after)+' against a limit of '+fmtMoney(limitInfo.limit)+' - approved by '+limitBy+' ('+invoiceNo+')');
 
   let leftoverExchangeCredit = 0;
@@ -11605,6 +11640,14 @@ async function finalizeCheckoutInner(tot, getAmountDue){
     }
     if(changed) await dbPut('customers', customer);
   }
+  if(!customer && exchangeCreditApplied > 0){
+    const _pre = Math.round((tot.subtotal - tot.itemDiscount + tot.taxAdded)*100)/100;
+    leftoverExchangeCredit = Math.max(0, Math.round((exchangeCreditApplied - _pre)*100)/100);
+  }
+  if(bill.exchangeFrom && leftoverExchangeCredit > 0.01 && exchangeSettleMode!=='store_credit'){
+    bill.exchangeFrom.cashBack = leftoverExchangeCredit;       // cash handed back: the Day Book must show it going out
+    await dbPut('bills', bill);
+  }
 
   closeModal();
   emptyCart();
@@ -11621,6 +11664,44 @@ async function finalizeCheckoutInner(tot, getAmountDue){
   else await renderBilling();
   await refreshLowStockBadge();
   showInvoiceModal(bill);
+}
+
+/* ---------- Returned / exchanged: what to show on a bill ---------- */
+function returnModeLabel(r){
+  if(r.exchange) return r.exchangedToBillId ? t('ret_exchanged') : t('ret_exchPending');
+  if(r.settleMode==='store_credit') return t('ret_storeCreditTag');
+  if(r.settleMode==='reduce_credit') return t('ret_reduceCreditTag');
+  return t('ret_cashRefund');
+}
+// {soldQty, retQty, value, status:'none'|'part'|'full', exchanged, byItem:{index:qty}} for one bill and its return records
+function billReturnState(bill, rets){
+  const mine = (rets||[]).filter(r=>r.billId===bill.id);
+  const byItem = {}; let value = 0, retQty = 0;
+  mine.forEach(r=>{
+    value += Number(r.grossRefund!=null ? r.grossRefund : r.totalRefund||0);
+    (r.items||[]).forEach(x=>{ byItem[x.itemIndex] = (byItem[x.itemIndex]||0) + Number(x.qty||0); retQty += Number(x.qty||0); });
+  });
+  const soldQty = (bill.items||[]).reduce((s,i)=>s+Number(i.qty||0),0);
+  return {soldQty, retQty, value: Math.round(value*100)/100, byItem, list: mine,
+    status: retQty<=0 ? 'none' : (retQty>=soldQty ? 'full' : 'part'), exchanged: mine.some(r=>r.exchange),
+    pending: mine.some(r=>r.exchange && !r.exchangedToBillId)};
+}
+function returnBlockHTML(bill, pad, fsSm){
+  const rets = bill._returns || [];
+  const st = billReturnState(bill, rets);
+  let rows = '';
+  if(bill.exchangeFrom){
+    rows += `<div>${escapeHTML(fillTpl(t('ret_exchangeFor'), [bill.exchangeFrom.invoiceNo, fmtMoney(bill.exchangeFrom.credit)]))}</div>`;
+  }
+  st.list.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(r=>{
+    const what = (r.items||[]).map(x=>escapeHTML(x.name)+((x.size||x.color)?' ('+escapeHTML([x.size,x.color].filter(Boolean).join('/'))+')':'')+' ×'+x.qty).join(', ');
+    const amt = Number(r.grossRefund!=null ? r.grossRefund : r.totalRefund||0);
+    rows += `<div style="margin-top:2px;">${fmtDate(r.date)} · ${what} · <strong>${fmtMoney(amt)}</strong> · ${escapeHTML(returnModeLabel(r))}${r.exchangedToInvoice?(' → '+escapeHTML(fillTpl(t('ret_newBill'), [r.exchangedToInvoice]))):''}</div>`;
+  });
+  if(!rows) return '';
+  const net = st.status!=='none' ? `<div style="margin-top:3px;"><strong>${t('ret_netAfter')}: ${fmtMoney(Math.max(0, Math.round((Number(bill.grandTotal||0) - st.value)*100)/100))}</strong></div>` : '';
+  return `<div style="border-top:1px solid #000;padding:${pad};font-size:${fsSm};">
+    <div style="font-weight:700;letter-spacing:.06em;">${escapeHTML(t('ret_blockTitle'))}</div>${rows}${net}</div>`;
 }
 
 // Builds the invoice's inner content HTML. format is 'thermal58' | 'thermal80' | 'a4' and
@@ -11647,11 +11728,13 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
   const cell  = `border:1px solid #000;padding:${pad};`;
   const fsSm  = isThermal ? '.84em' : '.85em';
 
-  const rowsHTML = (bill.items||[]).map(it=>{
+  const rowsHTML = (bill.items||[]).map((it,_ix)=>{
     const variant = [it.size,it.color].filter(Boolean).join('/');
     const lineTotal = it.qty*it.rate - itemDiscountAmount(it);
     const note = it.note ? `<br><span class="muted" style="font-style:italic;font-size:${fsSm};">${escapeHTML(it.note)}</span>` : '';
-    const sub  = variant ? `<br><span class="muted" style="font-size:${fsSm};">${escapeHTML(variant)}</span>` : '';
+    const _rq = bill._retByItem ? Number(bill._retByItem[_ix]||0) : 0;
+    const sub  = (variant ? `<br><span class="muted" style="font-size:${fsSm};">${escapeHTML(variant)}</span>` : '')
+      + (_rq>0 ? `<br><span style="font-size:${fsSm};font-weight:700;">&#8617; ${escapeHTML(fillTpl(t('ret_itemTag'), [_rq]))}</span>` : '');
     if(narrow){
       // 58mm has room for three columns only — the rate rides under the item name.
       return `<tr>
@@ -11794,6 +11877,7 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
           ${tableHead}
           <tbody>${rowsHTML}</tbody>
         </table>
+        ${(!docTitle && (bill._returns || bill.exchangeFrom)) ? returnBlockHTML(bill, pad, fsSm) : ''}
 
         ${docTitle ? `
         <div style="display:flex;border-top:1px solid #000;font-size:${isThermal?'.92em':'.93em'};">
@@ -11862,6 +11946,8 @@ async function showInvoiceModal(bill){
   // A reprint shows what is still due today (not the amount that was due when the bill was made).
   const _st = await billCreditState(bill);
   if(_st) bill._dueNow = _st.due;
+  bill._returns = (await dbGetAll('returns')).filter(r=>r.billId===bill.id);
+  bill._retByItem = billReturnState(bill, bill._returns).byItem;
   const infoPanel = await billInfoPanelHTML(bill);
   const invoiceHTML = buildInvoiceContentHTML(bill, customerName, 'a4');
   let customerPhone = null;
@@ -12632,12 +12718,15 @@ async function renderSalesData(){
   const totalTax = live.reduce((s,b)=>s+b.taxTotal,0);
   const totalCredit = live.reduce((s,b)=>s+(b.creditAmount||0),0);
   const avgBill = live.length ? totalRevenue/live.length : 0;
+  const retsInRange = (await scopedGetAll('returns')).filter(r=>{ const d = new Date(r.date); return d>=from && d<=to; });
+  const retValue = retsInRange.reduce((s,r)=>s+Number(r.grossRefund!=null ? r.grossRefund : r.totalRefund||0),0);
   document.getElementById('salesStatTiles').innerHTML = `
     <div class="stat-tile"><div class="label">${t('acct_csvRowSales')}</div><div class="value">${fmtMoney(totalRevenue)}</div></div>
     <div class="stat-tile"><div class="label">${t('sales_tileBills')}</div><div class="value">${live.length}</div></div>
     <div class="stat-tile"><div class="label">${t('sales_tileAvgBillValue')}</div><div class="value small">${fmtMoney(avgBill)}</div></div>
     <div class="stat-tile"><div class="label">${t('sales_tileGstCollected')}</div><div class="value small">${fmtMoney(totalTax)}</div></div>
     <div class="stat-tile"><div class="label">${t('sales_tileNewCreditGiven')}</div><div class="value small">${fmtMoney(totalCredit)}</div></div>
+    ${retsInRange.length ? `<div class="stat-tile"><div class="label">${t('ret_tile')} (${retsInRange.length})</div><div class="value small">${fmtMoney(retValue)}</div></div>` : ''}
   `;
 
   // History table
@@ -12654,6 +12743,7 @@ async function renderSalesData(){
     // What each credit bill still owes, worked out from the customer's ledger (so a payment taken later shows here).
     const dueByBill = {};
     const everyBill = await dbGetAll('bills');
+    const everyReturn = await dbGetAll('returns');
     for(const cid of Object.keys(customerCache)){
       const c = customerCache[cid]; if(!c) continue;
       customerBillDues(c, everyBill.filter(x=>x.customerId===c.id)).forEach(r=>{ dueByBill[r.bill.id] = r; });
@@ -12674,6 +12764,11 @@ async function renderSalesData(){
               : `<span class="tag tag-red">${t('sales_creditTag')}</span>`;
             const dueLine = (!b.cancelled && stillDue) ? `<br><span class="muted" style="font-size:11px;">${fillTpl(t('sales_dueLine'), [fmtMoney(dr.due)])}</span>` : '';
             const editedTag = (b.edits||[]).length ? ` <span class="tag" style="font-size:10px;" title="${escapeHTML((b.edits[b.edits.length-1].by||'')+' · '+fmtDateTime(b.edits[b.edits.length-1].at))}">${t('edit_tag')}</span>` : '';
+            const rs = billReturnState(b, everyReturn);
+            const retTag = (rs.status==='none' ? '' :
+              ` <span class="tag tag-amber" style="font-size:10px;">${escapeHTML(rs.pending ? t('ret_exchPending') : rs.exchanged ? t('ret_exchanged') : (rs.status==='full' ? t('ret_tagReturned') : t('ret_tagPart')))}</span>`
+              + `<br><span class="muted" style="font-size:11px;">${escapeHTML(fillTpl(t('ret_listLine'), [rs.retQty, rs.soldQty, fmtMoney(rs.value)]))}</span>`)
+              + (b.exchangeFrom ? `<br><span class="muted" style="font-size:11px;">${escapeHTML(fillTpl(t('ret_exchangeFor'), [b.exchangeFrom.invoiceNo, fmtMoney(b.exchangeFrom.credit)]))}</span>` : '');
             const reasonLine = b.cancelled && b.cancelReason
               ? `<br><span class="muted" style="font-size:11px;">${escapeHTML(b.cancelReason)}</span>` : '';
             return `<tr${b.cancelled?' class="row-cancelled"':''}>
@@ -12681,7 +12776,7 @@ async function renderSalesData(){
               <td>${fmtDate(b.date)}</td>
               <td>${cust?escapeHTML(cust.name):t('bill_walkIn')}</td>
               <td class="num">${fmtMoney(b.grandTotal)}</td>
-              <td>${statusTag}${dueLine}${editedTag}</td>
+              <td>${statusTag}${dueLine}${editedTag}${retTag}</td>
               <td style="white-space:nowrap;">
                 <button class="btn btn-outline btn-sm" onclick="viewBillDetail(${b.id})">${t('sales_viewBtn')}</button>
                 ${(!b.cancelled && stillDue)?`<button class="btn btn-primary btn-sm" onclick="openReceiveBillPaymentModal(${b.id})">${t('pay_receiveBtn')}</button>`:''}
@@ -13317,10 +13412,11 @@ async function openReturnModal(billId){
 
         const returnRec = {
           billId, date:new Date().toISOString(), items, totalRefund:refund, grossRefund, pointsBack: pointsBack||0, settleMode, reason, note,
+          exchange: !!startExchange,
           outsidePolicy, approvedByOwner: outsidePolicy ? true : undefined,
           firmId: restockFirmId
         };
-        await dbAdd('returns', returnRec);
+        const returnId = await dbAdd('returns', returnRec);
 
         if(customer){
           let changed = false;
@@ -13365,6 +13461,8 @@ async function openReturnModal(billId){
           emptyCart();
           if(bill.customerId) CART.customerId = bill.customerId;
           CART.exchangeCredit = refund;
+          CART.exchangeReturnId = returnId;
+          CART.exchangeFrom = {billId, invoiceNo: bill.invoiceNo, returnId, credit: refund};
           CART.exchangeSettleMode = settleMode==='store_credit' ? 'store_credit' : 'cash';
           CART.overallDiscount = refund;
           showView('billing');
@@ -18156,9 +18254,14 @@ async function collectMoneyMovements(from, to){
 
   // Cash handed back on a return leaves the drawer. This was previously missing from the
   // Day Book entirely, which made every day with a cash refund look like it was short.
-  returns.filter(r=>inRange(r.date, from, to) && (r.settleMode||'cash')==='cash' && Number(r.totalRefund||0)>0).forEach(r=>{
+  returns.filter(r=>inRange(r.date, from, to) && (r.settleMode||'cash')==='cash' && !r.exchange && Number(r.totalRefund||0)>0).forEach(r=>{
     movements.push({date:r.date, type:'Refund', description:t('acct_refundOnPrefix')+(r.billId?('#'+r.billId):t('ret_noBillTag')),
       mode:'Cash', amountIn:0, amountOut:Number(r.totalRefund||0)});
+  });
+
+  bills.filter(b=>inRange(b.date, from, to) && b.exchangeFrom && Number(b.exchangeFrom.cashBack||0)>0).forEach(b=>{
+    movements.push({date:b.date, type:'Refund', description:t('ret_exchCashBack')+(b.invoiceNo||b.id),
+      mode:'Cash', amountIn:0, amountOut:Number(b.exchangeFrom.cashBack)});
   });
 
   suppliers.forEach(sup=>{
