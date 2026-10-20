@@ -1728,6 +1728,83 @@ const I18N = {
     edit_history:'Changes made to this bill',
     act_credit_payment:'Credit payment received',
     act_bill_edit:'Bill edited',
+    cpn_tapToApply:'Tap to apply',
+    cpn_needMin:'Needs a bill of {0} or more',
+    cpn_minShort:'min {0}',
+    cpn_belowMin:'{0} needs a bill of {1} - not applied yet',
+    dr_title:'DAY CLOSING REPORT',
+    dr_sales:'Sales',
+    dr_itemsSold:'Items sold',
+    dr_grossSales:'Gross sales',
+    dr_discounts:'Discounts',
+    dr_gst:'GST',
+    dr_charges:'Packing / delivery',
+    dr_netSales:'Net sales',
+    dr_cancelled:'Cancelled bills',
+    dr_returns:'Returns',
+    dr_payments:'Payments received for today\'s bills',
+    dr_creditGiven:'Given on credit',
+    dr_credit:'Credit (udhar)',
+    dr_collectedToday:'Old dues collected today',
+    dr_collectedTotal:'Total collected',
+    dr_custDuesNow:'Customer dues now',
+    dr_vendDuesNow:'Vendor dues now',
+    dr_expenses:'Expenses',
+    dr_none:'None',
+    dr_totalExpenses:'Total expenses',
+    dr_vendorPaid:'Paid to vendors',
+    dr_total:'Total',
+    dr_cashInAll:'Cash in (sales + dues)',
+    dr_cashOutAll:'Cash out (expenses, vendors, refunds)',
+    dr_notCounted:'Cash not counted yet - close the day in Accounts',
+    dr_byMode:'Money in / out by mode',
+    dr_in:'In',
+    dr_out:'Out',
+    dr_net:'Net',
+    dr_noMode:'Mode not recorded',
+    dr_topItems:'Top items',
+    dr_staff:'Sales by staff',
+    dr_closedBy:'Closed by',
+    dr_preparedBy:'Prepared by',
+    sr_btn:'Stock Report',
+    sr_title:'Stock Report',
+    sr_view:'Show',
+    sr_viewProduct:'Product-wise',
+    sr_viewItem:'Item-wise (size / colour)',
+    sr_allCats:'All categories',
+    sr_all:'All',
+    sr_ok:'In stock',
+    sr_low:'Low',
+    sr_out:'Out',
+    sr_search:'Search',
+    sr_searchPh:'name, brand, size, SKU',
+    sr_size:'Size',
+    sr_colour:'Colour',
+    sr_sizes:'Sizes',
+    sr_variants:'Variants',
+    sr_costPrice:'Cost price',
+    sr_salePrice:'Sale price',
+    sr_subtotal:'subtotal',
+    sr_grandTotal:'Grand total',
+    sr_empty:'No stock matches these filters',
+    sr_csv:'Export Excel (CSV)',
+    sr_firm:'Firm',
+    sr_items:'Items',
+    sr_products:'Products',
+    sr_totalQty:'Total pieces',
+    lb_layout:'Label type',
+    lb_layoutStd:'Standard sticker',
+    lb_layoutJewel:'Jewellery tag (2 wings + tail)',
+    lb_sym:'Barcode type',
+    lb_sym128:'Code 128 (recommended, compact)',
+    lb_sym39:'Code 39 (older labels)',
+    lb_jStart:'Wing 1 starts at (mm)',
+    lb_jFlap:'Wing width (mm)',
+    lb_jGap:'Gap between wings (mm)',
+    lb_jHint:'Measure your tag with a ruler: where the first printable wing starts, how wide one wing is, and the gap to the second wing. Print a Test Label - the two boxes must sit exactly on the two wings.',
+    lb_barGood:'Barcode bars: {0} printer dots wide - will scan well',
+    lb_barThin:'Barcode bars are only 1 dot wide - may not scan. Use a shorter SKU (e.g. J101) or a 300 dpi printer.',
+    lb_barTooLong:'This code is too long for this label - use a shorter SKU, a wider wing, or a 300 dpi printer.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2435,6 +2512,83 @@ const I18N = {
     edit_history:'या बिलात केलेले बदल',
     act_credit_payment:'उधारीचे पैसे मिळाले',
     act_bill_edit:'बिल बदलले',
+    cpn_tapToApply:'लावण्यासाठी दाबा',
+    cpn_needMin:'{0} किंवा जास्तचे बिल हवे',
+    cpn_minShort:'किमान {0}',
+    cpn_belowMin:'{0} साठी {1} चे बिल हवे - अजून लागू नाही',
+    dr_title:'दिवस बंद अहवाल',
+    dr_sales:'विक्री',
+    dr_itemsSold:'विकलेल्या वस्तू',
+    dr_grossSales:'एकूण विक्री',
+    dr_discounts:'सूट',
+    dr_gst:'GST',
+    dr_charges:'पॅकिंग / डिलिव्हरी',
+    dr_netSales:'निव्वळ विक्री',
+    dr_cancelled:'रद्द बिले',
+    dr_returns:'परतावे',
+    dr_payments:'आजच्या बिलांचे मिळालेले पैसे',
+    dr_creditGiven:'उधारीवर दिले',
+    dr_credit:'उधारी',
+    dr_collectedToday:'आज वसूल झालेली जुनी उधारी',
+    dr_collectedTotal:'एकूण वसुली',
+    dr_custDuesNow:'ग्राहकांची सध्याची बाकी',
+    dr_vendDuesNow:'व्हेंडरची सध्याची बाकी',
+    dr_expenses:'खर्च',
+    dr_none:'काही नाही',
+    dr_totalExpenses:'एकूण खर्च',
+    dr_vendorPaid:'व्हेंडरला दिलेले',
+    dr_total:'एकूण',
+    dr_cashInAll:'रोख आली (विक्री + उधारी)',
+    dr_cashOutAll:'रोख गेली (खर्च, व्हेंडर, परतावा)',
+    dr_notCounted:'रोख अजून मोजलेली नाही - अकाउंट्समध्ये दिवस बंद करा',
+    dr_byMode:'प्रकारानुसार आले / गेले',
+    dr_in:'आले',
+    dr_out:'गेले',
+    dr_net:'निव्वळ',
+    dr_noMode:'प्रकार नोंदलेला नाही',
+    dr_topItems:'जास्त विकलेल्या वस्तू',
+    dr_staff:'स्टाफनुसार विक्री',
+    dr_closedBy:'बंद केले',
+    dr_preparedBy:'तयार केले',
+    sr_btn:'स्टॉक रिपोर्ट',
+    sr_title:'स्टॉक रिपोर्ट',
+    sr_view:'दाखवा',
+    sr_viewProduct:'वस्तूनुसार',
+    sr_viewItem:'प्रत्येक नग (साईज / रंग)',
+    sr_allCats:'सर्व प्रकार',
+    sr_all:'सर्व',
+    sr_ok:'स्टॉकमध्ये',
+    sr_low:'कमी',
+    sr_out:'संपले',
+    sr_search:'शोधा',
+    sr_searchPh:'नाव, ब्रँड, साईज, SKU',
+    sr_size:'साईज',
+    sr_colour:'रंग',
+    sr_sizes:'साईज',
+    sr_variants:'प्रकार',
+    sr_costPrice:'खरेदी किंमत',
+    sr_salePrice:'विक्री किंमत',
+    sr_subtotal:'उप-एकूण',
+    sr_grandTotal:'एकूण',
+    sr_empty:'या निवडीत स्टॉक नाही',
+    sr_csv:'Excel (CSV) काढा',
+    sr_firm:'फर्म',
+    sr_items:'नग',
+    sr_products:'वस्तू',
+    sr_totalQty:'एकूण नग',
+    lb_layout:'लेबल प्रकार',
+    lb_layoutStd:'साधे स्टिकर',
+    lb_layoutJewel:'ज्वेलरी टॅग (2 पंख + शेपटी)',
+    lb_sym:'बारकोड प्रकार',
+    lb_sym128:'Code 128 (शिफारस, लहान)',
+    lb_sym39:'Code 39 (जुनी लेबले)',
+    lb_jStart:'पहिला पंख सुरू (mm)',
+    lb_jFlap:'पंखाची रुंदी (mm)',
+    lb_jGap:'दोन पंखांमधील अंतर (mm)',
+    lb_jHint:'फुटपट्टीने टॅग मोजा: पहिला छपाईचा पंख कुठे सुरू होतो, एका पंखाची रुंदी, आणि दुसऱ्या पंखापर्यंतचे अंतर. टेस्ट लेबल छापा - दोन चौकटी दोन्ही पंखांवर अचूक बसल्या पाहिजेत.',
+    lb_barGood:'बारकोड रेषा: {0} डॉट रुंद - नीट स्कॅन होईल',
+    lb_barThin:'बारकोड रेषा फक्त 1 डॉट रुंद - स्कॅन होणार नाही असे होऊ शकते. लहान SKU (उदा. J101) किंवा 300 dpi प्रिंटर वापरा.',
+    lb_barTooLong:'हा कोड या लेबलसाठी खूप लांब आहे - लहान SKU, रुंद पंख किंवा 300 dpi प्रिंटर वापरा.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -4371,12 +4525,48 @@ function code39Encode(text){
   bin += code39CharBinary('*');
   return {bin, data};
 }
-// Renders a scannable Code 39 barcode as a self-contained SVG string (no canvas, no library).
+
+/* Code 128 (ISO/IEC 15417). Much shorter than Code 39 for the same text - and digits are packed two per symbol -
+   so it fits on small tags. Patterns are bar/space widths starting with a bar; value 103/104/105 = Start A/B/C. */
+const C128_PAT = ['212222','222122','222221','121223','121322','131222','122213','122312','132212','221213','221312','231212','112232','122132','122231','113222','123122','123221','223211','221132','221231','213212','223112','312131','311222','321122','321221','312212','322112','322211','212123','212321','232121','111323','131123','131321','112313','132113','132311','211313','231113','231311','112133','112331','132131','113123','113321','133121','313121','211331','231131','213113','213311','213131','311123','311321','331121','312113','312311','332111','314111','221411','431111','111224','111422','121124','121421','141122','141221','112214','112412','122114','122411','142112','142211','241211','221114','413111','241112','134111','111242','121142','121241','114212','124112','124211','411212','421112','421211','212141','214121','412121','111143','111341','131141','114113','114311','411113','411311','113141','114131','311141','411131','211412','211214','211232'];
+const C128_STOP = '2331112';
+function code128Values(text){
+  let s = ''; for(const ch of String(text==null?'':text)){ const c = ch.charCodeAt(0); s += (c>=32 && c<=126) ? ch : '-'; }
+  if(!s) s = '0';
+  const run = k=>{ let n=0; while(k+n<s.length && s[k+n]>='0' && s[k+n]<='9') n++; return n; };
+  const vals = []; let set, i = 0;
+  if(run(0)>=4){ set='C'; vals.push(105); } else { set='B'; vals.push(104); }
+  while(i<s.length){
+    if(set==='C'){
+      if(run(i)>=2){ vals.push(parseInt(s.substr(i,2),10)); i+=2; continue; }
+      vals.push(100); set='B';
+    } else {
+      const r = run(i);
+      if(r>=6 || (r>=4 && i+r===s.length)){
+        if(r%2===1){ vals.push(s.charCodeAt(i)-32); i++; }
+        vals.push(99); set='C'; continue;
+      }
+      vals.push(s.charCodeAt(i)-32); i++;
+    }
+  }
+  let sum = vals[0]; for(let k=1;k<vals.length;k++) sum += vals[k]*k;
+  vals.push(sum % 103);
+  return {vals, data:s};
+}
+function code128Encode(text){
+  const {vals, data} = code128Values(text);
+  let bin = '';
+  const add = p=>{ for(let j=0;j<p.length;j++) bin += (j%2===0?'1':'0').repeat(+p[j]); };
+  vals.forEach(v=>add(C128_PAT[v])); add(C128_STOP);
+  return {bin, data};
+}
+function barcodeEncode(text, sym){ return sym==='code39' ? code39Encode(text) : code128Encode(text); }
+// Renders a scannable barcode (Code 39 unless opts.sym says otherwise) as a self-contained SVG string.
 function renderBarcodeSVG(text, opts={}){
   const barW = opts.barWidth || 2;
   const height = opts.height || 46;
   const showText = opts.showText !== false;
-  const {bin, data} = code39Encode(text);
+  const {bin, data} = barcodeEncode(text, opts.sym || 'code39');
   const width = bin.length * barW;
   const textH = showText ? 15 : 0;
   let bars = '';
@@ -4577,6 +4767,7 @@ async function renderInvReportsTab(){
       <h2 class="section-title">${iconSVG('chart')} ${t('inv_reportsTitle')}</h2>
       <p class="muted" style="font-size:12px;margin-top:-4px;">${t('inv_reportsHint')}</p>
       <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px;">
+        <button class="btn btn-primary btn-sm" id="invStockReportBtn">${iconSVG('chart',13)} ${t('sr_btn')}</button>
         <button class="btn btn-outline btn-sm" id="invValuationBtn">${iconSVG('chart',13)} ${t('inv_stockValuationBtn')}</button>
         <button class="btn btn-outline btn-sm" id="invDeadStockBtn">${iconSVG('chart',13)} ${t('inv_deadStockBtn')}</button>
         <button class="btn btn-outline btn-sm" id="invAdjustLogBtn">${iconSVG('adjust',13)} ${t('inv_adjustmentsLogBtn')}</button>
@@ -4584,6 +4775,7 @@ async function renderInvReportsTab(){
       </div>
     </div>
   `;
+  document.getElementById('invStockReportBtn').addEventListener('click', ()=>showStockReport());
   document.getElementById('invValuationBtn').addEventListener('click', showStockValuationReport);
   document.getElementById('invDeadStockBtn').addEventListener('click', showDeadStockReport);
   document.getElementById('invAdjustLogBtn').addEventListener('click', showStockAdjustmentsLog);
@@ -6042,7 +6234,7 @@ async function openBarcodeModal(productId){
           <div class="col field" style="min-width:120px;"><label>${t('lb_preset')}</label>
             <select id="lb_preset"><option value="">${t('lb_custom')}</option>${LABEL_PRESETS.map(([k,w,h])=>`<option value="${k}" ${(labelConfig().w===w&&labelConfig().h===h)?'selected':''}>${w} × ${h} mm</option>`).join('')}</select></div>
           <div class="col field" style="min-width:90px;"><label>${t('lb_widthMm')}</label><input id="lb_w" type="number" min="20" step="1" value="${labelConfig().w}"></div>
-          <div class="col field" style="min-width:90px;"><label>${t('lb_heightMm')}</label><input id="lb_h" type="number" min="15" step="1" value="${labelConfig().h}"></div>
+          <div class="col field" style="min-width:90px;"><label>${t('lb_heightMm')}</label><input id="lb_h" type="number" min="8" step="1" value="${labelConfig().h}"></div>
         </div>
         <div class="row" style="flex-wrap:wrap;">
           <div class="col field" style="min-width:90px;"><label>${t('lb_across')}</label><input id="lb_cols" type="number" min="1" max="4" step="1" value="${labelConfig().cols}"></div>
@@ -6051,6 +6243,18 @@ async function openBarcodeModal(productId){
           <div class="col field" style="min-width:100px;"><label>${t('lb_shiftY')}</label><input id="lb_offy" type="number" step="0.5" value="${labelConfig().offY}"></div>
           <div class="col field" style="min-width:90px;"><label>${t('lb_rotate')}</label>
             <select id="lb_rot">${[0,90,180,270].map(r=>`<option value="${r}" ${labelConfig().rot===r?'selected':''}>${r}°</option>`).join('')}</select></div>
+        </div>
+        <div class="row" style="flex-wrap:wrap;">
+          <div class="col field" style="min-width:200px;"><label>${t('lb_layout')}</label>
+            <select id="lb_layout"><option value="standard" ${labelConfig().layout!=='jewel'?'selected':''}>${t('lb_layoutStd')}</option><option value="jewel" ${labelConfig().layout==='jewel'?'selected':''}>${t('lb_layoutJewel')}</option></select></div>
+          <div class="col field" style="min-width:200px;"><label>${t('lb_sym')}</label>
+            <select id="lb_sym"><option value="code128" ${labelConfig().sym==='code128'?'selected':''}>${t('lb_sym128')}</option><option value="code39" ${labelConfig().sym==='code39'?'selected':''}>${t('lb_sym39')}</option></select></div>
+        </div>
+        <div class="row" id="lb_jewelRow" style="flex-wrap:wrap;display:${labelConfig().layout==='jewel'?'':'none'};">
+          <div class="col field" style="min-width:110px;"><label>${t('lb_jStart')}</label><input id="lb_jstart" type="number" min="0" step="0.5" value="${labelConfig().jStart}"></div>
+          <div class="col field" style="min-width:110px;"><label>${t('lb_jFlap')}</label><input id="lb_jflap" type="number" min="8" step="0.5" value="${labelConfig().jFlap}"></div>
+          <div class="col field" style="min-width:110px;"><label>${t('lb_jGap')}</label><input id="lb_jgap" type="number" min="0" step="0.5" value="${labelConfig().jGap}"></div>
+          <div class="muted" style="font-size:11.5px;flex-basis:100%;">${t('lb_jHint')}</div>
         </div>
         <div style="font-weight:700;font-size:12.5px;margin:4px 0 2px;">${t('lb_whatToPrint')}</div>
         ${labelFieldsHTML(k=>'lb_show'+k, labelConfig())}
@@ -6080,6 +6284,7 @@ async function openBarcodeModal(productId){
             <div id="lb_previewWrap" style="background:#fff;border:1px solid var(--line);overflow:hidden;"><iframe id="lb_preview" style="border:0;display:block;transform-origin:0 0;background:#fff;"></iframe></div></div>
           <div style="flex:1;min-width:200px;">
             <button type="button" class="btn btn-outline btn-sm" id="lb_testBtn">${t('lb_testBtn')}</button>
+            <div id="lb_barInfo" style="font-size:12px;margin-top:8px;"></div>
             <p class="muted" style="font-size:11.5px;margin:8px 0 0;">${t('lb_hintV2')}</p>
           </div>
         </div>
@@ -6100,7 +6305,7 @@ async function openBarcodeModal(productId){
       const refreshPreview = ()=>{
         const cfg = readLabelCfgFromModal();
         const v = (product.variants||[])[0] || {};
-        const items = [labelItemHTML(product, productId, v, 0, '', cfg)];
+        const items = [labelItemHTML(product, productId, v, 0, '', cfg)];  // jewellery tags are drawn with this same cfg
         const parts = buildLabelPage(items, cfg);
         const pageW = labelPageSize(cfg).w, pageH = labelPageSize(cfg).h;
         const px = 3.7795, fr = document.getElementById('lb_preview');
@@ -6110,13 +6315,22 @@ async function openBarcodeModal(productId){
         const wrap = document.getElementById('lb_previewWrap');
         wrap.style.width = (pageW*px*scale)+'px'; wrap.style.height = (pageH*px*scale)+'px';
         fr.srcdoc = '<!DOCTYPE html><html><head><style>'+parts.style+' html,body{overflow:hidden}</style></head><body>'+parts.body+'</body></html>';
+        const jr = document.getElementById('lb_jewelRow'); if(jr) jr.style.display = cfg.layout==='jewel' ? '' : 'none';
+        const bi = document.getElementById('lb_barInfo');
+        if(bi){
+          const longest = (product.variants||[]).map((vv,ii)=>vv.sku||autoSKU(productId,ii)).sort((a,b)=>b.length-a.length)[0] || 'X';
+          const dots = labelBarDots(cfg, longest);
+          bi.innerHTML = dots>=2 ? `<span class="tag tag-green">${escapeHTML(fillTpl(t('lb_barGood'),[dots]))}</span>`
+            : dots===1 ? `<span class="tag tag-amber">${escapeHTML(t('lb_barThin'))}</span>`
+            : `<span class="tag tag-red">${escapeHTML(t('lb_barTooLong'))}</span>`;
+        }
       };
       document.getElementById('lb_preset').addEventListener('change', e=>{
         const hit = LABEL_PRESETS.find(x=>x[0]===e.target.value);
         if(hit){ document.getElementById('lb_w').value = hit[1]; document.getElementById('lb_h').value = hit[2]; }
         refreshPreview();
       });
-      ['lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot','lb_showbrand','lb_showsku','lb_showshop','lb_showbarcode','lb_showname','lb_showsize','lb_showcolor','lb_showprice'].forEach(id=>{
+      ['lb_layout','lb_sym','lb_jstart','lb_jflap','lb_jgap','lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot','lb_showbrand','lb_showsku','lb_showshop','lb_showbarcode','lb_showname','lb_showsize','lb_showcolor','lb_showprice'].forEach(id=>{
         const el = document.getElementById(id);
         el.addEventListener('input', ()=>{ if(id==='lb_w'||id==='lb_h') document.getElementById('lb_preset').value=''; refreshPreview(); });
         el.addEventListener('change', refreshPreview);
@@ -6135,7 +6349,8 @@ async function openBarcodeModal(productId){
       const saveLabelCfg = async ()=>{
         const c = readLabelCfgFromModal();
         // Remember the label setup so it only has to be done once per printer.
-        await saveSettings({labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot,
+        await saveSettings({labelLayout:c.layout, labelSymbology:c.sym, labelJewelStart:c.jStart, labelJewelFlapW:c.jFlap, labelJewelGap:c.jGap,
+          labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot,
           labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert, labelAutoClean:c.autoClean, labelShowBrand:c.show.brand, labelShowSku:c.show.sku,
           labelShowShop:c.show.shop, labelShowBarcode:c.show.barcode, labelShowName:c.show.name, labelShowSize:c.show.size, labelShowColor:c.show.color, labelShowPrice:c.show.price});
       };
@@ -6169,7 +6384,7 @@ function labelFieldsHTML(idOf, cfg){
   return `<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin:2px 0 6px;">` + LABEL_FIELDS.map(([k,cap,tk])=>
     `<label style="display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:400;"><input type="checkbox" id="${idOf(k)}" style="width:auto;" ${cfg.show[k]?'checked':''}> ${t(tk)}</label>`).join('') + `</div>`;
 }
-const LABEL_PRESETS = [['50x25',50,25],['38x25',38,25],['40x30',40,30],['50x30',50,30],['58x40',58,40],['75x50',75,50],['100x50',100,50],['100x150',100,150]];
+const LABEL_PRESETS = [['50x25',50,25],['38x25',38,25],['40x30',40,30],['50x30',50,30],['58x40',58,40],['75x50',75,50],['100x50',100,50],['100x150',100,150],['95x12',95,12],['100x15',100,15],['90x12',90,12]];
 function labelConfig(src){
   src = src || SETTINGS;
   const num = (x, d)=>{ const n = Number(x); return (x==null || x==='' || isNaN(n)) ? d : n; };
@@ -6177,8 +6392,13 @@ function labelConfig(src){
   return {
     paper: src.labelPaper==='a4' ? 'a4' : 'roll',
     w: Math.max(20, num(src.labelWidthMm, 50) || 50),
-    h: Math.max(15, num(src.labelHeightMm, 25) || 25),
-    cols: (rot===90||rot===270) ? 1 : Math.min(4, Math.max(1, parseInt(src.labelCols)||1)),
+    h: Math.max(8, num(src.labelHeightMm, 25) || 25),
+    cols: (rot===90||rot===270 || src.labelLayout==='jewel') ? 1 : Math.min(4, Math.max(1, parseInt(src.labelCols)||1)),
+    layout: src.labelLayout==='jewel' ? 'jewel' : 'standard',
+    sym: src.labelSymbology==='code39' ? 'code39' : 'code128',
+    jStart: Math.max(0, num(src.labelJewelStart, 2)),
+    jFlap: Math.max(8, num(src.labelJewelFlapW, 26) || 26),
+    jGap: Math.max(0, num(src.labelJewelGap, 2)),
     gap: Math.max(0, num(src.labelGapMm, 2)),
     offX: num(src.labelOffX, 0), offY: num(src.labelOffY, 0), rot,
     method: ['tspl','zpl'].includes(src.labelMethod) ? src.labelMethod : 'driver',
@@ -6206,7 +6426,10 @@ function readLabelCfgFromModal(){
     labelShowName: has('lb_showname') ? document.getElementById('lb_showname').checked : true,
     labelShowSize: has('lb_showsize') ? document.getElementById('lb_showsize').checked : true,
     labelShowColor: has('lb_showcolor') ? document.getElementById('lb_showcolor').checked : true,
-    labelShowPrice: has('lb_showprice') ? document.getElementById('lb_showprice').checked : true});
+    labelShowPrice: has('lb_showprice') ? document.getElementById('lb_showprice').checked : true,
+    labelLayout: has('lb_layout') ? g('lb_layout') : SETTINGS.labelLayout, labelSymbology: has('lb_sym') ? g('lb_sym') : SETTINGS.labelSymbology,
+    labelJewelStart: has('lb_jstart') ? g('lb_jstart') : SETTINGS.labelJewelStart, labelJewelFlapW: has('lb_jflap') ? g('lb_jflap') : SETTINGS.labelJewelFlapW,
+    labelJewelGap: has('lb_jgap') ? g('lb_jgap') : SETTINGS.labelJewelGap});
 }
 // The physical page the printer receives (swapped when the label is fed sideways).
 function labelPageSize(cfg){
@@ -6216,6 +6439,7 @@ function labelPageSize(cfg){
 }
 function labelItemHTML(product, productId, v, i, extra, cfgIn){
   const lc = cfgIn || labelConfig(), sh = lc.show;
+  if(lc.layout==='jewel') return jewelItemHTML(Object.assign(labelItemData(product, productId, v, i, lc), (extra||'').includes('test')?{test:true}:{}), lc);
   const showBrand = sh.brand && !!String(product.brand||'').trim();
   const showSku = sh.sku;
   const sku = v.sku || autoSKU(productId, i);
@@ -6223,7 +6447,11 @@ function labelItemHTML(product, productId, v, i, extra, cfgIn){
   const nameHTML = [sh.name ? escapeHTML(product.name) : '', label ? escapeHTML(label) : ''].filter(Boolean).join(' — ');
   const onSale = isVariantOnSale(v);
   // Bars are stretched to the label width (never in height) so the quiet zone stays and the code scans.
-  const bars = renderBarcodeSVG(sku,{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
+  const _enc = barcodeEncode(sku, lc.sym), _dot = 25.4/lc.dpi;
+  const _m = Math.floor((lc.w*0.9*0.9)/_dot/_enc.bin.length);
+  // Each bar is a whole number of printer dots wide - fractional bars come out blurred and do not scan.
+  const _wAttr = _m>=1 ? ` shape-rendering="crispEdges" style="width:${(_enc.bin.length*_m*_dot).toFixed(3)}mm"` : ' shape-rendering="crispEdges"';
+  const bars = renderBarcodeSVG(sku,{barWidth:1,height:34,showText:false,sym:lc.sym}).replace('<svg ','<svg preserveAspectRatio="none"'+_wAttr+' ');
   return `
     <div class="lbl${extra||''}">
       ${sh.shop && SETTINGS.name?`<div class="lbl-shop">${escapeHTML(SETTINGS.name)}</div>`:''}
@@ -6261,6 +6489,8 @@ function buildLabelPage(items, cfg){
           display:flex; flex-direction:column; justify-content:center; align-items:stretch; text-align:center; gap:${(cfg.h*0.012).toFixed(2)}mm;
           transform:${place}; transform-origin:${sideways?'0 0':'50% 50%'}; ${sideways?'position:absolute; left:0; top:0;':''} }
     .lbl.test{ border:0.35mm solid #000; }
+    .lbl.lbl-j{ padding:0; display:block; transform:${place}; }
+    .lbl.lbl-j img{ display:block; width:${cfg.w}mm; height:${cfg.h-0.3}mm; image-rendering:pixelated; }
     .lbl-shop{ font-size:${pt(6)}; letter-spacing:.2px; text-transform:uppercase; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.1; }
     .lbl svg{ display:block; width:90%; height:${bh}mm; flex:none; margin:0 auto; }
     .lbl-sku{ font-size:${pt(5.5)}; letter-spacing:.3px; line-height:1.05; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
@@ -6279,20 +6509,67 @@ function buildLabelPage(items, cfg){
 // The whole label is drawn as a picture at the printer's own resolution and sent straight to the
 // printer as a RAW job, so the Windows driver's paper size / orientation / margins cannot matter.
 function labelRawActive(cfg){ return !!(window.IS_TAURI && cfg && cfg.method!=='driver' && cfg.paper==='roll'); }
-function labelItemData(product, productId, v, i){
+function labelItemData(product, productId, v, i, cfgIn){
   const onSale = isVariantOnSale(v);
-  const sh = labelConfig().show;
+  const sh = (cfgIn || labelConfig()).show;
   const label = [sh.size ? v.size : '', sh.color ? v.color : ''].filter(Boolean).join(' / ');
   return {
     shop: sh.shop ? (SETTINGS.name || '') : '', sku: v.sku || autoSKU(productId, i), noBar: !sh.barcode,
     brand: sh.brand ? String(product.brand||'').trim() : '',
     skuText: sh.sku ? (v.sku || autoSKU(productId, i)) : '',
     name: [sh.name ? String(product.name||'') : '', label].filter(Boolean).join(' — '),
+    pname: sh.name ? String(product.name||'') : '', variantTxt: label,
     mrp: (sh.price && onSale) ? fmtMoney(v.sellPrice) : '', priceText: sh.price ? fmtMoney(onSale ? variantSalePrice(v) : v.sellPrice) : ''
   };
 }
 // Draws one upright label into ctx at (x0,y0) inside a box of wd x hd dots.
+// Jewellery tag (dumbbell / rat-tail): wing 1 = barcode + code, wing 2 = name, size/colour, price. Tail left blank.
+function drawJewelLabel(ctx, d, x0, y0, wd, hd, cfg){
+  const dpmm = cfg.dpi/25.4, mm = x=>Math.round(x*dpmm);
+  const ax = x0 + mm(cfg.jStart), fw = mm(cfg.jFlap), bx = ax + fw + mm(cfg.jGap);
+  const pad = Math.max(1, mm(0.6));
+  const FONT = '"Nirmala UI","Segoe UI",Arial,sans-serif';
+  const fontPx = (h,bold)=>`${bold?'700 ':''}${Math.max(6,Math.round(h*dpmm))}px ${FONT}`;
+  const fit = (txt, f, maxW)=>{ ctx.font = f; txt = String(txt); if(ctx.measureText(txt).width<=maxW) return txt; let a = txt; while(a.length>1 && ctx.measureText(a+'…').width>maxW) a = a.slice(0,-1); return a+'…'; };
+  ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+  if(d.test){ const bw = Math.max(1, mm(0.25)); ctx.lineWidth = bw; ctx.strokeRect(ax+bw/2, y0+bw/2, fw-bw, hd-bw); ctx.strokeRect(bx+bw/2, y0+bw/2, fw-bw, hd-bw); }
+  // wing 1
+  const codeTxt = d.skuText || (d.test ? d.sku : '');
+  const textH = codeTxt ? mm(1.7) : 0;
+  let barH = hd - 2*pad - (codeTxt ? textH + mm(0.3) : 0);
+  if(!d.noBar){
+    const bin = barcodeEncode(d.sku, cfg.sym).bin, quiet = mm(1.0), avail = fw - 2*quiet;
+    let m = Math.floor(avail/bin.length); if(m<1) m = avail/bin.length;
+    const total = bin.length*m, sx = Math.round(ax + (fw-total)/2);
+    for(let i=0;i<bin.length;i++) if(bin[i]==='1'){ const xa = Math.round(sx+i*m), xb = Math.round(sx+(i+1)*m); ctx.fillRect(xa, y0+pad, Math.max(1,xb-xa), barH); }
+  } else barH = 0;
+  if(codeTxt){ const f = fontPx(1.6,false); ctx.font = f; ctx.fillText(fit(codeTxt, f, fw-2*pad), ax+fw/2, d.noBar ? y0+Math.round((hd-textH)/2) : y0+pad+barH+mm(0.3)); }
+  // wing 2
+  const nm = d.pname!==undefined ? d.pname : d.name;
+  const lines = [];
+  if(d.shop) lines.push({t:String(d.shop).toUpperCase(), h:1.5, b:false});
+  if(nm) lines.push({t:nm, h:2.0, b:true});
+  if(d.variantTxt) lines.push({t:d.variantTxt, h:1.7, b:false});
+  if(d.priceText) lines.push({t:d.priceText + (d.mrp ? '  ('+d.mrp+')' : ''), h:2.4, b:true});
+  const avail = hd - 2*pad, need = lines.reduce((s,l)=>s+mm(l.h)*1.12, 0), k = need>avail ? avail/need : 1;
+  let y = y0 + Math.max(pad, Math.round((hd-need*k)/2));
+  for(const l of lines){ const f = fontPx(l.h*k, l.b); ctx.font = f; ctx.fillText(fit(l.t, f, fw-2*pad), bx+fw/2, y); y += Math.round(mm(l.h)*1.12*k); }
+}
+function jewelItemHTML(d, cfg){
+  const dpmm = cfg.dpi/25.4, w = Math.round(cfg.w*dpmm), h = Math.round(cfg.h*dpmm);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+  drawJewelLabel(ctx, d, 0, 0, w, h, cfg);
+  return `<div class="lbl lbl-j${d.test?' test':''}"><img alt="" src="${c.toDataURL('image/png')}"></div>`;
+}
+// How wide each bar comes out (in printer dots) for this code on this label: 2+ is safe, 1 is risky, 0 does not fit.
+function labelBarDots(cfg, code){
+  const n = barcodeEncode(code, cfg.sym).bin.length, dot = 25.4/cfg.dpi;
+  const avail = cfg.layout==='jewel' ? Math.max(0, cfg.jFlap - 2) : cfg.w*0.9*0.9;
+  return Math.floor(avail/dot/n);
+}
 function drawRawLabel(ctx, d, x0, y0, wd, hd, cfg){
+  if(cfg.layout==='jewel') return drawJewelLabel(ctx, d, x0, y0, wd, hd, cfg);
   const dpmm = cfg.dpi/25.4, s = Math.min(cfg.w/50, cfg.h/25), pxPt = cfg.dpi/72;
   const padX = Math.round(cfg.w*0.05*dpmm), padY = Math.round(cfg.h*0.05*dpmm);
   const innerW = wd - 2*padX;
@@ -6348,7 +6625,7 @@ function drawRawLabel(ctx, d, x0, y0, wd, hd, cfg){
         ctx.font = priceF; ctx.fillText(d.priceText, startX+mw+g, y); ctx.textAlign = 'center';
       } else { ctx.font = priceF; ctx.fillText(fit(d.priceText, priceF, innerW), cx, y); }
     } else if(pt.k==='bar'){
-      const bin = code39Encode(d.sku).bin, availW = Math.floor(innerW*0.92);
+      const bin = barcodeEncode(d.sku, cfg.sym).bin, availW = Math.floor(innerW*0.92);
       const m = Math.max(0.5, Math.min(6, Math.floor(availW/bin.length) || availW/bin.length));
       const bwTot = bin.length*m, bx = Math.round(cx - bwTot/2);
       for(let i=0;i<bin.length;i++){ if(bin[i]==='1'){ const xa = Math.round(bx+i*m), xb = Math.round(bx+(i+1)*m); ctx.fillRect(xa, y, Math.max(1,xb-xa), bh); } }
@@ -6516,7 +6793,7 @@ function printTestLabel(){
     return printLabelsRaw([{shop:t('lb_testLine1'), sku:'TEST-123', name:cfg.w+' × '+cfg.h+' mm', priceText:t('lb_testLine2'), test:true}], cfg);
   }
   const bars = renderBarcodeSVG('TEST-123',{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
-  const item = `<div class="lbl test"><div class="lbl-shop">${t('lb_testLine1')}</div>${bars}<div class="lbl-name">${cfg.w} × ${cfg.h} mm</div><div class="lbl-price">${t('lb_testLine2')}</div></div>`;
+  const item = cfg.layout==='jewel' ? jewelItemHTML({shop:t('lb_testLine1'), sku:'TEST-123', name:cfg.w+' × '+cfg.h+' mm', priceText:t('lb_testLine2'), test:true}, cfg) : `<div class="lbl test"><div class="lbl-shop">${t('lb_testLine1')}</div>${bars}<div class="lbl-name">${cfg.w} × ${cfg.h} mm</div><div class="lbl-price">${t('lb_testLine2')}</div></div>`;
   const parts = buildLabelPage([item], cfg);
   const win = (window.openLabelPrintWindow||openPrintWindow)();
   win.document.write(`<!DOCTYPE html><html><head><title>Test label</title><style>${parts.style}</style></head><body>${parts.body}<script>window.onload = ()=>{ window.print(); }<\/script></body></html>`);
@@ -7126,6 +7403,138 @@ async function showStockValuationReport(){
       </div>
     `,
     footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>`
+  });
+}
+
+/* ---------- Detailed stock report (product-wise / item-wise) ---------- */
+let SR_STATE = {view:'product', cat:'', status:'all', q:''};
+function srStatusOf(v){
+  const qty = Number(v.stock||0), th = (v.lowStock!=null ? v.lowStock : SETTINGS.lowStockDefault);
+  return qty<=0 ? 'out' : (qty<=th ? 'low' : 'ok');
+}
+// Rows for the report, grouped by category. Item-wise = one row per size/colour; product-wise = one row per product.
+function srBuild(products){
+  const S = SR_STATE, r2 = n=>Math.round(n*100)/100;
+  const showFirm = multiFirmInUse() && !billableFirmId();
+  const groups = {};
+  products.forEach(p=>{
+    if(S.cat && (p.category||t('inv_uncategorized'))!==S.cat) return;
+    const vs = (p.variants||[]).map((v,i)=>({v,i})).filter(({v})=>{
+      if(S.status!=='all' && srStatusOf(v)!==S.status) return false;
+      return !S.q || searchMatch(S.q, [p.name, p.brand, p.category, v.size, v.color, v.sku]);
+    });
+    if(!vs.length) return;
+    const cat = p.category || t('inv_uncategorized');
+    const g = groups[cat] = groups[cat] || {rows:[], qty:0, cost:0, sale:0};
+    const firmName = showFirm ? ((firmById(p.firmId)||{}).name||'') : null;
+    if(S.view==='item'){
+      vs.forEach(({v,i})=>{
+        const qty = Number(v.stock||0), cost = r2(qty*Number(v.costPrice||0)), sale = r2(qty*Number(v.sellPrice||0));
+        g.rows.push({name:p.name, brand:p.brand||'', size:v.size||'', color:v.color||'', sku:v.sku||autoSKU(p.id,i), qty, cp:Number(v.costPrice||0), sp:Number(v.sellPrice||0), cost, sale, st:srStatusOf(v), firm:firmName});
+        g.qty += qty; g.cost = r2(g.cost+cost); g.sale = r2(g.sale+sale);
+      });
+    } else {
+      let qty=0, cost=0, sale=0, low=0, out=0;
+      vs.forEach(({v})=>{ const q = Number(v.stock||0); qty+=q; cost+=q*Number(v.costPrice||0); sale+=q*Number(v.sellPrice||0); const s = srStatusOf(v); if(s==='low') low++; if(s==='out') out++; });
+      g.rows.push({name:p.name, brand:p.brand||'', variants:vs.length, sizes:[...new Set(vs.map(x=>x.v.size).filter(Boolean))].join(', '), qty, cost:r2(cost), sale:r2(sale), low, out, firm:firmName});
+      g.qty += qty; g.cost = r2(g.cost+cost); g.sale = r2(g.sale+sale);
+    }
+  });
+  const cats = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+  cats.forEach(c=>groups[c].rows.sort((a,b)=>String(a.name).localeCompare(String(b.name)) || String(a.size||'').localeCompare(String(b.size||''))));
+  const tot = cats.reduce((s,c)=>({qty:s.qty+groups[c].qty, cost:r2(s.cost+groups[c].cost), sale:r2(s.sale+groups[c].sale), rows:s.rows+groups[c].rows.length}), {qty:0,cost:0,sale:0,rows:0});
+  return {groups, cats, tot, showFirm};
+}
+function srTableHTML(R, forPrint){
+  const E = escapeHTML, M = fmtMoney, item = SR_STATE.view==='item';
+  const stTag = s=> s==='out' ? `<span class="tag tag-red">${t('sr_out')}</span>` : s==='low' ? `<span class="tag tag-amber">${t('sr_low')}</span>` : `<span class="tag tag-green">${t('sr_ok')}</span>`;
+  const stTxt = s=> s==='out' ? t('sr_out') : s==='low' ? t('sr_low') : t('sr_ok');
+  const head = item
+    ? `<th>${t('th_item')}</th>${R.showFirm?`<th>${t('sr_firm')}</th>`:''}<th>${t('sr_size')}</th><th>${t('sr_colour')}</th><th>SKU</th><th class="num">${t('th_qty')}</th><th class="num">${t('sr_costPrice')}</th><th class="num">${t('sr_salePrice')}</th><th class="num">${t('th_costValue')}</th><th class="num">${t('th_retailValue')}</th><th>${t('th_status')}</th>`
+    : `<th>${t('th_item')}</th>${R.showFirm?`<th>${t('sr_firm')}</th>`:''}<th>${t('sr_sizes')}</th><th class="num">${t('sr_variants')}</th><th class="num">${t('th_qty')}</th><th class="num">${t('th_costValue')}</th><th class="num">${t('th_retailValue')}</th><th>${t('th_status')}</th>`;
+  const cols = item ? (R.showFirm?11:10) : (R.showFirm?8:7);
+  const body = R.cats.map(c=>{
+    const g = R.groups[c];
+    const rows = g.rows.map(r=> item
+      ? `<tr><td>${E(r.name)}${r.brand?` <span class="muted" style="font-size:11px;">${E(r.brand)}</span>`:''}</td>${R.showFirm?`<td>${E(r.firm)}</td>`:''}<td>${E(r.size)}</td><td>${E(r.color)}</td><td style="font-size:11.5px;">${E(r.sku)}</td><td class="num"><b>${r.qty}</b></td><td class="num">${M(r.cp)}</td><td class="num">${M(r.sp)}</td><td class="num">${M(r.cost)}</td><td class="num">${M(r.sale)}</td><td>${forPrint?stTxt(r.st):stTag(r.st)}</td></tr>`
+      : `<tr><td>${E(r.name)}${r.brand?` <span class="muted" style="font-size:11px;">${E(r.brand)}</span>`:''}</td>${R.showFirm?`<td>${E(r.firm)}</td>`:''}<td style="font-size:11.5px;">${E(r.sizes)}</td><td class="num">${r.variants}</td><td class="num"><b>${r.qty}</b></td><td class="num">${M(r.cost)}</td><td class="num">${M(r.sale)}</td><td>${r.out?(forPrint?r.out+' '+t('sr_out'):`<span class="tag tag-red">${r.out} ${t('sr_out')}</span>`):''} ${r.low?(forPrint?r.low+' '+t('sr_low'):`<span class="tag tag-amber">${r.low} ${t('sr_low')}</span>`):''}${(!r.out&&!r.low)?(forPrint?t('sr_ok'):`<span class="tag tag-green">${t('sr_ok')}</span>`):''}</td></tr>`).join('');
+    const sub = `<tr class="sr-sub"><td colspan="${item?(R.showFirm?5:4):(R.showFirm?4:3)}"><b>${E(c)}</b> — ${t('sr_subtotal')}</td><td class="num"><b>${g.qty}</b></td>${item?'<td></td><td></td>':''}<td class="num"><b>${M(g.cost)}</b></td><td class="num"><b>${M(g.sale)}</b></td><td></td></tr>`;
+    return `<tr class="sr-cat"><td colspan="${cols}"><b>${E(c)}</b></td></tr>${rows}${sub}`;
+  }).join('');
+  const grand = `<tr class="sr-grand"><td colspan="${item?(R.showFirm?5:4):(R.showFirm?4:3)}"><b>${t('sr_grandTotal')}</b></td><td class="num"><b>${R.tot.qty}</b></td>${item?'<td></td><td></td>':''}<td class="num"><b>${M(R.tot.cost)}</b></td><td class="num"><b>${M(R.tot.sale)}</b></td><td></td></tr>`;
+  return `<table class="sr-table"><thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="${cols}" class="muted">${t('sr_empty')}</td></tr>`}${R.cats.length?grand:''}</tbody></table>`;
+}
+async function showStockReport(){
+  const products = await scopedGetAll('products');
+  const cats = [...new Set(products.map(p=>p.category||t('inv_uncategorized')))].sort((a,b)=>a.localeCompare(b));
+  const S = SR_STATE;
+  openModal({
+    title: t('sr_title'), wide: true,
+    bodyHTML: `
+      <div class="row" style="flex-wrap:wrap;gap:8px;">
+        <div class="col field" style="min-width:170px;"><label>${t('sr_view')}</label><select id="sr_view">
+          <option value="product" ${S.view==='product'?'selected':''}>${t('sr_viewProduct')}</option>
+          <option value="item" ${S.view==='item'?'selected':''}>${t('sr_viewItem')}</option></select></div>
+        <div class="col field" style="min-width:150px;"><label>${t('th_category')}</label><select id="sr_cat"><option value="">${t('sr_allCats')}</option>${cats.map(c=>`<option value="${escapeHTML(c)}" ${S.cat===c?'selected':''}>${escapeHTML(c)}</option>`).join('')}</select></div>
+        <div class="col field" style="min-width:140px;"><label>${t('th_status')}</label><select id="sr_status">
+          ${[['all','sr_all'],['ok','sr_ok'],['low','sr_low'],['out','sr_out']].map(([k,tk])=>`<option value="${k}" ${S.status===k?'selected':''}>${t(tk)}</option>`).join('')}</select></div>
+        <div class="col field" style="min-width:180px;"><label>${t('sr_search')}</label><input id="sr_q" value="${escapeHTML(S.q)}" placeholder="${escapeHTML(t('sr_searchPh'))}"></div>
+      </div>
+      <div id="sr_tiles" class="stat-tiles" style="grid-template-columns:repeat(4,1fr);margin:6px 0 10px;"></div>
+      <div id="sr_wrap" style="max-height:55vh;overflow:auto;"></div>
+      <style>.sr-table td,.sr-table th{font-size:12.5px;} .sr-cat td{background:var(--paper-soft);} .sr-sub td{border-top:1px solid var(--line);} .sr-grand td{border-top:2px solid var(--ink,#333);font-size:13px;}</style>`,
+    footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
+      <button class="btn btn-outline" id="sr_csv">${t('sr_csv')}</button>
+      <button class="btn btn-primary" id="sr_print">${t('print_printBtn')}</button>`,
+    onMount: ()=>{
+      const paint = ()=>{
+        S.view = document.getElementById('sr_view').value; S.cat = document.getElementById('sr_cat').value;
+        S.status = document.getElementById('sr_status').value; S.q = document.getElementById('sr_q').value.trim();
+        const R = srBuild(products);
+        document.getElementById('sr_tiles').innerHTML = `
+          <div class="stat-tile"><div class="label">${S.view==='item'?t('sr_items'):t('sr_products')}</div><div class="value small">${R.tot.rows}</div></div>
+          <div class="stat-tile"><div class="label">${t('sr_totalQty')}</div><div class="value small">${R.tot.qty}</div></div>
+          <div class="stat-tile"><div class="label">${t('th_costValue')}</div><div class="value small">${fmtMoney(R.tot.cost)}</div></div>
+          <div class="stat-tile"><div class="label">${t('th_retailValue')}</div><div class="value small">${fmtMoney(R.tot.sale)}</div></div>`;
+        document.getElementById('sr_wrap').innerHTML = srTableHTML(R, false);
+        return R;
+      };
+      ['sr_view','sr_cat','sr_status'].forEach(id=>document.getElementById(id).addEventListener('change', paint));
+      document.getElementById('sr_q').addEventListener('input', paint);
+      paint();
+      document.getElementById('sr_print').addEventListener('click', ()=>{
+        const R = srBuild(products);
+        const shop = ((billableFirmId() && firmById(billableFirmId())) || {}).name || SETTINGS.name || '';
+        const filt = [S.view==='item'?t('sr_viewItem'):t('sr_viewProduct'), S.cat||t('sr_allCats'), t('sr_'+S.status), S.q].filter(Boolean).join(' · ');
+        dcOpenPrintWin(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(t('sr_title'))}</title><style>
+          @page{ size:A4 ${S.view==='item'?'landscape':'portrait'}; margin:10mm; }
+          body{ font:11.5px/1.3 "Segoe UI",Arial,sans-serif; color:#000; margin:0; }
+          h1{ font-size:17px; margin:0; } .s{ color:#444; margin:2px 0 8px; font-size:11px; }
+          table{ width:100%; border-collapse:collapse; } th{ text-align:left; border-bottom:1.5px solid #000; padding:3px; font-size:10.5px; text-transform:uppercase; }
+          td{ padding:2px 3px; border-bottom:1px solid #e3e3e3; } .num{ text-align:right; white-space:nowrap; } .muted{ color:#666; }
+          .sr-cat td{ background:#f0f0f0; padding-top:5px; } .sr-sub td{ border-top:1px solid #000; } .sr-grand td{ border-top:2px solid #000; font-size:12.5px; }
+          thead{ display:table-header-group; } tr{ break-inside:avoid; }
+          .tiles{ display:flex; gap:16px; margin:0 0 8px; font-size:12px; } .tiles b{ font-size:13px; }
+        </style></head><body>
+          <h1>${escapeHTML(shop)} — ${escapeHTML(t('sr_title'))}</h1>
+          <div class="s">${escapeHTML(filt)} · ${escapeHTML(fmtDateTime(new Date().toISOString()))}</div>
+          <div class="tiles"><span>${t('sr_totalQty')}: <b>${R.tot.qty}</b></span><span>${t('th_costValue')}: <b>${fmtMoney(R.tot.cost)}</b></span><span>${t('th_retailValue')}: <b>${fmtMoney(R.tot.sale)}</b></span></div>
+          ${srTableHTML(R, true)}</body></html>`);
+      });
+      document.getElementById('sr_csv').addEventListener('click', ()=>{
+        const R = srBuild(products), item = S.view==='item';
+        const lines = [toCSVRow(item
+          ? ['Category', ...(R.showFirm?['Firm']:[]), 'Product','Brand','Size','Colour','SKU','Qty','Cost price','Sale price','Cost value','Sale value','Status']
+          : ['Category', ...(R.showFirm?['Firm']:[]), 'Product','Brand','Sizes','Variants','Qty','Cost value','Sale value','Low','Out'])];
+        R.cats.forEach(c=>R.groups[c].rows.forEach(r=>lines.push(toCSVRow(item
+          ? [c, ...(R.showFirm?[r.firm]:[]), r.name, r.brand, r.size, r.color, r.sku, r.qty, r.cp, r.sp, r.cost, r.sale, r.st]
+          : [c, ...(R.showFirm?[r.firm]:[]), r.name, r.brand, r.sizes, r.variants, r.qty, r.cost, r.sale, r.low, r.out]))));
+        lines.push(toCSVRow(['TOTAL', ...(R.showFirm?['']:[]), '', '', ...(item?['','','']:['','']), R.tot.qty, ...(item?['','']:[]), R.tot.cost, R.tot.sale]));
+        const blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv'});
+        const url = URL.createObjectURL(blob), a = document.createElement('a');
+        a.href = url; a.download = 'stock-report-'+S.view+'-'+todayISO()+'.csv'; a.click(); URL.revokeObjectURL(url);
+      });
+    }
   });
 }
 
@@ -9689,6 +10098,7 @@ async function renderBilling(){
                 <input id="couponCodeInput" type="text" style="flex:1;text-transform:uppercase;" value="${escapeHTML(CART.couponCode||'')}" placeholder="${t('bill_couponPlaceholder')}">
                 <button class="btn btn-outline btn-sm" id="applyCouponBtn" type="button">${CART.couponCode?t('btn_remove'):t('btn_apply')}</button>
               </div>
+              <div id="couponChips" class="coupon-chips" style="display:flex;gap:6px;overflow-x:auto;padding:5px 0 2px;scrollbar-width:thin;"></div>
             </div>
           </div>
           <div class="row" style="margin-top:8px;">
@@ -9774,6 +10184,7 @@ async function renderBilling(){
   });
   document.getElementById('applyCouponBtn').addEventListener('click', ()=>applyOrRemoveCoupon());
   document.getElementById('couponCodeInput').addEventListener('keydown',(e)=>{ if(e.key==='Enter') applyOrRemoveCoupon(); });
+  renderCouponChips();
   document.getElementById('packagingChargeInput').addEventListener('input',(e)=>{
     CART.packagingCharge = Math.max(0, parseFloat(e.target.value)||0);
     renderBillTotals();
@@ -9856,10 +10267,39 @@ async function renderTodaysSalesStrip(){
 }
 
 /* ---- Coupons at billing ---- */
+// The shop's saved coupons as a sideways-scrolling row of buttons: one tap applies it, no typing.
+let COUPON_CHIP_SEQ = 0;
+async function renderCouponChips(){
+  const box = document.getElementById('couponChips');
+  if(!box) return;
+  const seq = ++COUPON_CHIP_SEQ;
+  const list = (await scopedGetAll('coupons')).filter(c=>c.active).sort((a,b)=>String(a.code).localeCompare(String(b.code)));
+  if(seq!==COUPON_CHIP_SEQ) return;
+  if(!list.length || CART.couponCode){
+    box.innerHTML = (CART.couponCode && CART.couponType && CART.couponMin>0 && computeTotals().couponDiscount<=0)
+      ? `<span class="tag tag-amber" style="white-space:nowrap;">${escapeHTML(fillTpl(t('cpn_belowMin'), [CART.couponCode, fmtMoney(CART.couponMin)]))}</span>` : '';
+    return;
+  }
+  const tot = computeTotals();
+  const base = Math.max(0, tot.subtotal - tot.itemDiscount);
+  box.innerHTML = list.map(c=>{
+    const ok = !(c.minBillAmount>0 && base < c.minBillAmount);
+    const val = c.type==='percent' ? (c.value+'%') : fmtMoney(c.value);
+    const sub = c.minBillAmount>0 ? fillTpl(t('cpn_minShort'), [fmtMoney(c.minBillAmount)]) : '';
+    return `<button type="button" class="btn btn-outline btn-sm cpn-chip" data-code="${escapeHTML(c.code)}" ${ok?'':'disabled'}
+      title="${escapeHTML(ok?t('cpn_tapToApply'):fillTpl(t('cpn_needMin'),[fmtMoney(c.minBillAmount)]))}"
+      style="white-space:nowrap;flex:none;border-style:dashed;${ok?'':'opacity:.5;'}"><strong>${escapeHTML(c.code)}</strong> · ${escapeHTML(val)}${sub?` <span class="muted" style="font-size:10.5px;">${escapeHTML(sub)}</span>`:''}</button>`;
+  }).join('');
+  box.querySelectorAll('.cpn-chip').forEach(b=>b.addEventListener('click', ()=>{
+    const inp = document.getElementById('couponCodeInput'); if(inp) inp.value = b.dataset.code;
+    applyOrRemoveCoupon();
+  }));
+}
 async function applyOrRemoveCoupon(){
   if(CART.couponCode){
     CART.couponCode = '';
     CART.couponDiscount = 0;
+    delete CART.couponType; delete CART.couponValue; delete CART.couponMin;
     renderBilling();
     return;
   }
@@ -9877,6 +10317,8 @@ async function applyOrRemoveCoupon(){
   const discount = coupon.type==='percent' ? Math.round(baseForMin*coupon.value/100*100)/100 : Math.min(baseForMin, coupon.value);
   CART.couponCode = code;
   CART.couponDiscount = discount;
+  // Remember the rule, not just the amount, so the discount follows the bill if items are added or removed.
+  CART.couponType = coupon.type; CART.couponValue = Number(coupon.value)||0; CART.couponMin = Number(coupon.minBillAmount)||0;
   toast(t('toast_couponAppliedDiscount').replace('{0}', fmtMoney(discount)),'success');
   renderBilling();
 }
@@ -10203,7 +10645,12 @@ function computeTotals(cartArg){
   const overallDiscount = C.overallDiscountType==='percent'
     ? Math.round(Math.max(0, afterItemDiscount - autoTierDiscount) * (Number(C.overallDiscount)||0) / 100 * 100)/100
     : Math.max(0, Number(C.overallDiscount)||0);
-  const couponDiscount = Math.max(0, Number(C.couponDiscount)||0);
+  let couponDiscount = Math.max(0, Number(C.couponDiscount)||0);
+  if(C.couponCode && C.couponType){
+    const cb = Math.max(0, subtotal - itemDiscount);
+    couponDiscount = (C.couponMin>0 && cb < C.couponMin) ? 0
+      : (C.couponType==='percent' ? Math.round(cb*(Number(C.couponValue)||0)/100*100)/100 : Math.min(cb, Number(C.couponValue)||0));
+  }
   const packagingCharge = Math.max(0, Number(C.packagingCharge)||0);
   const deliveryCharge = C.deliveryEnabled ? Math.max(0, Number(C.deliveryCharge)||0) : 0;
 
@@ -10215,6 +10662,7 @@ function computeTotals(cartArg){
 }
 function renderBillTotals(){
   try{ updateIssueFirmUI(); }catch(e){}
+  try{ renderCouponChips(); }catch(e){}
   const wrap = document.getElementById('billTotalsWrap');
   if(!wrap) return;
   const tot = computeTotals();
@@ -17419,53 +17867,157 @@ function reopenDayClose(closeId, after){
 async function printDayClose(closeId){
   const saved = await dbGet('dayCloses', closeId);
   if(!saved) return;
-  const firm = saved.firmId ? firmById(saved.firmId) : null;
-  const shopName = firm ? firm.name : (SETTINGS.name||'');
-  const diff = Number(saved.difference||0);
-  const label = Math.abs(diff) < 0.01 ? t('dc_tallies') : (diff<0 ? t('dc_short') : t('dc_over'));
-  const row = (l,v,bold)=>`<tr><td${bold?' style="font-weight:700;border-top:1px solid #000;"':''}>${l}</td>
-    <td class="num"${bold?' style="font-weight:700;border-top:1px solid #000;"':''}>${v}</td></tr>`;
-  const denomRows = Object.entries(saved.denoms||{}).sort((a,b)=>Number(b[0])-Number(a[0]));
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(t('dc_printTitle'))}</title>
-    <style>
-      body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:18px;color:#000;}
-      h1{font-size:16px;letter-spacing:.14em;text-align:center;margin:0 0 2px;}
-      h2{font-size:19px;text-align:center;margin:0 0 2px;}
-      .muted{color:#555;font-size:12px;text-align:center;margin-bottom:14px;}
-      table{width:100%;border-collapse:collapse;font-size:13.5px;}
-      td{padding:5px 4px;}
-      .num{text-align:right;font-variant-numeric:tabular-nums;}
-      .box{border:2px solid #000;padding:12px 14px;max-width:420px;margin:0 auto;}
-      .sig{margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:#555;}
-      @media print{ @page{ margin:12mm; } }
-    </style></head><body>
-    <div class="box">
-      <h1>${escapeHTML(t('dc_printTitle'))}</h1>
-      <h2>${escapeHTML(shopName)}</h2>
-      <div class="muted">${fmtDate(saved.date+'T12:00:00')}</div>
-      <table>
-        ${row(t('dc_openingFloat'), fmtMoney(saved.openingCash))}
-        ${row(t('dc_cashSales'), '+ '+fmtMoney(saved.cashIn))}
-        ${row(t('dc_cashPaidOut'), '- '+fmtMoney(saved.cashOut))}
-        ${saved.deposited>0 ? row(t('dc_deposited'), '- '+fmtMoney(saved.deposited)) : ''}
-        ${row(t('dc_expectedInDrawer'), fmtMoney(saved.expected), true)}
-        ${row(t('dc_countedLabel'), fmtMoney(saved.counted), true)}
-        ${row(label, fmtMoney(Math.abs(diff)), true)}
-        ${saved.otherIn>0 ? row(t('dc_otherModes'), fmtMoney(saved.otherIn)) : ''}
-      </table>
-      ${denomRows.length?`<table style="margin-top:10px;border-top:1px dashed #000;">
-        ${denomRows.map(([d,q])=>`<tr><td>₹${escapeHTML(d)} &times; ${q}</td><td class="num">${fmtMoney(Number(d)*Number(q))}</td></tr>`).join('')}
-      </table>`:''}
-      ${saved.note?`<p style="font-size:12px;margin-top:10px;">${escapeHTML(saved.note)}</p>`:''}
-      <div class="sig"><span>${escapeHTML(t('dc_countedBy'))} ${escapeHTML(saved.closedBy||'')}</span><span>${escapeHTML(t('dc_ownerSign'))}</span></div>
-    </div>
-    </body></html>`;
-  const w = openPrintWindow();
-  if(!w){ toast(t('toast_allowPopupsToPrint'),'error'); return; }
-  w.document.write(html);
-  w.document.close();
-  setTimeout(()=>{ w.print(); }, 250);
+  dcOpenPrintWin(await buildDayReportHTML(saved.date, saved, SETTINGS.dayReportPaper||'a4'));
 }
+
+// Everything that happened on one day, for the Day Closing report.
+async function dayReportData(dateISO){
+  const r2 = n=>Math.round((Number(n)||0)*100)/100;
+  const inDay = d=>inRange(d, dateISO, dateISO);
+  const all = scopeBillsToActiveFirm(await scopedGetAll('bills')).filter(b=>inDay(b.date));
+  const live = liveBills(all), cancelled = all.filter(b=>b.cancelled);
+  const returns = (await scopedGetAll('returns')).filter(r=>inDay(r.date));
+  const customers = await scopedGetAll('customers'), suppliers = await scopedGetAll('suppliers');
+  const cash = await computeDayCash(dateISO);
+  const mv = cash.movements || [];
+  const sum = (arr, f)=>r2(arr.reduce((s,x)=>s+(Number(f(x))||0),0));
+  const byMode = {};
+  live.forEach(b=>(b.payments||[]).forEach(p=>{ if(p.amount) byMode[p.mode||'Cash'] = r2((byMode[p.mode||'Cash']||0) + Number(p.amount)); }));
+  const collect = {};
+  mv.filter(m=>m.type==='Credit Collection').forEach(m=>{ const k = m.mode||'—'; collect[k] = r2((collect[k]||0) + Number(m.amountIn||0)); });
+  const items = {};
+  live.forEach(b=>(b.items||[]).forEach(it=>{
+    const k = it.name + ([it.size,it.color].filter(Boolean).length ? ' ('+[it.size,it.color].filter(Boolean).join('/')+')' : '');
+    if(!items[k]) items[k] = {qty:0, amt:0};
+    items[k].qty += Number(it.qty||0); items[k].amt = r2(items[k].amt + Number(it.qty||0)*Number(it.rate||0) - itemDiscountAmount(it));
+  }));
+  const staff = {};
+  live.forEach(b=>{ const k = b.soldByName || t('staff_ownerTag'); if(!staff[k]) staff[k] = {n:0, amt:0}; staff[k].n++; staff[k].amt = r2(staff[k].amt + Number(b.grandTotal||0)); });
+  const net = {};
+  mv.forEach(m=>{ const k = m.mode||'—'; if(!net[k]) net[k] = {in:0, out:0}; net[k].in = r2(net[k].in + Number(m.amountIn||0)); net[k].out = r2(net[k].out + Number(m.amountOut||0)); });
+  return {
+    bills: live.length, qty: sum(live.flatMap(b=>b.items||[]), it=>it.qty),
+    gross: sum(live, b=>b.subtotal), discount: sum(live, b=>b.discountTotal), tax: sum(live, b=>b.taxTotal),
+    charges: sum(live, b=>Number(b.packagingCharge||0)+Number(b.deliveryCharge||0)), roundOff: sum(live, b=>b.roundOff),
+    total: sum(live, b=>b.grandTotal), firstNo: live.length ? live.slice().sort((a,b)=>new Date(a.date)-new Date(b.date))[0].invoiceNo : '',
+    lastNo: live.length ? live.slice().sort((a,b)=>new Date(b.date)-new Date(a.date))[0].invoiceNo : '',
+    cancelledN: cancelled.length, cancelledAmt: sum(cancelled, b=>b.grandTotal),
+    byMode, creditGiven: sum(live, b=>b.creditAmount), creditBills: live.filter(b=>Number(b.creditAmount||0)>0).length,
+    collect, collectTotal: r2(Object.values(collect).reduce((s,v)=>s+v,0)),
+    returnsN: returns.length, returnsAmt: sum(returns, r=>r.totalRefund), cashRefunds: sum(mv.filter(m=>m.type==='Refund'), m=>m.amountOut),
+    expenses: mv.filter(m=>m.type==='Expense'), expTotal: sum(mv.filter(m=>m.type==='Expense'), m=>m.amountOut),
+    vendor: mv.filter(m=>m.type==='Vendor Payment'), vendorTotal: sum(mv.filter(m=>m.type==='Vendor Payment'), m=>m.amountOut),
+    net, cash,
+    custDues: sum(customers, c=>c.creditBalance), custDuesN: customers.filter(c=>(c.creditBalance||0)>0.009).length,
+    vendDues: sum(suppliers, s=>s.balanceDue),
+    topItems: Object.entries(items).sort((a,b)=>b[1].qty-a[1].qty || b[1].amt-a[1].amt).slice(0,8),
+    staff: Object.entries(staff).sort((a,b)=>b[1].amt-a[1].amt)
+  };
+}
+
+async function buildDayReportHTML(dateISO, saved, fmt){
+  const D = await dayReportData(dateISO);
+  const thermal = fmt==='thermal80' || fmt==='thermal58';
+  const firmId = (saved && saved.firmId && multiFirmInUse()) ? saved.firmId : billableFirmId();
+  const firm = firmId ? firmById(firmId) : null;
+  const shop = {name: (firm&&firm.name) || SETTINGS.name || '', address: (firm&&firm.address) || SETTINGS.address || '',
+    phone: (firm&&firm.phone) || SETTINGS.phone || '', gstin: (firm&&firm.gstin) || SETTINGS.gstin || ''};
+  const E = s=>escapeHTML(String(s==null?'':s)), M = v=>fmtMoney(Number(v)||0);
+  const SM = v=>v<0 ? '- '+M(-v) : M(v);
+  const row = (l, v, cls)=>`<tr${cls?` class="${cls}"`:''}><td>${l}</td><td class="num">${v}</td></tr>`;
+  const sec = (title, body)=>`<section><h3>${E(title)}</h3>${body}</section>`;
+  const tbl = rows=>`<table>${rows}</table>`;
+  const c = D.cash;
+  const r2 = n=>Math.round((Number(n)||0)*100)/100;
+  const opening = saved ? saved.openingCash : c.openingCash;
+  const cashIn = saved ? saved.cashIn : c.cashIn, cashOut = saved ? saved.cashOut : c.cashOut;
+  const deposited = saved ? Number(saved.deposited||0) : 0;
+  const expected = saved ? saved.expected : r2(c.openingCash + c.cashIn - c.cashOut);
+  const diff = saved ? Number(saved.difference||0) : null;
+  const diffLabel = diff==null ? '' : (Math.abs(diff)<0.01 ? t('dc_tallies') : (diff<0 ? t('dc_short') : t('dc_over')));
+  const denoms = saved ? Object.entries(saved.denoms||{}).sort((a,b)=>Number(b[0])-Number(a[0])) : [];
+  const modeRows = Object.entries(D.byMode).map(([m,v])=>row(E(dv(m)), M(v))).join('');
+  const collRows = Object.entries(D.collect).map(([m,v])=>row(E(dv(m)), M(v))).join('');
+  const netRows = Object.entries(D.net).filter(([,v])=>v.in||v.out).map(([m,v])=>`<tr><td>${E(m==='—'?t('dr_noMode'):dv(m))}</td><td class="num">${M(v.in)}</td><td class="num">${M(v.out)}</td><td class="num"><b>${SM(r2(v.in-v.out))}</b></td></tr>`).join('');
+  const listRows = (arr)=>arr.map(m=>{ const d = String(m.description||''), md = m.mode ? dv(m.mode) : '';
+    return `<tr><td>${E(d)}${md && d.indexOf('('+md+')')<0 ? ` <span class="m">(${E(md)})</span>` : ''}</td><td class="num">${M(m.amountOut)}</td></tr>`; }).join('');
+
+  const salesSec = sec(t('dr_sales'), tbl(
+    row(E(t('dcs_bills')), D.bills + (D.firstNo?` <span class="m">(${E(D.firstNo)} – ${E(D.lastNo)})</span>`:'')) +
+    row(E(t('dr_itemsSold')), D.qty) +
+    row(E(t('dr_grossSales')), M(D.gross)) +
+    (D.discount>0 ? row(E(t('dr_discounts')), '- '+M(D.discount)) : '') +
+    (D.tax>0 ? row(E(t('dr_gst')), M(D.tax)) : '') +
+    (D.charges>0 ? row(E(t('dr_charges')), '+ '+M(D.charges)) : '') +
+    row(E(t('dr_netSales')), M(D.total), 'tot') +
+    (D.bills ? row(E(t('sales_tileAvgBillValue')), M(r2(D.total/D.bills))) : '') +
+    (D.cancelledN ? row(E(t('dr_cancelled')), D.cancelledN+' · '+M(D.cancelledAmt)) : '') +
+    (D.returnsN ? row(E(t('dr_returns')), D.returnsN+' · '+M(D.returnsAmt)) : '')));
+  const paySec = sec(t('dr_payments'), tbl((modeRows || row('—','')) +
+    row(E(t('dr_creditGiven'))+(D.creditBills?` <span class="m">(${D.creditBills})</span>`:''), M(D.creditGiven)) +
+    row(E(t('dr_netSales')), M(D.total), 'tot')));
+  const credSec = sec(t('dr_credit'), tbl(
+    row(E(t('dr_creditGiven')), M(D.creditGiven)) +
+    (collRows ? `<tr><td colspan="2" class="m" style="padding-top:4px;">${E(t('dr_collectedToday'))}</td></tr>` + collRows : row(E(t('dr_collectedToday')), M(0))) +
+    (collRows ? row(E(t('dr_collectedTotal')), M(D.collectTotal), 'tot') : '') +
+    row(E(t('dr_custDuesNow'))+` <span class="m">(${D.custDuesN})</span>`, M(D.custDues)) +
+    (D.vendDues>0 ? row(E(t('dr_vendDuesNow')), M(D.vendDues)) : '')));
+  const expSec = sec(t('dr_expenses'), tbl((D.expenses.length ? listRows(D.expenses) : row(`<span class="m">${E(t('dr_none'))}</span>`, '')) +
+    (D.expenses.length ? row(E(t('dr_totalExpenses')), M(D.expTotal), 'tot') : '')));
+  const vendSec = D.vendor.length ? sec(t('dr_vendorPaid'), tbl(listRows(D.vendor) + row(E(t('dr_total')), M(D.vendorTotal), 'tot'))) : '';
+  const cashSec = sec(t('dcs_cashHeading'), tbl(
+    row(E(t('dc_openingFloat')), M(opening)) +
+    row(E(t('dr_cashInAll')), '+ '+M(cashIn)) +
+    row(E(t('dr_cashOutAll')), '- '+M(cashOut)) +
+    (deposited>0 ? row(E(t('dc_deposited')), '- '+M(deposited)) : '') +
+    row(E(t('dc_expectedInDrawer')), M(expected), 'tot') +
+    (saved ? row(E(t('dc_countedLabel')), M(saved.counted), 'tot') + row(E(diffLabel), M(Math.abs(diff)), Math.abs(diff)<0.01?'tot':'tot bad') : row(`<span class="m">${E(t('dr_notCounted'))}</span>`, ''))) +
+    (denoms.length ? `<table class="den">${denoms.map(([d,q])=>`<tr><td>₹${E(d)} × ${q}</td><td class="num">${M(Number(d)*Number(q))}</td></tr>`).join('')}</table>` : ''));
+  const netSec = netRows ? sec(t('dr_byMode'), `<table><tr class="h"><td></td><td class="num">${E(t('dr_in'))}</td><td class="num">${E(t('dr_out'))}</td><td class="num">${E(t('dr_net'))}</td></tr>${netRows}</table>`) : '';
+  const topSec = D.topItems.length ? sec(t('dr_topItems'), `<table>${D.topItems.map(([k,v])=>`<tr><td>${E(k)}</td><td class="num">${v.qty}</td><td class="num">${M(v.amt)}</td></tr>`).join('')}</table>`) : '';
+  const staffSec = D.staff.length>1 || (D.staff.length===1 && multiUserShop()) ? sec(t('dr_staff'), `<table>${D.staff.map(([k,v])=>`<tr><td>${E(k)}</td><td class="num">${v.n}</td><td class="num">${M(v.amt)}</td></tr>`).join('')}</table>`) : '';
+
+  const status = saved
+    ? `${E(t('dr_closedBy'))} ${E(saved.closedBy||'')}${saved.closedAt?' · '+E(fmtDateTime(saved.closedAt)):''}`
+    : E(t('dcs_notClosedTag'));
+  const css = thermal ? `
+      @page{ size:${fmt==='thermal58'?'58mm':'80mm'} auto; margin:2mm; }
+      body{ width:${fmt==='thermal58'?'52mm':'72mm'}; font:11px/1.3 Arial,Helvetica,sans-serif; margin:0; color:#000; }
+      .grid{ display:block; } section{ margin:6px 0 0; } h3{ font-size:11px; margin:6px 0 2px; border-bottom:1px dashed #000; letter-spacing:.06em; text-transform:uppercase; }
+      .head h1{ font-size:13px; } .head h2{ font-size:14px; }`
+    : `
+      @page{ size:A4; margin:12mm; }
+      body{ font:12.5px/1.35 "Segoe UI",Arial,Helvetica,sans-serif; margin:0; color:#111; }
+      .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; }
+      section{ border:1px solid #bbb; border-radius:6px; padding:8px 10px; break-inside:avoid; }
+      h3{ font-size:11.5px; margin:0 0 4px; letter-spacing:.08em; text-transform:uppercase; color:#333; border-bottom:1px solid #ddd; padding-bottom:3px; }
+      .head h1{ font-size:15px; } .head h2{ font-size:20px; }`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${E(t('dr_title'))} ${E(dateISO)}</title><style>
+      ${css}
+      .head{ text-align:center; margin-bottom:8px; border-bottom:2px solid #000; padding-bottom:6px; }
+      .head h1{ letter-spacing:.18em; margin:0; } .head h2{ margin:2px 0 0; }
+      .head .s{ font-size:.9em; color:#333; } .meta{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin:4px 0 8px; font-size:.92em; }
+      table{ width:100%; border-collapse:collapse; } td{ padding:2px 2px; vertical-align:top; } .num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+      tr.tot td{ font-weight:700; border-top:1px solid #000; } tr.bad td{ color:#b00; } tr.h td{ font-size:.85em; color:#555; }
+      .m{ color:#555; font-size:.88em; } table.den{ margin-top:4px; border-top:1px dashed #999; font-size:.92em; }
+      .sig{ margin-top:${thermal?'22px':'36px'}; display:flex; justify-content:space-between; font-size:.9em; color:#333; }
+      .sig span{ border-top:1px solid #000; padding-top:3px; min-width:${thermal?'28mm':'55mm'}; text-align:center; }
+      .foot{ margin-top:8px; text-align:center; font-size:.8em; color:#666; }
+    </style></head><body>
+    <div class="head">
+      <h1>${E(t('dr_title'))}</h1>
+      <h2>${E(shop.name)}</h2>
+      ${shop.address?`<div class="s">${E(shop.address)}</div>`:''}
+      ${(shop.phone||shop.gstin)?`<div class="s">${shop.phone?E(shop.phone):''}${shop.phone&&shop.gstin?' · ':''}${shop.gstin?'GSTIN '+E(shop.gstin):''}</div>`:''}
+    </div>
+    <div class="meta"><span><b>${E(fmtDate(dateISO+'T12:00:00'))}</b></span><span>${status}</span></div>
+    <div class="grid">${salesSec}${paySec}${credSec}${cashSec}${expSec}${vendSec}${netSec}${topSec}${staffSec}</div>
+    ${saved&&saved.note?`<p style="margin-top:8px;"><b>${E(t('th_note'))}:</b> ${E(saved.note)}</p>`:''}
+    <div class="sig"><span>${E(t('dr_preparedBy'))}${saved&&saved.closedBy?' — '+E(saved.closedBy):''}</span><span>${E(t('dc_ownerSign'))}</span></div>
+    <div class="foot">${E(t('dcs_printedAt'))} ${E(fmtDateTime(new Date().toISOString()))}${(typeof CURRENT_USER!=='undefined'&&CURRENT_USER)?' · '+E(CURRENT_USER.name):''}</div>
+    </body></html>`;
+}
+function multiUserShop(){ return !!(SETTINGS.users && (SETTINGS.users.staff||[]).length); }
 
 // ---- Print Day Closing from the Sales window ----
 function dcOpenPrintWin(html){
@@ -17474,57 +18026,21 @@ function dcOpenPrintWin(html){
   w.document.write(html); w.document.close();
   if(window.IS_TAURI){ w.focus(); w.print(); } else setTimeout(()=>{ w.print(); }, 250);
 }
-// Day summary for a day that has not been closed yet (sales, money collected by mode, cash expected in the drawer).
+// Day report for a day that has not been closed yet (same layout, without the counted cash).
 async function printDaySummary(dateISO){
-  const bills = scopeBillsToActiveFirm(await scopedLiveBills()).filter(b=>inRange(b.date, dateISO, dateISO));
-  const cash = await computeDayCash(dateISO);
-  const byMode = {};
-  bills.forEach(b=>(b.payments||[]).forEach(p=>{ if(p.amount) byMode[p.mode||'Cash'] = (byMode[p.mode||'Cash']||0) + Number(p.amount); }));
-  const r2 = n=>Math.round(n*100)/100;
-  const total = r2(bills.reduce((s,b)=>s+(b.grandTotal||0),0));
-  const credit = r2(bills.reduce((s,b)=>s+Number(b.creditAmount||0),0));
-  const expected = r2(cash.openingCash + cash.cashIn - cash.cashOut);
-  const shopName = ((billableFirmId() && firmById(billableFirmId())) || {}).name || SETTINGS.name || '';
-  const row = (l,v,bold)=>`<tr><td${bold?' style="font-weight:700;border-top:1px solid #000;"':''}>${l}</td><td class="num"${bold?' style="font-weight:700;border-top:1px solid #000;"':''}>${v}</td></tr>`;
-  const modeRows = Object.entries(byMode).map(([m,v])=>row(escapeHTML(dv(m)), fmtMoney(v))).join('');
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(t('dc_printTitle'))}</title>
-    <style>
-      body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:18px;color:#000;}
-      h1{font-size:16px;letter-spacing:.14em;text-align:center;margin:0 0 2px;}
-      h2{font-size:19px;text-align:center;margin:0 0 2px;}
-      .muted{color:#555;font-size:12px;text-align:center;margin-bottom:14px;}
-      h3{font-size:12px;letter-spacing:.1em;margin:12px 0 2px;border-bottom:1px dashed #000;padding-bottom:2px;}
-      table{width:100%;border-collapse:collapse;font-size:13.5px;} td{padding:4px 4px;}
-      .num{text-align:right;font-variant-numeric:tabular-nums;}
-      .box{border:2px solid #000;padding:12px 14px;max-width:420px;margin:0 auto;}
-      .sig{margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:#555;}
-      @media print{ @page{ margin:12mm; } }
-    </style></head><body><div class="box">
-      <h1>${escapeHTML(t('dc_printTitle'))}</h1>
-      <h2>${escapeHTML(shopName)}</h2>
-      <div class="muted">${fmtDate(dateISO+'T12:00:00')}<br>${escapeHTML(t('dcs_notClosedTag'))}</div>
-      <h3>${escapeHTML(t('dcs_salesHeading'))}</h3>
-      <table>${row(escapeHTML(t('dcs_bills')), bills.length)}${row(escapeHTML(t('dcs_totalSales')), fmtMoney(total), true)}${credit>0?row(escapeHTML(t('dcs_onCredit')), fmtMoney(credit)):''}</table>
-      <h3>${escapeHTML(t('dcs_collectedHeading'))}</h3>
-      <table>${modeRows || row('—','')}</table>
-      <h3>${escapeHTML(t('dcs_cashHeading'))}</h3>
-      <table>
-        ${row(escapeHTML(t('dc_openingFloat')), fmtMoney(cash.openingCash))}
-        ${row(escapeHTML(t('dc_cashSales')), '+ '+fmtMoney(cash.cashIn))}
-        ${row(escapeHTML(t('dc_cashPaidOut')), '- '+fmtMoney(cash.cashOut))}
-        ${row(escapeHTML(t('dc_expectedInDrawer')), fmtMoney(expected), true)}
-        ${cash.otherIn>0 ? row(escapeHTML(t('dc_otherModes')), fmtMoney(cash.otherIn)) : ''}
-      </table>
-      <div class="sig"><span>${escapeHTML(t('dcs_printedAt'))} ${escapeHTML(fmtStamp(new Date().toISOString()))}</span><span>${escapeHTML(t('dc_ownerSign'))}</span></div>
-    </div></body></html>`;
-  dcOpenPrintWin(html);
+  dcOpenPrintWin(await buildDayReportHTML(dateISO, null, SETTINGS.dayReportPaper||'a4'));
 }
 async function openPrintDayCloseModal(dateISO){
   dateISO = dateISO || todayISO();
   openModal({
     title: t('dcs_modalTitle'),
     bodyHTML:`
-      <div class="field"><label>${t('dcs_dateLabel')}</label><input type="date" id="pdc_date" value="${dateISO}"></div>
+      <div class="row">
+        <div class="col field"><label>${t('dcs_dateLabel')}</label><input type="date" id="pdc_date" value="${dateISO}"></div>
+        <div class="col field"><label>${t('print_printFormatLabel')}</label><select id="pdc_fmt">
+          ${[['a4','print_a4LetterOption'],['thermal80','print_thermal80Option'],['thermal58','print_thermal58Option']].map(([k,tk])=>`<option value="${k}" ${(SETTINGS.dayReportPaper||'a4')===k?'selected':''}>${t(tk)}</option>`).join('')}
+        </select></div>
+      </div>
       <div id="pdc_status" class="muted" style="font-size:12.5px;"></div>`,
     footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
       <button class="btn btn-outline" id="pdc_goClose">${t('dcs_openDayClose')}</button>
@@ -17539,6 +18055,8 @@ async function openPrintDayCloseModal(dateISO){
       document.getElementById('pdc_print').addEventListener('click', async ()=>{
         const d = dEl.value || todayISO();
         const saved = await dayCloseFor(d);
+        const fmtSel = document.getElementById('pdc_fmt');
+        if(fmtSel && fmtSel.value !== (SETTINGS.dayReportPaper||'a4')) await saveSettings({dayReportPaper: fmtSel.value});
         closeModal();
         if(saved) printDayClose(saved.id); else printDaySummary(d);
       });
