@@ -1805,6 +1805,9 @@ const I18N = {
     lb_barGood:'Barcode bars: {0} printer dots wide - will scan well',
     lb_barThin:'Barcode bars are only 1 dot wide - may not scan. Use a shorter SKU (e.g. J101) or a 300 dpi printer.',
     lb_barTooLong:'This code is too long for this label - use a shorter SKU, a wider wing, or a 300 dpi printer.',
+    ret_paidEach:'Customer paid {0} each after discount',
+    ret_pointsBack:'{0} loyalty points back',
+    ret_afterDiscount:'(full price {0}, discount kept)',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2589,6 +2592,9 @@ const I18N = {
     lb_barGood:'बारकोड रेषा: {0} डॉट रुंद - नीट स्कॅन होईल',
     lb_barThin:'बारकोड रेषा फक्त 1 डॉट रुंद - स्कॅन होणार नाही असे होऊ शकते. लहान SKU (उदा. J101) किंवा 300 dpi प्रिंटर वापरा.',
     lb_barTooLong:'हा कोड या लेबलसाठी खूप लांब आहे - लहान SKU, रुंद पंख किंवा 300 dpi प्रिंटर वापरा.',
+    ret_paidEach:'सूट वजा करून ग्राहकाने प्रत्येकी {0} दिले',
+    ret_pointsBack:'{0} लॉयल्टी पॉइंट परत',
+    ret_afterDiscount:'(पूर्ण किंमत {0}, सूट वजा)',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -13134,10 +13140,46 @@ async function returnedQtyByItem(billId){
 
 const RETURN_REASONS = ['Defective / Damaged','Wrong Size or Fit','Wrong Color','Wrong Item Delivered','Changed Mind','Other'];
 
+/* What the customer really paid for each line of a bill: item discount, the bill-level discounts (automatic tier,
+   overall %, coupon) shared out by line value, GST added on top, and round-off. Packing/delivery charges are not goods
+   and are left out. Refunds are worked out from this, so a discounted item is never refunded at its full price. */
+function billLinePaid(bill){
+  const r2 = n=>Math.round((Number(n)||0)*100)/100;
+  const items = bill.items||[];
+  const nets = items.map(it=>Math.max(0, Number(it.qty||0)*Number(it.rate||0) - itemDiscountAmount(it)));
+  const sumNet = nets.reduce((s,n)=>s+n,0);
+  const itemDisc = items.reduce((s,it)=>s+itemDiscountAmount(it),0);
+  const billDisc = Math.max(0, Number(bill.discountTotal||0) - itemDisc);
+  const taxAdded = items.map(it=>{ const lp = lineTaxParts(it); return lp.included ? 0 : lp.tax; });
+  const raw = nets.map((n,i)=> (sumNet>0 ? n - billDisc*n/sumNet : 0) + taxAdded[i]);
+  const goods = Math.max(0, Number(bill.grandTotal||0) - Number(bill.packagingCharge||0) - Number(bill.deliveryCharge||0));
+  const rawSum = raw.reduce((s,x)=>s+x,0);
+  const k = rawSum>0 ? goods/rawSum : 0;             // absorbs round-off so the lines add up to what was charged
+  return raw.map(x=>r2(x*k));
+}
+// Refund (money and points) for returning `qty` pieces of line i, given what earlier returns already refunded.
+function lineRefundFor(bill, paid, i, qty, prevQty, prevAmt){
+  const it = bill.items[i], sold = Number(it.qty||0);
+  if(!(qty>0) || !(sold>0)) return 0;
+  const left = sold - prevQty;
+  if(qty >= left) return Math.max(0, Math.round((paid[i] - prevAmt)*100)/100);   // last pieces: whatever is left, no rounding drift
+  return Math.round(paid[i]/sold*qty*100)/100;
+}
+// Part of the bill that was paid with loyalty points goes back as points, not money.
+function refundSplit(bill, gross){
+  const pv = Number(bill.pointsRedeemedValue||0), gt = Number(bill.grandTotal||0);
+  if(!(pv>0) || !(gt>0)) return {money: Math.round(gross*100)/100, points: 0};
+  const frac = Math.min(1, pv/gt);
+  return {money: Math.round(gross*(1-frac)*100)/100, points: Math.round(Number(bill.pointsRedeemed||0)*gross/gt)};
+}
+
 async function openReturnModal(billId){
   const bill = await dbGet('bills', billId);
   if(!bill) return;
   const alreadyReturned = await returnedQtyByItem(billId);
+  const paid = billLinePaid(bill);
+  const prevAmt = {};
+  (await dbGetAll('returns')).filter(r=>r.billId===billId).forEach(r=>(r.items||[]).forEach(x=>{ prevAmt[x.itemIndex] = (prevAmt[x.itemIndex]||0) + Number(x.grossRefund!=null ? x.grossRefund : x.refundAmount||0); }));
   let customer = null;
   if(bill.customerId) customer = await dbGet('customers', bill.customerId);
 
@@ -13150,6 +13192,7 @@ async function openReturnModal(billId){
         <div class="col" style="min-width:160px;">
           <strong style="font-size:13px;">${escapeHTML(it.name)}</strong>${variant?` <span class="muted" style="font-size:11px;">(${escapeHTML(variant)})</span>`:''}<br>
           <span class="muted" style="font-size:11px;">Sold ${it.qty} · ${fmtMoney(it.rate)} each${returned>0?` · ${returned} already returned`:''}</span>
+          ${(it.qty>0 && Math.abs(paid[i]/it.qty - it.rate) > 0.009) ? `<br><span style="font-size:11px;color:var(--wine);">${escapeHTML(fillTpl(t('ret_paidEach'), [fmtMoney(Math.round(paid[i]/it.qty*100)/100)]))}</span>` : ''}
         </div>
         <div class="col field" style="max-width:100px;">
           <label style="font-size:11px;">Return Qty</label>
@@ -13206,24 +13249,30 @@ async function openReturnModal(billId){
       <button class="btn btn-gold" id="exchangeBtn" disabled>${t('sales_processStartExchangeBtn')}</button>
     `,
     onMount: ()=>{
+      const lineGross = (i, qty)=>{
+        const it = bill.items[i];
+        const q = Math.min(qty, Math.max(0, it.qty - (alreadyReturned[i]||0)));
+        return lineRefundFor(bill, paid, i, q, alreadyReturned[i]||0, prevAmt[i]||0);
+      };
       const recalcSummary = ()=>{
-        let refund = 0, anyQty = false;
+        let gross = 0, anyQty = false, full = 0;
         document.querySelectorAll('.returnQtyInput').forEach(inp=>{
           const i = parseInt(inp.dataset.i);
           const qty = Math.max(0, parseInt(inp.value)||0);
           if(qty>0) anyQty = true;
-          const it = bill.items[i];
-          const lineNet = it.qty*it.rate - itemDiscountAmount(it);
-          const perUnit = it.qty>0 ? lineNet/it.qty : 0;
-          const base = perUnit*qty;
-          const tax = it.taxInclusive ? 0 : base*(it.taxRate||0)/100;
-          refund += base+tax;
+          gross += lineGross(i, qty);
+          full += qty*Number(bill.items[i].rate||0);
         });
+        gross = Math.round(gross*100)/100;
+        const sp = refundSplit(bill, gross);
+        const refund = sp.money;
         const reasonChosen = !!document.getElementById('returnReason').value;
-        document.getElementById('returnSummaryWrap').textContent = t('sales_refundAmountPrefix') + fmtMoney(refund);
+        document.getElementById('returnSummaryWrap').textContent = t('sales_refundAmountPrefix') + fmtMoney(refund)
+          + (sp.points>0 ? ' + ' + fillTpl(t('ret_pointsBack'), [sp.points]) : '')
+          + (anyQty && full - gross > 0.009 ? '  ' + fillTpl(t('ret_afterDiscount'), [fmtMoney(full)]) : '');
         document.getElementById('confirmReturnBtn').disabled = !anyQty || !reasonChosen;
         document.getElementById('exchangeBtn').disabled = !anyQty || !reasonChosen;
-        return refund;
+        return {refund, gross, points: sp.points};
       };
       document.querySelectorAll('.returnQtyInput').forEach(inp=>inp.addEventListener('input', recalcSummary));
       document.getElementById('returnReason').addEventListener('change', recalcSummary);
@@ -13233,27 +13282,26 @@ async function openReturnModal(billId){
       // owner-approval prompt might replace this modal's DOM, so processReturn never has to
       // re-query form fields that could already be gone by the time it actually runs.
       const captureReturnInput = ()=>{
-        const refund = recalcSummary();
+        const sumR = recalcSummary();
+        const refund = sumR.refund, pointsBack = sumR.points, grossRefund = sumR.gross;
         const items = [];
         for(const inp of document.querySelectorAll('.returnQtyInput')){
           const i = parseInt(inp.dataset.i);
           const qty = Math.max(0, parseInt(inp.value)||0);
           if(qty<=0) continue;
           const it = bill.items[i];
-          const lineNet = it.qty*it.rate - itemDiscountAmount(it);
-          const perUnit = it.qty>0 ? lineNet/it.qty : 0;
-          const base = perUnit*qty;
-          const tax = it.taxInclusive ? 0 : base*(it.taxRate||0)/100;
-          items.push({itemIndex:i, productId:it.productId, variantIndex:it.variantIndex, name:it.name, size:it.size, color:it.color, qty, refundAmount:base+tax});
+          const g = lineGross(i, qty);
+          items.push({itemIndex:i, productId:it.productId, variantIndex:it.variantIndex, name:it.name, size:it.size, color:it.color, qty,
+            refundAmount: refundSplit(bill, g).money, grossRefund: g});
         }
         const reason = document.getElementById('returnReason').value;
         const note = document.getElementById('returnNote').value.trim();
         const settleMode = bill.customerId ? document.getElementById('returnSettleMode').value : 'cash';
-        return {refund, items, reason, note, settleMode};
+        return {refund, items, reason, note, settleMode, pointsBack, grossRefund};
       };
 
       const processReturn = async (startExchange, captured)=>{
-        const {refund, items, reason, note, settleMode} = captured;
+        const {refund, items, reason, note, settleMode, pointsBack, grossRefund} = captured;
         if(items.length===0) return;
 
         // Restock — back into the firm that made the original sale, so a retail return
@@ -13268,7 +13316,7 @@ async function openReturnModal(billId){
         }
 
         const returnRec = {
-          billId, date:new Date().toISOString(), items, totalRefund:refund, settleMode, reason, note,
+          billId, date:new Date().toISOString(), items, totalRefund:refund, grossRefund, pointsBack: pointsBack||0, settleMode, reason, note,
           outsidePolicy, approvedByOwner: outsidePolicy ? true : undefined,
           firmId: restockFirmId
         };
@@ -13291,13 +13339,19 @@ async function openReturnModal(billId){
             }
           }
           if(SETTINGS.loyaltyEnabled && bill.pointsEarned>0 && bill.grandTotal>0){
-            const reversePts = Math.round(bill.pointsEarned * (refund/bill.grandTotal));
+            const reversePts = Math.round(bill.pointsEarned * ((grossRefund!=null?grossRefund:refund)/bill.grandTotal));
             if(reversePts>0){
               customer.loyaltyPoints = Math.max(0, (customer.loyaltyPoints||0)-reversePts);
               customer.pointsLedger = customer.pointsLedger||[];
               customer.pointsLedger.push({date:returnRec.date, type:'redeem', points:reversePts, billId, note:'Reversed for return on '+bill.invoiceNo});
               changed = true;
             }
+          }
+          if(SETTINGS.loyaltyEnabled && pointsBack>0){
+            customer.loyaltyPoints = (customer.loyaltyPoints||0) + pointsBack;
+            customer.pointsLedger = customer.pointsLedger||[];
+            customer.pointsLedger.push({date:returnRec.date, type:'earn', points:pointsBack, billId, note:'Points returned for return on '+bill.invoiceNo});
+            changed = true;
           }
           if(changed) await dbPut('customers', customer);
         }
