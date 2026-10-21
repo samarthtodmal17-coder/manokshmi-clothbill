@@ -1829,6 +1829,9 @@ const I18N = {
     lb_jTailRight:'Right end of the label',
     lb_jTailLeft:'Left end of the label',
     lb_jtagHint:'For tags with one printable body (for example 65 mm) and a plain tail that wraps round the jewellery. Barcode and code go on the left of the body, name, size/colour and price on the right. Print a Test Label: the solid box must sit exactly on the printable body and the word TAIL on the tail. If it is the other way round, change the tail side.',
+    lb_profile:'Label roll in the printer',
+    lb_profNormal:'Normal sticker labels',
+    lb_profJewel:'Jewellery tags',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2637,6 +2640,9 @@ const I18N = {
     lb_jTailRight:'लेबलच्या उजव्या टोकाला',
     lb_jTailLeft:'लेबलच्या डाव्या टोकाला',
     lb_jtagHint:'एकच छपाईचा भाग (उदा. 65 mm) आणि दागिन्याभोवती गुंडाळण्याची साधी शेपटी असलेल्या टॅगसाठी. बारकोड व कोड भागाच्या डावीकडे, नाव, साइज/रंग व किंमत उजवीकडे. टेस्ट लेबल छापा: ठळक चौकट छपाईच्या भागावर आणि TAIL हा शब्द शेपटीवर यायला हवा. उलट आले तर शेपटीची बाजू बदला.',
+    lb_profile:'प्रिंटरमधील लेबल रोल',
+    lb_profNormal:'साधे स्टिकर लेबल',
+    lb_profJewel:'ज्वेलरी टॅग',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -6277,6 +6283,8 @@ async function openBarcodeModal(productId){
     bodyHTML: `
       <div style="background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
         <div class="row" style="flex-wrap:wrap;">
+          <div class="col field" style="min-width:190px;"><label>${t('lb_profile')}</label>
+            <select id="lb_profile"><option value="normal" ${labelProfileId()==='normal'?'selected':''}>${t('lb_profNormal')}</option><option value="jewel" ${labelProfileId()==='jewel'?'selected':''}>${t('lb_profJewel')}</option></select></div>
           <div class="col field" style="min-width:190px;"><label>${t('lb_paperLabel')}</label>
             <select id="lb_paper"><option value="roll" ${labelConfig().paper==='roll'?'selected':''}>${t('lb_paperRoll')}</option><option value="a4" ${labelConfig().paper==='a4'?'selected':''}>${t('lb_paperA4')}</option></select></div>
           <div class="col field" style="min-width:120px;"><label>${t('lb_preset')}</label>
@@ -6408,6 +6416,9 @@ async function openBarcodeModal(productId){
           labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert, labelAutoClean:c.autoClean, labelShowBrand:c.show.brand, labelShowSku:c.show.sku,
           labelShowShop:c.show.shop, labelShowBarcode:c.show.barcode, labelShowName:c.show.name, labelShowSize:c.show.size, labelShowColor:c.show.color, labelShowPrice:c.show.price});
       };
+      document.getElementById('lb_profile').addEventListener('change', async e=>{
+        await saveLabelCfg(); await switchLabelProfile(e.target.value); closeModal(); openBarcodeModal(productId);
+      });
       document.getElementById('lb_testBtn').addEventListener('click', async ()=>{ await saveLabelCfg(); printTestLabel(); });
       const cancelOldBtn = document.getElementById('lb_cancelOldBtn');
       if(cancelOldBtn) cancelOldBtn.addEventListener('click', async ()=>{ cancelOldBtn.disabled = true; try{ await cancelOldLabelPrints(readLabelCfgFromModal()); } finally { cancelOldBtn.disabled = false; } });
@@ -6437,6 +6448,24 @@ const LABEL_FIELDS = [['shop','Shop','lb_f_shop'],['barcode','Barcode','lb_f_bar
 function labelFieldsHTML(idOf, cfg){
   return `<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin:2px 0 6px;">` + LABEL_FIELDS.map(([k,cap,tk])=>
     `<label style="display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:400;"><input type="checkbox" id="${idOf(k)}" style="width:auto;" ${cfg.show[k]?'checked':''}> ${t(tk)}</label>`).join('') + `</div>`;
+}
+/* Two rolls, two setups: the sticker roll and the jewellery-tag roll each keep their own size, layout, printer and fields,
+   so changing one never disturbs the other. The active setup lives in the flat label* settings, as before. */
+const LABEL_KEYS = ['labelLayout','labelSymbology','labelJewelStart','labelJewelFlapW','labelJewelGap','labelJewelBody','labelJewelTail','labelPaper','labelWidthMm','labelHeightMm','labelCols','labelGapMm','labelOffX','labelOffY','labelRot','labelMethod','labelPrinter','labelDpi','labelRawGapMm','labelRawInvert','labelAutoClean','labelShowBrand','labelShowSku','labelShowShop','labelShowBarcode','labelShowName','labelShowSize','labelShowColor','labelShowPrice'];
+function labelProfileId(){ return SETTINGS.labelProfile || ((SETTINGS.labelLayout==='jewel'||SETTINGS.labelLayout==='jtag') ? 'jewel' : 'normal'); }
+async function switchLabelProfile(to){
+  const cur = labelProfileId(); if(cur===to) return;
+  const profiles = Object.assign({}, SETTINGS.labelProfiles||{});
+  profiles[cur] = Object.fromEntries(LABEL_KEYS.filter(k=>SETTINGS[k]!==undefined).map(k=>[k, SETTINGS[k]]));
+  let target = profiles[to];
+  if(!target){
+    const keep = {}; ['labelMethod','labelPrinter','labelDpi','labelRawGapMm','labelRawInvert','labelAutoClean','labelSymbology'].forEach(k=>{ if(SETTINGS[k]!==undefined) keep[k] = SETTINGS[k]; });
+    const common = {labelPaper:'roll', labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelShowSku:true, labelShowBarcode:true, labelShowName:true, labelShowSize:true, labelShowColor:true, labelShowPrice:true};
+    target = to==='jewel'
+      ? Object.assign(keep, common, {labelLayout:'jtag', labelWidthMm:100, labelHeightMm:15, labelJewelBody:65, labelJewelTail:'end', labelJewelGap:2, labelShowShop:false, labelShowBrand:false})
+      : Object.assign(keep, common, {labelLayout:'standard', labelWidthMm:50, labelHeightMm:25, labelShowShop:true, labelShowBrand:true});
+  }
+  await saveSettings(Object.assign({}, target, {labelProfile:to, labelProfiles:profiles}));
 }
 const LABEL_PRESETS = [['50x25',50,25],['38x25',38,25],['40x30',40,30],['50x30',50,30],['58x40',58,40],['75x50',75,50],['100x50',100,50],['100x150',100,150],['95x12',95,12],['100x15',100,15],['90x12',90,12]];
 function labelConfig(src){
