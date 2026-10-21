@@ -2665,6 +2665,16 @@ async function loadSettings(){
   const rec = await dbGet('settings','shop');
   SETTINGS = rec ? {...DEFAULT_SETTINGS, ...rec.value} : {...DEFAULT_SETTINGS};
   if(!rec){ await dbPut('settings',{key:'shop',value:SETTINGS}); }
+  // v0.1.45, once: plain sticker labels were switched to Code 128 by an update; put them back on Code 39 (what they printed before).
+  if(rec && !SETTINGS.labelSymFix45){
+    const fix = {labelSymFix45:true};
+    const jw = SETTINGS.labelLayout==='jewel' || SETTINGS.labelLayout==='jtag';
+    if(!jw && SETTINGS.labelSymbology==='code128') fix.labelSymbology = 'code39';
+    const np = SETTINGS.labelProfiles && SETTINGS.labelProfiles.normal;
+    if(np && np.labelSymbology==='code128') fix.labelProfiles = Object.assign({}, SETTINGS.labelProfiles, {normal: Object.assign({}, np, {labelSymbology:'code39'})});
+    SETTINGS = {...SETTINGS, ...fix};
+    await dbPut('settings',{key:'shop',value:SETTINGS});
+  }
   applySettingsToHeader();
 }
 async function saveSettings(newVals){
@@ -6459,11 +6469,11 @@ async function switchLabelProfile(to){
   profiles[cur] = Object.fromEntries(LABEL_KEYS.filter(k=>SETTINGS[k]!==undefined).map(k=>[k, SETTINGS[k]]));
   let target = profiles[to];
   if(!target){
-    const keep = {}; ['labelMethod','labelPrinter','labelDpi','labelRawGapMm','labelRawInvert','labelAutoClean','labelSymbology'].forEach(k=>{ if(SETTINGS[k]!==undefined) keep[k] = SETTINGS[k]; });
+    const keep = {}; ['labelMethod','labelPrinter','labelDpi','labelRawGapMm','labelRawInvert','labelAutoClean'].forEach(k=>{ if(SETTINGS[k]!==undefined) keep[k] = SETTINGS[k]; });
     const common = {labelPaper:'roll', labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelShowSku:true, labelShowBarcode:true, labelShowName:true, labelShowSize:true, labelShowColor:true, labelShowPrice:true};
     target = to==='jewel'
-      ? Object.assign(keep, common, {labelLayout:'jtag', labelWidthMm:100, labelHeightMm:15, labelJewelBody:65, labelJewelTail:'end', labelJewelGap:2, labelShowShop:false, labelShowBrand:true})
-      : Object.assign(keep, common, {labelLayout:'standard', labelWidthMm:50, labelHeightMm:25, labelShowShop:true, labelShowBrand:true});
+      ? Object.assign(keep, common, {labelSymbology:'code128', labelLayout:'jtag', labelWidthMm:100, labelHeightMm:15, labelJewelBody:65, labelJewelTail:'end', labelJewelGap:2, labelShowShop:false, labelShowBrand:true})
+      : Object.assign(keep, common, {labelSymbology:'code39', labelLayout:'standard', labelWidthMm:50, labelHeightMm:25, labelShowShop:true, labelShowBrand:true});
   }
   await saveSettings(Object.assign({}, target, {labelProfile:to, labelProfiles:profiles}));
 }
@@ -6488,7 +6498,7 @@ function labelConfigBase(src){
     h: Math.max(8, num(src.labelHeightMm, 25) || 25),
     cols: (rot===90||rot===270 || src.labelLayout==='jewel' || src.labelLayout==='jtag') ? 1 : Math.min(4, Math.max(1, parseInt(src.labelCols)||1)),
     layout: src.labelLayout==='jewel' ? 'jewel' : (src.labelLayout==='jtag' ? 'jtag' : 'standard'),
-    sym: src.labelSymbology==='code39' ? 'code39' : 'code128',
+    sym: src.labelSymbology==='code39' ? 'code39' : (src.labelSymbology==='code128' ? 'code128' : ((src.labelLayout==='jewel'||src.labelLayout==='jtag') ? 'code128' : 'code39')),   // plain stickers keep Code 39 unless Code 128 is chosen
     jStart: Math.max(0, num(src.labelJewelStart, 2)),
     jFlap: Math.max(8, num(src.labelJewelFlapW, 26) || 26),
     jGap: Math.max(0, num(src.labelJewelGap, 2)),
