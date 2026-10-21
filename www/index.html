@@ -1823,6 +1823,12 @@ const I18N = {
     ret_tile:'Returned / exchanged',
     ret_exchCashBack:'Exchange balance paid back — ',
     ret_exchPending:'Exchange pending (no new bill yet)',
+    lb_layoutJtag:'Jewellery tag (1 printable body + tail)',
+    lb_jBody:'Printable body width (mm)',
+    lb_jTail:'The tail is on the',
+    lb_jTailRight:'Right end of the label',
+    lb_jTailLeft:'Left end of the label',
+    lb_jtagHint:'For tags with one printable body (for example 65 mm) and a plain tail that wraps round the jewellery. Barcode and code go on the left of the body, name, size/colour and price on the right. Print a Test Label: the solid box must sit exactly on the printable body and the word TAIL on the tail. If it is the other way round, change the tail side.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2625,6 +2631,12 @@ const I18N = {
     ret_tile:'परत / अदलाबदल',
     ret_exchCashBack:'अदलाबदलीची उरलेली रक्कम परत — ',
     ret_exchPending:'अदलाबदल बाकी (नवे बिल नाही)',
+    lb_layoutJtag:'ज्वेलरी टॅग (1 छपाईचा भाग + शेपटी)',
+    lb_jBody:'छपाईच्या भागाची रुंदी (mm)',
+    lb_jTail:'शेपटी आहे',
+    lb_jTailRight:'लेबलच्या उजव्या टोकाला',
+    lb_jTailLeft:'लेबलच्या डाव्या टोकाला',
+    lb_jtagHint:'एकच छपाईचा भाग (उदा. 65 mm) आणि दागिन्याभोवती गुंडाळण्याची साधी शेपटी असलेल्या टॅगसाठी. बारकोड व कोड भागाच्या डावीकडे, नाव, साइज/रंग व किंमत उजवीकडे. टेस्ट लेबल छापा: ठळक चौकट छपाईच्या भागावर आणि TAIL हा शब्द शेपटीवर यायला हवा. उलट आले तर शेपटीची बाजू बदला.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -6282,9 +6294,14 @@ async function openBarcodeModal(productId){
         </div>
         <div class="row" style="flex-wrap:wrap;">
           <div class="col field" style="min-width:200px;"><label>${t('lb_layout')}</label>
-            <select id="lb_layout"><option value="standard" ${labelConfig().layout!=='jewel'?'selected':''}>${t('lb_layoutStd')}</option><option value="jewel" ${labelConfig().layout==='jewel'?'selected':''}>${t('lb_layoutJewel')}</option></select></div>
+            <select id="lb_layout"><option value="standard" ${labelConfig().layout!=='jewel'?'selected':''}>${t('lb_layoutStd')}</option><option value="jewel" ${labelConfig().layout==='jewel'?'selected':''}>${t('lb_layoutJewel')}</option><option value="jtag" ${labelConfig().layout==='jtag'?'selected':''}>${t('lb_layoutJtag')}</option></select></div>
           <div class="col field" style="min-width:200px;"><label>${t('lb_sym')}</label>
             <select id="lb_sym"><option value="code128" ${labelConfig().sym==='code128'?'selected':''}>${t('lb_sym128')}</option><option value="code39" ${labelConfig().sym==='code39'?'selected':''}>${t('lb_sym39')}</option></select></div>
+        </div>
+        <div class="row" id="lb_jtagRow" style="flex-wrap:wrap;display:${labelConfig().layout==='jtag'?'':'none'};">
+          <div class="col field" style="min-width:140px;"><label>${t('lb_jBody')}</label><input id="lb_jbody" type="number" min="20" step="0.5" value="${labelConfig().jBody}"></div>
+          <div class="col field" style="min-width:180px;"><label>${t('lb_jTail')}</label><select id="lb_jtail"><option value="end" ${labelConfig().jTail!=='start'?'selected':''}>${t('lb_jTailRight')}</option><option value="start" ${labelConfig().jTail==='start'?'selected':''}>${t('lb_jTailLeft')}</option></select></div>
+          <div class="muted" style="font-size:11.5px;flex-basis:100%;">${t('lb_jtagHint')}</div>
         </div>
         <div class="row" id="lb_jewelRow" style="flex-wrap:wrap;display:${labelConfig().layout==='jewel'?'':'none'};">
           <div class="col field" style="min-width:110px;"><label>${t('lb_jStart')}</label><input id="lb_jstart" type="number" min="0" step="0.5" value="${labelConfig().jStart}"></div>
@@ -6352,6 +6369,7 @@ async function openBarcodeModal(productId){
         wrap.style.width = (pageW*px*scale)+'px'; wrap.style.height = (pageH*px*scale)+'px';
         fr.srcdoc = '<!DOCTYPE html><html><head><style>'+parts.style+' html,body{overflow:hidden}</style></head><body>'+parts.body+'</body></html>';
         const jr = document.getElementById('lb_jewelRow'); if(jr) jr.style.display = cfg.layout==='jewel' ? '' : 'none';
+        const jt = document.getElementById('lb_jtagRow'); if(jt) jt.style.display = cfg.layout==='jtag' ? '' : 'none';
         const bi = document.getElementById('lb_barInfo');
         if(bi){
           const longest = (product.variants||[]).map((vv,ii)=>vv.sku||autoSKU(productId,ii)).sort((a,b)=>b.length-a.length)[0] || 'X';
@@ -6366,7 +6384,7 @@ async function openBarcodeModal(productId){
         if(hit){ document.getElementById('lb_w').value = hit[1]; document.getElementById('lb_h').value = hit[2]; }
         refreshPreview();
       });
-      ['lb_layout','lb_sym','lb_jstart','lb_jflap','lb_jgap','lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot','lb_showbrand','lb_showsku','lb_showshop','lb_showbarcode','lb_showname','lb_showsize','lb_showcolor','lb_showprice'].forEach(id=>{
+      ['lb_layout','lb_sym','lb_jbody','lb_jtail','lb_jstart','lb_jflap','lb_jgap','lb_paper','lb_w','lb_h','lb_cols','lb_gap','lb_offx','lb_offy','lb_rot','lb_showbrand','lb_showsku','lb_showshop','lb_showbarcode','lb_showname','lb_showsize','lb_showcolor','lb_showprice'].forEach(id=>{
         const el = document.getElementById(id);
         el.addEventListener('input', ()=>{ if(id==='lb_w'||id==='lb_h') document.getElementById('lb_preset').value=''; refreshPreview(); });
         el.addEventListener('change', refreshPreview);
@@ -6385,7 +6403,7 @@ async function openBarcodeModal(productId){
       const saveLabelCfg = async ()=>{
         const c = readLabelCfgFromModal();
         // Remember the label setup so it only has to be done once per printer.
-        await saveSettings({labelLayout:c.layout, labelSymbology:c.sym, labelJewelStart:c.jStart, labelJewelFlapW:c.jFlap, labelJewelGap:c.jGap,
+        await saveSettings({labelLayout:c.layout, labelSymbology:c.sym, labelJewelStart:c.jStart, labelJewelFlapW:c.jFlap, labelJewelGap:c.jGap, labelJewelBody:c.jBody, labelJewelTail:c.jTail,
           labelPaper:c.paper, labelWidthMm:c.w, labelHeightMm:c.h, labelCols:c.cols, labelGapMm:c.gap, labelOffX:c.offX, labelOffY:c.offY, labelRot:c.rot,
           labelMethod:c.method, labelPrinter:c.printer, labelDpi:c.dpi, labelRawGapMm:c.rawGap, labelRawInvert:c.invert, labelAutoClean:c.autoClean, labelShowBrand:c.show.brand, labelShowSku:c.show.sku,
           labelShowShop:c.show.shop, labelShowBarcode:c.show.barcode, labelShowName:c.show.name, labelShowSize:c.show.size, labelShowColor:c.show.color, labelShowPrice:c.show.price});
@@ -6422,6 +6440,16 @@ function labelFieldsHTML(idOf, cfg){
 }
 const LABEL_PRESETS = [['50x25',50,25],['38x25',38,25],['40x30',40,30],['50x30',50,30],['58x40',58,40],['75x50',75,50],['100x50',100,50],['100x150',100,150],['95x12',95,12],['100x15',100,15],['90x12',90,12]];
 function labelConfig(src){
+  const c = labelConfigBase(src);
+  if(c.layout==='jtag'){
+    // One printable body (e.g. 65 mm) plus a plain tail: barcode on the left of the body, text on the right.
+    const body = Math.min(c.jBody, c.w), bs = c.jTail==='start' ? c.w - body : 0;
+    const inner = Math.max(10, body - 2 - c.jGap);
+    c.jAx = bs + 1; c.jBarW = Math.round(inner*0.55*2)/2; c.jTxtW = Math.round((inner - c.jBarW)*2)/2; c.jBodyStart = bs; c.jBodyW = body;
+  } else { c.jAx = c.jStart; c.jBarW = c.jFlap; c.jTxtW = c.jFlap; }
+  return c;
+}
+function labelConfigBase(src){
   src = src || SETTINGS;
   const num = (x, d)=>{ const n = Number(x); return (x==null || x==='' || isNaN(n)) ? d : n; };
   const rot = [0,90,180,270].includes(Number(src.labelRot)) ? Number(src.labelRot) : 0;
@@ -6429,12 +6457,14 @@ function labelConfig(src){
     paper: src.labelPaper==='a4' ? 'a4' : 'roll',
     w: Math.max(20, num(src.labelWidthMm, 50) || 50),
     h: Math.max(8, num(src.labelHeightMm, 25) || 25),
-    cols: (rot===90||rot===270 || src.labelLayout==='jewel') ? 1 : Math.min(4, Math.max(1, parseInt(src.labelCols)||1)),
-    layout: src.labelLayout==='jewel' ? 'jewel' : 'standard',
+    cols: (rot===90||rot===270 || src.labelLayout==='jewel' || src.labelLayout==='jtag') ? 1 : Math.min(4, Math.max(1, parseInt(src.labelCols)||1)),
+    layout: src.labelLayout==='jewel' ? 'jewel' : (src.labelLayout==='jtag' ? 'jtag' : 'standard'),
     sym: src.labelSymbology==='code39' ? 'code39' : 'code128',
     jStart: Math.max(0, num(src.labelJewelStart, 2)),
     jFlap: Math.max(8, num(src.labelJewelFlapW, 26) || 26),
     jGap: Math.max(0, num(src.labelJewelGap, 2)),
+    jBody: Math.max(20, num(src.labelJewelBody, 65) || 65),
+    jTail: src.labelJewelTail==='start' ? 'start' : 'end',
     gap: Math.max(0, num(src.labelGapMm, 2)),
     offX: num(src.labelOffX, 0), offY: num(src.labelOffY, 0), rot,
     method: ['tspl','zpl'].includes(src.labelMethod) ? src.labelMethod : 'driver',
@@ -6465,7 +6495,8 @@ function readLabelCfgFromModal(){
     labelShowPrice: has('lb_showprice') ? document.getElementById('lb_showprice').checked : true,
     labelLayout: has('lb_layout') ? g('lb_layout') : SETTINGS.labelLayout, labelSymbology: has('lb_sym') ? g('lb_sym') : SETTINGS.labelSymbology,
     labelJewelStart: has('lb_jstart') ? g('lb_jstart') : SETTINGS.labelJewelStart, labelJewelFlapW: has('lb_jflap') ? g('lb_jflap') : SETTINGS.labelJewelFlapW,
-    labelJewelGap: has('lb_jgap') ? g('lb_jgap') : SETTINGS.labelJewelGap});
+    labelJewelGap: has('lb_jgap') ? g('lb_jgap') : SETTINGS.labelJewelGap,
+    labelJewelBody: has('lb_jbody') ? g('lb_jbody') : SETTINGS.labelJewelBody, labelJewelTail: has('lb_jtail') ? g('lb_jtail') : SETTINGS.labelJewelTail});
 }
 // The physical page the printer receives (swapped when the label is fed sideways).
 function labelPageSize(cfg){
@@ -6475,7 +6506,7 @@ function labelPageSize(cfg){
 }
 function labelItemHTML(product, productId, v, i, extra, cfgIn){
   const lc = cfgIn || labelConfig(), sh = lc.show;
-  if(lc.layout==='jewel') return jewelItemHTML(Object.assign(labelItemData(product, productId, v, i, lc), (extra||'').includes('test')?{test:true}:{}), lc);
+  if(lc.layout!=='standard') return jewelItemHTML(Object.assign(labelItemData(product, productId, v, i, lc), (extra||'').includes('test')?{test:true}:{}), lc);
   const showBrand = sh.brand && !!String(product.brand||'').trim();
   const showSku = sh.sku;
   const sku = v.sku || autoSKU(productId, i);
@@ -6562,13 +6593,21 @@ function labelItemData(product, productId, v, i, cfgIn){
 // Jewellery tag (dumbbell / rat-tail): wing 1 = barcode + code, wing 2 = name, size/colour, price. Tail left blank.
 function drawJewelLabel(ctx, d, x0, y0, wd, hd, cfg){
   const dpmm = cfg.dpi/25.4, mm = x=>Math.round(x*dpmm);
-  const ax = x0 + mm(cfg.jStart), fw = mm(cfg.jFlap), bx = ax + fw + mm(cfg.jGap);
+  const _fwmm = (!d.noBar && cfg.layout==='jtag') ? jtagBarMm(cfg, d.sku) : cfg.jBarW;
+  const ax = x0 + mm(cfg.jAx), fw = mm(_fwmm), tw = cfg.layout==='jtag' ? mm(cfg.jBodyW - 2 - cfg.jGap) - fw : mm(cfg.jTxtW), bx = ax + fw + mm(cfg.jGap);
   const pad = Math.max(1, mm(0.6));
   const FONT = '"Nirmala UI","Segoe UI",Arial,sans-serif';
   const fontPx = (h,bold)=>`${bold?'700 ':''}${Math.max(6,Math.round(h*dpmm))}px ${FONT}`;
   const fit = (txt, f, maxW)=>{ ctx.font = f; txt = String(txt); if(ctx.measureText(txt).width<=maxW) return txt; let a = txt; while(a.length>1 && ctx.measureText(a+'…').width>maxW) a = a.slice(0,-1); return a+'…'; };
   ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.textBaseline = 'top'; ctx.textAlign = 'center';
-  if(d.test){ const bw = Math.max(1, mm(0.25)); ctx.lineWidth = bw; ctx.strokeRect(ax+bw/2, y0+bw/2, fw-bw, hd-bw); ctx.strokeRect(bx+bw/2, y0+bw/2, fw-bw, hd-bw); }
+  if(d.test){ const bw = Math.max(1, mm(0.25)); ctx.lineWidth = bw; if(cfg.layout==='jtag'){
+      // the printable body (solid box) and the tail (dashed box with the word TAIL): the box must sit on the real body
+      const bs0 = x0 + mm(cfg.jBodyStart), bwid = mm(cfg.jBodyW);
+      ctx.strokeRect(bs0+bw/2, y0+bw/2, bwid-bw, hd-bw);
+      const tailW = wd - bwid, tx = cfg.jTail==='start' ? x0 : x0 + mm(cfg.jBodyStart) + bwid;
+      if(tailW > mm(8)){ ctx.save(); ctx.setLineDash([mm(1.2), mm(0.8)]); ctx.strokeRect(tx+bw/2, y0+bw/2, tailW-bw, hd-bw); ctx.restore();
+        ctx.font = fontPx(2.2,true); ctx.fillText('TAIL', tx+tailW/2, y0+Math.round((hd-mm(2.2))/2)); }
+    } else { ctx.strokeRect(ax+bw/2, y0+bw/2, fw-bw, hd-bw); ctx.strokeRect(bx+bw/2, y0+bw/2, tw-bw, hd-bw); } }
   // wing 1
   const codeTxt = d.skuText || (d.test ? d.sku : '');
   const textH = codeTxt ? mm(1.7) : 0;
@@ -6584,12 +6623,20 @@ function drawJewelLabel(ctx, d, x0, y0, wd, hd, cfg){
   const nm = d.pname!==undefined ? d.pname : d.name;
   const lines = [];
   if(d.shop) lines.push({t:String(d.shop).toUpperCase(), h:1.5, b:false});
-  if(nm) lines.push({t:nm, h:2.0, b:true});
+  if(nm){
+    // a long name goes on two lines instead of being cut short
+    ctx.font = fontPx(2.0, true);
+    if(ctx.measureText(String(nm)).width > tw-2*pad && /\s/.test(String(nm).trim())){
+      const words = String(nm).trim().split(/\s+/); let best = null;
+      for(let i=1;i<words.length;i++){ const a = words.slice(0,i).join(' '), b2 = words.slice(i).join(' '); const w = Math.max(ctx.measureText(a).width, ctx.measureText(b2).width); if(!best || w<best.w) best = {a,b:b2,w}; }
+      lines.push({t:best.a, h:2.0, b:true}); lines.push({t:best.b, h:2.0, b:true});
+    } else lines.push({t:nm, h:2.0, b:true});
+  }
   if(d.variantTxt) lines.push({t:d.variantTxt, h:1.7, b:false});
   if(d.priceText) lines.push({t:d.priceText + (d.mrp ? '  ('+d.mrp+')' : ''), h:2.4, b:true});
   const avail = hd - 2*pad, need = lines.reduce((s,l)=>s+mm(l.h)*1.12, 0), k = need>avail ? avail/need : 1;
   let y = y0 + Math.max(pad, Math.round((hd-need*k)/2));
-  for(const l of lines){ const f = fontPx(l.h*k, l.b); ctx.font = f; ctx.fillText(fit(l.t, f, fw-2*pad), bx+fw/2, y); y += Math.round(mm(l.h)*1.12*k); }
+  for(const l of lines){ const f = fontPx(l.h*k, l.b); ctx.font = f; ctx.fillText(fit(l.t, f, tw-2*pad), bx+tw/2, y); y += Math.round(mm(l.h)*1.12*k); }
 }
 function jewelItemHTML(d, cfg){
   const dpmm = cfg.dpi/25.4, w = Math.round(cfg.w*dpmm), h = Math.round(cfg.h*dpmm);
@@ -6599,13 +6646,19 @@ function jewelItemHTML(d, cfg){
   return `<div class="lbl lbl-j${d.test?' test':''}"><img alt="" src="${c.toDataURL('image/png')}"></div>`;
 }
 // How wide each bar comes out (in printer dots) for this code on this label: 2+ is safe, 1 is risky, 0 does not fit.
+// One-body jewellery tag: the barcode takes as much of the body as it needs for bars at least 2 dots wide (text gets the rest, min 22 mm).
+function jtagBarMm(cfg, code){
+  if(cfg.layout!=='jtag') return cfg.jBarW;
+  const n = barcodeEncode(code, cfg.sym).bin.length, need = n*2*25.4/cfg.dpi + 3;
+  return Math.min(Math.max(cfg.jBarW, need), Math.max(cfg.jBarW, cfg.jBodyW - 2 - cfg.jGap - 22));
+}
 function labelBarDots(cfg, code){
   const n = barcodeEncode(code, cfg.sym).bin.length, dot = 25.4/cfg.dpi;
-  const avail = cfg.layout==='jewel' ? Math.max(0, cfg.jFlap - 2) : cfg.w*0.9*0.9;
+  const avail = cfg.layout!=='standard' ? Math.max(0, jtagBarMm(cfg, code) - 2) : cfg.w*0.9*0.9;
   return Math.floor(avail/dot/n);
 }
 function drawRawLabel(ctx, d, x0, y0, wd, hd, cfg){
-  if(cfg.layout==='jewel') return drawJewelLabel(ctx, d, x0, y0, wd, hd, cfg);
+  if(cfg.layout!=='standard') return drawJewelLabel(ctx, d, x0, y0, wd, hd, cfg);
   const dpmm = cfg.dpi/25.4, s = Math.min(cfg.w/50, cfg.h/25), pxPt = cfg.dpi/72;
   const padX = Math.round(cfg.w*0.05*dpmm), padY = Math.round(cfg.h*0.05*dpmm);
   const innerW = wd - 2*padX;
@@ -6829,7 +6882,7 @@ function printTestLabel(){
     return printLabelsRaw([{shop:t('lb_testLine1'), sku:'TEST-123', name:cfg.w+' × '+cfg.h+' mm', priceText:t('lb_testLine2'), test:true}], cfg);
   }
   const bars = renderBarcodeSVG('TEST-123',{barWidth:1,height:34,showText:false}).replace('<svg ','<svg preserveAspectRatio="none" ');
-  const item = cfg.layout==='jewel' ? jewelItemHTML({shop:t('lb_testLine1'), sku:'TEST-123', name:cfg.w+' × '+cfg.h+' mm', priceText:t('lb_testLine2'), test:true}, cfg) : `<div class="lbl test"><div class="lbl-shop">${t('lb_testLine1')}</div>${bars}<div class="lbl-name">${cfg.w} × ${cfg.h} mm</div><div class="lbl-price">${t('lb_testLine2')}</div></div>`;
+  const item = cfg.layout!=='standard' ? jewelItemHTML({shop:t('lb_testLine1'), sku:'TEST-123', name:cfg.w+' × '+cfg.h+' mm', priceText:t('lb_testLine2'), test:true}, cfg) : `<div class="lbl test"><div class="lbl-shop">${t('lb_testLine1')}</div>${bars}<div class="lbl-name">${cfg.w} × ${cfg.h} mm</div><div class="lbl-price">${t('lb_testLine2')}</div></div>`;
   const parts = buildLabelPage([item], cfg);
   const win = (window.openLabelPrintWindow||openPrintWindow)();
   win.document.write(`<!DOCTYPE html><html><head><title>Test label</title><style>${parts.style}</style></head><body>${parts.body}<script>window.onload = ()=>{ window.print(); }<\/script></body></html>`);
