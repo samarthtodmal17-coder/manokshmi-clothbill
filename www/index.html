@@ -6462,7 +6462,7 @@ async function switchLabelProfile(to){
     const keep = {}; ['labelMethod','labelPrinter','labelDpi','labelRawGapMm','labelRawInvert','labelAutoClean','labelSymbology'].forEach(k=>{ if(SETTINGS[k]!==undefined) keep[k] = SETTINGS[k]; });
     const common = {labelPaper:'roll', labelCols:1, labelGapMm:2, labelOffX:0, labelOffY:0, labelRot:0, labelShowSku:true, labelShowBarcode:true, labelShowName:true, labelShowSize:true, labelShowColor:true, labelShowPrice:true};
     target = to==='jewel'
-      ? Object.assign(keep, common, {labelLayout:'jtag', labelWidthMm:100, labelHeightMm:15, labelJewelBody:65, labelJewelTail:'end', labelJewelGap:2, labelShowShop:false, labelShowBrand:false})
+      ? Object.assign(keep, common, {labelLayout:'jtag', labelWidthMm:100, labelHeightMm:15, labelJewelBody:65, labelJewelTail:'end', labelJewelGap:2, labelShowShop:false, labelShowBrand:true})
       : Object.assign(keep, common, {labelLayout:'standard', labelWidthMm:50, labelHeightMm:25, labelShowShop:true, labelShowBrand:true});
   }
   await saveSettings(Object.assign({}, target, {labelProfile:to, labelProfiles:profiles}));
@@ -6652,6 +6652,7 @@ function drawJewelLabel(ctx, d, x0, y0, wd, hd, cfg){
   const nm = d.pname!==undefined ? d.pname : d.name;
   const lines = [];
   if(d.shop) lines.push({t:String(d.shop).toUpperCase(), h:1.5, b:false});
+  if(d.brand) lines.push({t:String(d.brand), h:1.8, b:true});
   if(nm){
     // a long name goes on two lines instead of being cut short
     ctx.font = fontPx(2.0, true);
