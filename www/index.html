@@ -1858,6 +1858,7 @@ const I18N = {
     split_with:'with {0}',
     split_tile:'Combined sales (split)',
     split_cartNote:'Items from {0}: at checkout this becomes one bill per firm. The customer pays once.',
+    split_sendTitle:'Send the one bill to the customer',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2689,6 +2690,7 @@ const I18N = {
     split_with:'{0} सोबत',
     split_tile:'एकत्रित विक्री (विभाजित)',
     split_cartNote:'{0} च्या वस्तू: चेकआउटला प्रत्येक फर्मचे एक बिल होईल. ग्राहक एकदाच पैसे देतो.',
+    split_sendTitle:'ग्राहकाला एकच बिल पाठवा',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -11979,12 +11981,30 @@ function buildSplitSlipHTML(kids, customerName, format){
       ${row(escapeHTML(t('bill_grandTotal')), fmtMoney(total), true)}
       ${Object.entries(modes).map(([m,a])=>row(escapeHTML(dv(m)), fmtMoney(a))).join('')}
       ${credit>0 ? row(escapeHTML(t('print_onCredit')), fmtMoney(credit), true) : ''}
+      ${(credit>0 && kids.every(k=>k._dueNow!=null) && kids.reduce((s,k)=>s+Number(k._dueNow),0) < credit-0.004) ? row(escapeHTML(t('print_paidLater')), '-'+fmtMoney(Math.round((credit - kids.reduce((s,k)=>s+Number(k._dueNow),0))*100)/100)) + row(escapeHTML(t('print_balanceDueNow')), fmtMoney(Math.round(kids.reduce((s,k)=>s+Number(k._dueNow),0)*100)/100), true) : ''}
       <div class="muted" style="font-size:.8em;margin-top:4px;">${escapeHTML(t('split_taxNote'))}</div></div></div>
     <div style="text-align:center;margin-top:6px;font-size:.85em;" class="muted">${escapeHTML(String(first.firmId?firmValue(first.firmId,'billFooterText'):SETTINGS.billFooterText||'').trim() || t('print_thankYouShopping'))}</div>`;
 }
+// One WhatsApp / e-mail message for the whole sale (both firms), the same text the customer would read on the slip.
+function buildSplitMessageText(kids, plain){
+  const bold = s=> plain ? s : `*${s}*`, lines = [];
+  lines.push(bold(SETTINGS.name||'')); lines.push(`${t('wa_dateLabelPrefix')}${fmtDate(kids[0].date)}`); lines.push('');
+  kids.forEach(k=>{
+    lines.push(bold(((firmById(k.firmId)||{}).name||'')+' — '+t('wa_invoiceLabelPrefix')+k.invoiceNo));
+    (k.items||[]).forEach(it=>{ const v = [it.size,it.color].filter(Boolean).join('/'); lines.push(`${it.name}${v?' ('+v+')':''} x${it.qty} - ${fmtMoney(it.qty*it.rate-itemDiscountAmount(it))}`); });
+    lines.push(`${t('split_billTotal')}: ${fmtMoney(k.grandTotal)}`); lines.push('');
+  });
+  lines.push(`${t('vendor_totalPrefix')}${fmtMoney(kids.reduce((s,k)=>s+Number(k.grandTotal||0),0))}`);
+  const due = kids.reduce((s,k)=>s+Number(k._dueNow!=null ? k._dueNow : k.creditAmount||0),0);
+  if(due > 0.004) lines.push(`${t('wa_balanceDueLabelPrefix')}${fmtMoney(Math.round(due*100)/100)}`);
+  lines.push(''); lines.push(t('print_thankYouShopping'));
+  return lines.join('\n');
+}
 async function showSplitPrintModal(kids){
-  let customerName = t('bill_walkInCustomerOption');
-  if(kids[0].customerId){ const c = await dbGet('customers', kids[0].customerId); if(c) customerName = c.name + (c.phone?(' — '+c.phone):''); }
+  let customerName = t('bill_walkInCustomerOption'), customerPhone = null;
+  if(kids[0].customerId){ const c = await dbGet('customers', kids[0].customerId); if(c){ customerName = c.name + (c.phone?(' — '+c.phone):''); customerPhone = c.phone || null; } }
+  for(const k of kids){ const st = await billCreditState(k); if(st) k._dueNow = st.due; }
+  const slipBill = ()=>({invoiceNo: kids.map(k=>k.invoiceNo).join('+'), __slipKids: kids, date: kids[0].date, firmId: kids[0].firmId, items: [], grandTotal: kids.reduce((s,k)=>s+Number(k.grandTotal||0),0)});
   openModal({
     title: t('split_modalTitle'),
     bodyHTML: `<p class="muted" style="font-size:12.5px;">${escapeHTML(t('split_modalHint'))}</p>
@@ -11992,7 +12012,13 @@ async function showSplitPrintModal(kids){
         <span><strong>${escapeHTML(k.invoiceNo)}</strong> <span class="muted">· ${escapeHTML((firmById(k.firmId)||{}).name||'')}</span></span>
         <span>${fmtMoney(k.grandTotal)} <button class="btn btn-outline btn-sm splViewBtn" data-id="${k.id}">${escapeHTML(t('sales_viewBtn'))}</button></span></div>`).join('')}
       <div class="field" style="max-width:260px;margin-top:10px;"><label>${t('print_printFormatLabel')}</label>
-        <select id="spl_format"><option value="thermal58" ${SETTINGS.paperSize==='thermal58'?'selected':''}>${t('print_thermal58Option')}</option><option value="thermal80" ${SETTINGS.paperSize==='thermal80'?'selected':''}>${t('print_thermal80Option')}</option><option value="a4" ${SETTINGS.paperSize==='a4'?'selected':''}>${t('print_a4LetterOption')}</option></select></div>`,
+        <select id="spl_format"><option value="thermal58" ${SETTINGS.paperSize==='thermal58'?'selected':''}>${t('print_thermal58Option')}</option><option value="thermal80" ${SETTINGS.paperSize==='thermal80'?'selected':''}>${t('print_thermal80Option')}</option><option value="a4" ${SETTINGS.paperSize==='a4'?'selected':''}>${t('print_a4LetterOption')}</option></select></div>
+      <div style="margin-top:10px;font-weight:700;font-size:12.5px;">${escapeHTML(t('split_sendTitle'))}</div>
+      <div class="row" style="gap:8px;margin-top:4px;">
+        <button class="btn btn-whatsapp btn-sm" id="spl_wa">${iconSVG('whatsapp',14)} ${t('print_sendViaWhatsAppBtn')}</button>
+        <button class="btn btn-whatsapp btn-sm" id="spl_img">${iconSVG('whatsapp',14)} ${t('wa_imgBtn')}</button>
+        <button class="btn btn-outline btn-sm" id="spl_mail">${iconSVG('mail',14)} ${t('vendor_emailLabel')}</button>
+      </div>`,
     footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
       <button class="btn btn-outline" id="spl_each">${escapeHTML(t('split_printEach'))}</button>
       <button class="btn btn-primary" id="spl_one">${escapeHTML(t('split_printOne'))}</button>`,
@@ -12002,6 +12028,14 @@ async function showSplitPrintModal(kids){
       document.getElementById('spl_each').addEventListener('click', ()=>{
         kids.forEach(k=>actBillPrinted(k));
         printHTMLDocument(kids.map(k=>k.invoiceNo).join(' + '), kids.map(k=>`<div style="page-break-after:always;margin-bottom:10px;">${buildInvoiceContentHTML(k, customerName, fmt())}</div>`).join(''), fmt());
+      });
+      document.getElementById('spl_wa').addEventListener('click', ()=>{
+        const text = buildSplitMessageText(kids, false);
+        if(customerPhone){ openWhatsAppLink(buildWhatsAppLink(customerPhone, text), '_blank'); } else { promptPhoneThenOpen(text); }
+      });
+      document.getElementById('spl_img').addEventListener('click', ()=>{ openBillImageModal(slipBill(), customerName, customerPhone, fmt()); });
+      document.getElementById('spl_mail').addEventListener('click', ()=>{
+        window.open('mailto:?subject='+encodeURIComponent((SETTINGS.name||'')+t('wa_emailSubjectInvoiceSep')+kids.map(k=>k.invoiceNo).join(' + '))+'&body='+encodeURIComponent(buildSplitMessageText(kids, true)), '_blank');
       });
       document.querySelectorAll('.splViewBtn').forEach(b=>b.addEventListener('click', ()=>{ closeModal(); viewBillDetail(parseInt(b.dataset.id)); }));
     }
@@ -15568,7 +15602,7 @@ async function renderBillImage(bill, customerName, format){
   document.body.appendChild(iframe);
   try{
     const doc = iframe.contentDocument;
-    doc.open(); doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body><div id="bill">${buildInvoiceContentHTML(bill, customerName, format)}</div></body></html>`); doc.close();
+    doc.open(); doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body><div id="bill">${bill.__slipKids ? buildSplitSlipHTML(bill.__slipKids, customerName, format) : buildInvoiceContentHTML(bill, customerName, format)}</div></body></html>`); doc.close();
     await new Promise(r=>setTimeout(r,200));
     const el = doc.getElementById('bill');
     const H = Math.ceil(el.getBoundingClientRect().height) + 2;
