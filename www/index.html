@@ -19878,6 +19878,19 @@ function initPWA(){
 }
 </script>
 
+<script>
+// Enter key submits the PIN screens (login owner/staff, first-time setup, recovery)
+document.addEventListener('keydown', function(e){
+  if(e.key!=='Enter' || e.isComposing) return;
+  var map = {login_owner_pin:'login_owner_go', login_staff_pin:'login_staff_go', setup_pin:'setup_pin2', setup_pin2:'setup_go', rec_code:'rec_newpin', rec_newpin:'rec_go'};
+  var id = e.target && e.target.id;
+  if(!id || !map[id]) return;
+  var next = document.getElementById(map[id]);
+  if(!next) return;
+  e.preventDefault();
+  if(next.tagName==='BUTTON') next.click(); else next.focus();
+});
+</script>
 <script src="tauri-integration.js"></script>
 </body>
 </html>
