@@ -746,8 +746,14 @@ function updateIssueFirmUI(){
     sel.value = String(one); sel.disabled = true;
     if(note) note.textContent = fillTpl(t('cb_autoSingle'), [(firmById(one)||{}).name||'']);
   } else {
-    sel.disabled = false; sel.value = String(combinedIssueFirmId());
-    if(note) note.textContent = (CART.items||[]).length ? t('cb_mixedNote') : '';
+    const _ids = [...new Set((CART.items||[]).map(it=>it.stockFirmId).filter(Boolean))];
+    if(_ids.length > 1){
+      sel.disabled = true; sel.value = String(combinedIssueFirmId());
+      if(note) note.textContent = fillTpl(t('split_cartNote'), [_ids.map(id=>(firmById(id)||{}).name||'').join(' + ')]);
+    } else {
+      sel.disabled = false; sel.value = String(combinedIssueFirmId());
+      if(note) note.textContent = (CART.items||[]).length ? t('cb_mixedNote') : '';
+    }
   }
 }
 function combinedIssueFirmId(){
@@ -1832,6 +1838,26 @@ const I18N = {
     lb_profile:'Label roll in the printer',
     lb_profNormal:'Normal sticker labels',
     lb_profJewel:'Jewellery tags',
+    split_btn:'Split bill',
+    split_explain:'This bill holds items of more than one firm. It will be cancelled and replaced by one bill per firm (new invoice numbers, same date and payments). Stock and the customer\'s balance do not change.',
+    split_notAllowed:'This bill cannot be split (it is one firm only, already split, cancelled, or has credit due).',
+    split_hasReturns:'A bill with returns cannot be split.',
+    split_go:'Split into {0} bills',
+    split_remark:'Split from {0}',
+    split_cancelReason:'Split into {0}',
+    split_done:'Bill split: {0}',
+    split_slipTitle:'CUSTOMER BILL',
+    split_billTotal:'Bill total',
+    split_taxNote:'Tax invoices are issued separately by each firm above.',
+    split_modalTitle:'Bill split between firms',
+    split_modalHint:'Two bills were made, one per firm. The customer pays once: give them one slip, and keep each firm\'s invoice for the books.',
+    split_printOne:'Print ONE customer slip',
+    split_printEach:'Print each firm\'s invoice',
+    split_slipBtn:'Customer slip (all firms)',
+    split_tag:'Split',
+    split_with:'with {0}',
+    split_tile:'Combined sales (split)',
+    split_cartNote:'Items from {0}: at checkout this becomes one bill per firm. The customer pays once.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2643,6 +2669,26 @@ const I18N = {
     lb_profile:'प्रिंटरमधील लेबल रोल',
     lb_profNormal:'साधे स्टिकर लेबल',
     lb_profJewel:'ज्वेलरी टॅग',
+    split_btn:'बिल विभाजित करा',
+    split_explain:'या बिलात एकापेक्षा जास्त फर्मच्या वस्तू आहेत. हे बिल रद्द होऊन प्रत्येक फर्मचे एक एक बिल तयार होईल (नवीन बिल क्रमांक, तीच तारीख व पेमेंट). स्टॉक व ग्राहकाची शिल्लक बदलत नाही.',
+    split_notAllowed:'हे बिल विभाजित करता येत नाही (एकच फर्म, आधीच विभाजित, रद्द, किंवा उधारी बाकी).',
+    split_hasReturns:'परतावा असलेले बिल विभाजित करता येत नाही.',
+    split_go:'{0} बिलांमध्ये विभाजित करा',
+    split_remark:'{0} मधून विभाजित',
+    split_cancelReason:'{0} मध्ये विभाजित',
+    split_done:'बिल विभाजित: {0}',
+    split_slipTitle:'ग्राहक बिल',
+    split_billTotal:'बिल एकूण',
+    split_taxNote:'कर बिल प्रत्येक फर्म स्वतंत्रपणे देते.',
+    split_modalTitle:'फर्मनुसार बिल विभाजित',
+    split_modalHint:'प्रत्येक फर्मचे एक असे दोन बिल तयार झाले. ग्राहक एकदाच पैसे देतो: त्याला एक स्लिप द्या आणि प्रत्येक फर्मचे बिल हिशेबासाठी ठेवा.',
+    split_printOne:'ग्राहकासाठी एक स्लिप छापा',
+    split_printEach:'प्रत्येक फर्मचे बिल छापा',
+    split_slipBtn:'ग्राहक स्लिप (सर्व फर्म)',
+    split_tag:'विभाजित',
+    split_with:'{0} सोबत',
+    split_tile:'एकत्रित विक्री (विभाजित)',
+    split_cartNote:'{0} च्या वस्तू: चेकआउटला प्रत्येक फर्मचे एक बिल होईल. ग्राहक एकदाच पैसे देतो.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -11628,7 +11674,9 @@ async function finalizeCheckoutInner(tot, getAmountDue){
   const payments = [];
   enabledModes.forEach(m=>{ if(modeAmounts[m]>0) payments.push({mode:m, amount:modeAmounts[m]}); });
 
-  const invoiceNo = await nextInvoiceNo(saleFirmId);
+  const _firmKeys = [...new Set(CART.items.map(it=>String(it.stockFirmId||'')).filter(Boolean))];
+  const doSplit = cmbMode && _firmKeys.length > 1;      // items of 2+ firms: one bill per firm, the customer still pays once
+  const invoiceNo = doSplit ? '' : await nextInvoiceNo(saleFirmId);
   const earnedPoints = (SETTINGS.loyaltyEnabled && CART.customerId && SETTINGS.loyaltyEarnPerRupee>0)
     ? Math.floor(tot.grandTotal / SETTINGS.loyaltyEarnPerRupee) : 0;
 
@@ -11637,7 +11685,7 @@ async function finalizeCheckoutInner(tot, getAmountDue){
   const changeGiven = cashTendered!=null ? Math.max(0, Math.round((cashTendered-cash)*100)/100) : 0;
 
   const _gv = await guardEvaluateCart();
-  const bill = {
+  let bill = {
     invoiceNo,
     firmId: saleFirmId,
     ...(cmbMode ? {
@@ -11677,19 +11725,25 @@ async function finalizeCheckoutInner(tot, getAmountDue){
     guard: {manual:_gv.manual, pct:_gv.pct, base:_gv.base, drops:_gv.drops,
             approvedBy:(CART.guardApproval||{}).by||null, reason:(CART.guardApproval||{}).reason||null}
   };
-  const billId = await dbAdd('bills', bill);
-  bill.id = billId;
+  let billId = null, kids = null;
+  if(doSplit){ kids = await saveSplitBills(bill); bill = kids[0]; billId = bill.id; }
+  else { billId = await dbAdd('bills', bill); bill.id = billId; }
   if(CART.exchangeFrom && CART.exchangeFrom.returnId){
     try{ const _rr = await dbGet('returns', CART.exchangeFrom.returnId);
-      if(_rr){ _rr.exchangedToBillId = billId; _rr.exchangedToInvoice = invoiceNo; await dbPut('returns', _rr); } }catch(e){}
+      if(_rr){ _rr.exchangedToBillId = billId; _rr.exchangedToInvoice = bill.invoiceNo; await dbPut('returns', _rr); } }catch(e){}
   }
-  if(limitInfo) logAct('credit_limit', (customer.name||'')+': due would be '+fmtMoney(limitInfo.after)+' against a limit of '+fmtMoney(limitInfo.limit)+' - approved by '+limitBy+' ('+invoiceNo+')');
+  if(limitInfo) logAct('credit_limit', (customer.name||'')+': due would be '+fmtMoney(limitInfo.after)+' against a limit of '+fmtMoney(limitInfo.limit)+' - approved by '+limitBy+' ('+bill.invoiceNo+')');
 
   let leftoverExchangeCredit = 0;
   const exchangeCreditApplied = CART.exchangeCredit || 0;
   const exchangeSettleMode = CART.exchangeSettleMode || 'cash';
 
-  if(customer){
+  if(customer && doSplit){
+    const _r = await applySplitCustomerEffects(kids, customer, {storeCreditRequested, redeemValue, grandTotal: tot.grandTotal,
+      preDiscountTotal: Math.round((tot.subtotal - tot.itemDiscount + tot.taxAdded)*100)/100, exchangeCreditApplied, exchangeSettleMode});
+    leftoverExchangeCredit = _r.leftover;
+  }
+  if(customer && !doSplit){
     let changed = false;
     if(bill.creditAmount>0){
       customer.creditBalance = (customer.creditBalance||0) + bill.creditAmount;
@@ -11745,7 +11799,7 @@ async function finalizeCheckoutInner(tot, getAmountDue){
   closeModal();
   emptyCart();
   const billedTabId = ACTIVE_TAB_ID;
-  toast(t('toast_billCreatedPrefix')+invoiceNo+t('toast_billCreatedSuffix'),'success');
+  toast(t('toast_billCreatedPrefix')+(doSplit ? kids.map(k=>k.invoiceNo).join(' + ') : invoiceNo)+t('toast_billCreatedSuffix'),'success');
   if(leftoverExchangeCredit > 0.01){
     const msg = exchangeSettleMode==='store_credit'
       ? `${fmtMoney(leftoverExchangeCredit)} unused exchange credit added to customer's store credit`
@@ -11756,7 +11810,202 @@ async function finalizeCheckoutInner(tot, getAmountDue){
   if(billedTabId) await closeBillTab(billedTabId, true);
   else await renderBilling();
   await refreshLowStockBadge();
-  showInvoiceModal(bill);
+  if(doSplit) showSplitPrintModal(kids); else showInvoiceModal(bill);
+}
+
+/* ---------- Split a bill between firms (v0.1.47) ----------
+   A cart with items of two firms becomes ONE BILL PER FIRM: each firm's own invoice number, GSTIN, tax and totals, so every
+   report is right. The customer pays once; payments, credit, discounts, coupon, points and charges are shared out by the
+   value of each firm's items, to the paisa, so the bills add up exactly to what was charged. */
+function allocMoney(total, weights, dec){
+  const f = dec===0 ? 1 : 100, T = Math.round((Number(total)||0)*f), W = weights.reduce((a,b)=>a+b,0);
+  if(!weights.length) return [];
+  if(!(W>0)){ const o = weights.map(()=>0); o[o.length-1] = T/f; return o; }
+  const raw = weights.map(w=>T*w/W), fl = raw.map(Math.floor); let left = T - fl.reduce((a,b)=>a+b,0);
+  raw.map((x,i)=>[x-Math.floor(x), i]).sort((a,b)=>b[0]-a[0]).forEach(([,i])=>{ if(left>0){ fl[i]++; left--; } });
+  return fl.map(x=>x/f);
+}
+function billFirmKeys(bill){ return [...new Set((bill.items||[]).map(it=>String(it.stockFirmId || bill.firmId || '')).filter(Boolean))]; }
+// Pure: the child bills (no ids / invoice numbers yet) for a bill whose items belong to 2+ firms; null when it is one firm.
+function splitBillByFirm(master, opts){
+  opts = opts || {};
+  const r2 = n=>Math.round((Number(n)||0)*100)/100;
+  const items = master.items||[], keys = billFirmKeys(master);
+  if(keys.length < 2) return null;
+  const fk = it=>String(it.stockFirmId || master.firmId || '');
+  const paid = billLinePaid(master);
+  const nets = items.map(it=>Math.max(0, it.qty*it.rate - itemDiscountAmount(it)));
+  const sumBy = (arr, k)=>items.reduce((s,it,i)=>s + (fk(it)===k ? arr[i] : 0), 0);
+  let goods = keys.map(k=>r2(sumBy(paid,k)));
+  const goodsTotal = Math.max(0, r2(Number(master.grandTotal||0) - Number(master.packagingCharge||0) - Number(master.deliveryCharge||0)));
+  const gi = goods.indexOf(Math.max(...goods)); goods[gi] = r2(goods[gi] + (goodsTotal - goods.reduce((a,b)=>a+b,0)));
+  const netW = keys.map(k=>sumBy(nets,k));
+  const itemDiscAll = items.reduce((s,it)=>s+itemDiscountAmount(it),0);
+  const bd = allocMoney(Math.max(0, Number(master.discountTotal||0) - itemDiscAll), netW);
+  const tier = allocMoney(master.autoTierDiscount||0, netW), coup = allocMoney(master.couponDiscount||0, netW);
+  const pack = allocMoney(master.packagingCharge||0, goods), del = allocMoney(master.deliveryCharge||0, goods);
+  const grand = keys.map((k,i)=>r2(goods[i] + pack[i] + del[i]));
+  const redeemVal = allocMoney(master.pointsRedeemedValue||0, grand), redeemPts = allocMoney(master.pointsRedeemed||0, grand, 0), earn = allocMoney(master.pointsEarned||0, grand, 0);
+  const due0 = master.amountDue!=null ? Number(master.amountDue) : Number(master.grandTotal||0) - Number(master.pointsRedeemedValue||0);
+  const dueA = allocMoney(due0, grand), creditA = allocMoney(master.creditAmount||0, grand);
+  const modes = (master.payments||[]).map(p=>({mode:p.mode, parts: allocMoney(p.amount, grand)}));
+  const tenderA = master.cashTendered!=null ? allocMoney(master.cashTendered, grand) : null, changeA = allocMoney(master.changeGiven||0, grand);
+  return keys.map((k,i)=>{
+    const its = items.filter(it=>fk(it)===k).map(it=>({...it}));
+    const sub = r2(its.reduce((s,it)=>s+it.qty*it.rate,0)), itemDisc = r2(its.reduce((s,it)=>s+itemDiscountAmount(it),0));
+    let tax = 0, incl = 0; its.forEach(it=>{ const lp = lineTaxParts(it); tax += lp.tax; if(lp.included) incl += lp.tax; });
+    tax = r2(tax); incl = r2(incl);
+    const discountTotal = r2(itemDisc + bd[i]);
+    const taxAdded = r2(tax - incl);
+    const payments = modes.map(m=>({mode:m.mode, amount:m.parts[i]})).filter(p=>p.amount>0);
+    const paidSum = payments.reduce((s,p)=>s+p.amount,0), credit = creditA[i];
+    const kid = {...master, firmId:Number(k)||null, items:its, subtotal:sub, discountTotal, autoTierDiscount:tier[i], couponDiscount:coup[i],
+      couponCode: coup[i]>0 ? (master.couponCode||'') : '', packagingCharge:pack[i], deliveryCharge:del[i],
+      deliveryEnabled: !!master.deliveryEnabled && del[i]>0, deliveryAddress: del[i]>0 ? (master.deliveryAddress||'') : '',
+      taxTotal:tax, taxIncluded:incl, grandTotal:grand[i], roundOff: r2(grand[i] - (sub - discountTotal + taxAdded + pack[i] + del[i])),
+      pointsRedeemed:redeemPts[i], pointsRedeemedValue:redeemVal[i], pointsEarned:earn[i], amountDue:dueA[i],
+      payments, cashTendered: tenderA ? tenderA[i] : null, changeGiven:changeA[i], creditAmount:credit,
+      status: credit>0.01 ? (paidSum>0 ? 'partial' : 'credit') : 'paid', combined:false};
+    delete kid.id; delete kid.stockFirms; delete kid.edits; delete kid.splitGroup;
+    if(i>0){ delete kid.guard; delete kid.exchangeFrom; delete kid.creditLimitOver; }
+    if(opts.remark) kid.remark = opts.remark;
+    return kid;
+  });
+}
+async function saveSplitBills(master, opts){
+  const kids = splitBillByFirm(master, opts);
+  for(const k of kids) k.invoiceNo = await nextInvoiceNo(k.firmId);
+  const gid = 'SG' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  for(const k of kids){ k.splitGroup = {id:gid, count:kids.length}; k.id = await dbAdd('bills', k); }
+  const sib = kids.map(k=>({id:k.id, invoiceNo:k.invoiceNo, firmId:k.firmId, grandTotal:k.grandTotal}));
+  for(const k of kids){ k.splitGroup.siblings = sib; await dbPut('bills', k); }
+  return kids;
+}
+// The customer-side effects of a split sale: credit, store credit, points — one entry per child bill — and any unused exchange credit.
+async function applySplitCustomerEffects(kids, customer, o){
+  const r2 = n=>Math.round((Number(n)||0)*100)/100;
+  let changed = false, leftover = 0;
+  const scTotal = Math.min(o.storeCreditRequested, customer.storeCredit||0, Math.max(0, r2(o.grandTotal - o.redeemValue)));
+  const scParts = scTotal > 0.001 ? allocMoney(scTotal, kids.map(k=>k.grandTotal)) : kids.map(()=>0);
+  customer.ledger = customer.ledger||[]; customer.pointsLedger = customer.pointsLedger||[];
+  kids.forEach((k,i)=>{
+    if(k.creditAmount>0){ customer.creditBalance = (customer.creditBalance||0) + k.creditAmount;
+      customer.ledger.push({date:k.date, type:'sale', amount:k.creditAmount, billId:k.id, note:'Invoice '+k.invoiceNo}); changed = true; }
+    if(scParts[i] > 0.001){ customer.storeCredit = Math.max(0, r2((customer.storeCredit||0) - scParts[i]));
+      customer.ledger.push({date:k.date, type:'payment', amount:scParts[i], billId:k.id, mode:'Store Credit', source:'store_credit', note:'Store credit used on '+k.invoiceNo}); changed = true; }
+    if(SETTINGS.loyaltyEnabled){
+      customer.loyaltyPoints = customer.loyaltyPoints||0;
+      if(k.pointsRedeemed>0){ customer.loyaltyPoints -= k.pointsRedeemed; customer.pointsLedger.push({date:k.date, type:'redeem', points:k.pointsRedeemed, billId:k.id, note:'Redeemed on '+k.invoiceNo}); changed = true; }
+      if(k.pointsEarned>0){ customer.loyaltyPoints += k.pointsEarned; customer.pointsLedger.push({date:k.date, type:'earn', points:k.pointsEarned, billId:k.id, note:'Earned on '+k.invoiceNo}); changed = true; }
+    }
+  });
+  if(o.exchangeCreditApplied > 0){
+    leftover = Math.max(0, r2(o.exchangeCreditApplied - o.preDiscountTotal));
+    if(leftover > 0.01 && o.exchangeSettleMode==='store_credit'){ customer.storeCredit = r2((customer.storeCredit||0) + leftover); changed = true; }
+  }
+  if(changed) await dbPut('customers', customer);
+  return {leftover};
+}
+function canSplitBill(b){
+  return !!b && !b.cancelled && !b.splitGroup && !(Number(b.creditAmount||0) > 0.004) && billFirmKeys(b).length > 1;
+}
+function openSplitBillModal(billId){ requireOwnerApproval(t('split_btn'), ()=>doOpenSplitBillModal(billId)); }
+async function doOpenSplitBillModal(billId){
+  const bill = await dbGet('bills', billId); if(!bill) return;
+  if(!canSplitBill(bill)){ toast(t('split_notAllowed'),'error'); return; }
+  if(await billHasReturns(billId)){ toast(t('split_hasReturns'),'error'); return; }
+  const kids = splitBillByFirm(bill);
+  openModal({
+    title: t('split_btn')+' — '+bill.invoiceNo,
+    bodyHTML: `<p style="font-size:13px;">${escapeHTML(t('split_explain'))}</p>
+      ${kids.map(k=>`<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:6px 0;font-size:13px;">
+        <span><strong>${escapeHTML((firmById(k.firmId)||{}).name||'')}</strong> <span class="muted">· ${k.items.length} ${escapeHTML(t('th_item'))}</span></span><span>${fmtMoney(k.grandTotal)}</span></div>`).join('')}`,
+    footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="spl_go">${escapeHTML(fillTpl(t('split_go'), [kids.length]))}</button>`,
+    onMount: ()=>{ document.getElementById('spl_go').addEventListener('click', ()=>splitExistingBill(billId)); }
+  });
+}
+async function splitExistingBill(billId){
+  if(window.__split_busy) return; window.__split_busy = true;
+  try{
+    const bill = await dbGet('bills', billId);
+    if(!bill || !canSplitBill(bill) || await billHasReturns(billId)){ toast(t('split_notAllowed'),'error'); return; }
+    const kids = await saveSplitBills(bill, {remark: fillTpl(t('split_remark'), [bill.invoiceNo])});
+    bill.cancelled = true; bill.cancelledAt = new Date().toISOString(); bill.cancelledBy = whoAmI();
+    bill.cancelReason = fillTpl(t('split_cancelReason'), [kids.map(k=>k.invoiceNo).join(' + ')]);
+    bill.splitInto = kids.map(k=>k.id);
+    await dbPut('bills', bill);
+    logAct('bill_split', bill.invoiceNo+' split into '+kids.map(k=>k.invoiceNo).join(' + ')+' by '+whoAmI());
+    closeModal(); toast(fillTpl(t('split_done'), [kids.map(k=>k.invoiceNo).join(' + ')]),'success');
+    if(typeof renderSalesData==='function') await renderSalesData();
+    showSplitPrintModal(kids);
+  } finally { window.__split_busy = false; }
+}
+function printCssFor(format){
+  const isThermal = format!=='a4';
+  const pageCSS = format==='thermal58' ? '@page{ size:58mm auto; margin:2mm; }' : (format==='thermal80' ? '@page{ size:80mm auto; margin:3mm; }' : '@page{ size:A4; margin:14mm; }');
+  const bodyCSS = format==='thermal58' ? 'width:54mm;font-size:11px;' : (format==='thermal80' ? 'width:74mm;font-size:12px;' : 'max-width:680px;font-size:13px;');
+  return `${pageCSS} body{ font-family:Arial,Helvetica,sans-serif; margin:0 auto; padding:${isThermal?'4px':'0'}; color:#000; ${bodyCSS} }
+    table{width:100%;border-collapse:collapse;} th,td{font-size:inherit;text-align:left;} .num{text-align:right;font-variant-numeric:tabular-nums;} .muted{color:${isThermal?'#000':'#555'};}`;
+}
+function printHTMLDocument(title, content, format){
+  const isThermal = format!=='a4';
+  const w = window.open('','_blank', isThermal ? 'width=380,height=600' : 'width=780,height=900');
+  if(!w) return;
+  w.document.write(`<!DOCTYPE html><html><head><title>${escapeHTML(title)}</title><style>${printCssFor(format)}</style></head><body>${content}</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{ w.print(); }, 250);
+}
+// What the customer gets: ONE slip for the whole sale, with each firm's items and invoice number; the tax invoices stay per firm.
+function buildSplitSlipHTML(kids, customerName, format){
+  const isThermal = format!=='a4', pad = isThermal ? '4px 5px' : '7px 8px';
+  const first = kids[0], total = kids.reduce((s,k)=>s+Number(k.grandTotal||0),0);
+  const disc = kids.reduce((s,k)=>s+Number(k.discountTotal||0),0), credit = kids.reduce((s,k)=>s+Number(k.creditAmount||0),0);
+  const modes = {}; kids.forEach(k=>(k.payments||[]).forEach(p=>{ modes[p.mode] = (modes[p.mode]||0) + Number(p.amount||0); }));
+  const row = (a,b,bold)=>`<div style="display:flex;justify-content:space-between;gap:8px;${bold?'font-weight:700;':''}"><span>${a}</span><span class="num">${b}</span></div>`;
+  const sections = kids.map(k=>{
+    const firm = firmById(k.firmId) || {};
+    return `<div style="padding:${pad};border-bottom:1px solid #000;">
+      <div style="font-weight:700;">${escapeHTML(firm.name||'')}</div><div class="muted" style="font-size:.85em;">${escapeHTML(t('modal_invoicePrefix'))}${escapeHTML(k.invoiceNo)}</div>
+      <table style="margin-top:3px;">${(k.items||[]).map(it=>`<tr><td>${escapeHTML(it.name)}${(it.size||it.color)?` <span class="muted" style="font-size:.85em;">(${escapeHTML([it.size,it.color].filter(Boolean).join('/'))})</span>`:''}</td><td class="num">${it.qty}</td><td class="num">${fmtMoney(it.qty*it.rate - itemDiscountAmount(it))}</td></tr>`).join('')}</table>
+      ${row(escapeHTML(t('split_billTotal')), fmtMoney(k.grandTotal), true)}</div>`;
+  }).join('');
+  return `<div style="border:2px solid #000;font-family:inherit;">
+    <div style="text-align:center;padding:${pad};border-bottom:1px solid #000;">
+      <div style="font-weight:700;letter-spacing:.14em;font-size:.82em;">${escapeHTML(t('split_slipTitle'))}</div>
+      <div style="font-size:${isThermal?'14px':'18px'};font-weight:700;">${escapeHTML(SETTINGS.name||'')}</div>
+      <div class="muted" style="font-size:.85em;">${fmtDate(first.date)} · ${escapeHTML(customerName||t('acct_customerFallback'))}</div></div>
+    ${sections}
+    <div style="padding:${pad};">
+      ${disc>0 ? row(escapeHTML(t('print_discountLabel')), '-'+fmtMoney(disc)) : ''}
+      ${row(escapeHTML(t('bill_grandTotal')), fmtMoney(total), true)}
+      ${Object.entries(modes).map(([m,a])=>row(escapeHTML(dv(m)), fmtMoney(a))).join('')}
+      ${credit>0 ? row(escapeHTML(t('print_onCredit')), fmtMoney(credit), true) : ''}
+      <div class="muted" style="font-size:.8em;margin-top:4px;">${escapeHTML(t('split_taxNote'))}</div></div></div>
+    <div style="text-align:center;margin-top:6px;font-size:.85em;" class="muted">${escapeHTML(String(first.firmId?firmValue(first.firmId,'billFooterText'):SETTINGS.billFooterText||'').trim() || t('print_thankYouShopping'))}</div>`;
+}
+async function showSplitPrintModal(kids){
+  let customerName = t('bill_walkInCustomerOption');
+  if(kids[0].customerId){ const c = await dbGet('customers', kids[0].customerId); if(c) customerName = c.name + (c.phone?(' — '+c.phone):''); }
+  openModal({
+    title: t('split_modalTitle'),
+    bodyHTML: `<p class="muted" style="font-size:12.5px;">${escapeHTML(t('split_modalHint'))}</p>
+      ${kids.map(k=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:6px 0;font-size:13px;">
+        <span><strong>${escapeHTML(k.invoiceNo)}</strong> <span class="muted">· ${escapeHTML((firmById(k.firmId)||{}).name||'')}</span></span>
+        <span>${fmtMoney(k.grandTotal)} <button class="btn btn-outline btn-sm splViewBtn" data-id="${k.id}">${escapeHTML(t('sales_viewBtn'))}</button></span></div>`).join('')}
+      <div class="field" style="max-width:260px;margin-top:10px;"><label>${t('print_printFormatLabel')}</label>
+        <select id="spl_format"><option value="thermal58" ${SETTINGS.paperSize==='thermal58'?'selected':''}>${t('print_thermal58Option')}</option><option value="thermal80" ${SETTINGS.paperSize==='thermal80'?'selected':''}>${t('print_thermal80Option')}</option><option value="a4" ${SETTINGS.paperSize==='a4'?'selected':''}>${t('print_a4LetterOption')}</option></select></div>`,
+    footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
+      <button class="btn btn-outline" id="spl_each">${escapeHTML(t('split_printEach'))}</button>
+      <button class="btn btn-primary" id="spl_one">${escapeHTML(t('split_printOne'))}</button>`,
+    onMount: ()=>{
+      const fmt = ()=>document.getElementById('spl_format').value;
+      document.getElementById('spl_one').addEventListener('click', ()=>{ kids.forEach(k=>actBillPrinted(k)); printHTMLDocument(t('split_slipTitle'), buildSplitSlipHTML(kids, customerName, fmt()), fmt()); });
+      document.getElementById('spl_each').addEventListener('click', ()=>{
+        kids.forEach(k=>actBillPrinted(k));
+        printHTMLDocument(kids.map(k=>k.invoiceNo).join(' + '), kids.map(k=>`<div style="page-break-after:always;margin-bottom:10px;">${buildInvoiceContentHTML(k, customerName, fmt())}</div>`).join(''), fmt());
+      });
+      document.querySelectorAll('.splViewBtn').forEach(b=>b.addEventListener('click', ()=>{ closeModal(); viewBillDetail(parseInt(b.dataset.id)); }));
+    }
+  });
 }
 
 /* ---------- Returned / exchanged: what to show on a bill ---------- */
@@ -12066,6 +12315,7 @@ async function showInvoiceModal(bill){
       <button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>
       ${(_st && _st.due>0.004 && !bill.cancelled)?`<button class="btn btn-primary" id="receiveInvoiceBtn">${t('pay_receiveBtn')}</button>`:''}
       ${!bill.cancelled?`<button class="btn btn-outline" id="editInvoiceBtn">${t('edit_btn')}</button>`:''}
+      ${bill.splitGroup?`<button class="btn btn-outline" id="splitSlipBtn">${escapeHTML(t('split_slipBtn'))}</button>`:''}
       <button class="btn btn-outline" id="emailInvoiceBtn">${iconSVG('mail',15)} ${t('vendor_emailLabel')}</button>
       <button class="btn btn-whatsapp" id="waInvoiceBtn">${iconSVG('whatsapp',15)} ${t('print_sendViaWhatsAppBtn')}</button>
       <button class="btn btn-whatsapp" id="waImgBtn">${iconSVG('whatsapp',15)} ${t('wa_imgBtn')}</button>
@@ -12074,6 +12324,11 @@ async function showInvoiceModal(bill){
     onMount:()=>{
       const rcv = document.getElementById('receiveInvoiceBtn');
       if(rcv) rcv.addEventListener('click', ()=>{ closeModal(); openReceiveBillPaymentModal(bill.id, ()=>viewBillDetail(bill.id)); });
+      const spb = document.getElementById('splitSlipBtn');
+      if(spb) spb.addEventListener('click', async ()=>{
+        const sibs = (await dbGetAll('bills')).filter(x=>x.splitGroup && x.splitGroup.id===bill.splitGroup.id).sort((a,b)=>a.id-b.id);
+        closeModal(); showSplitPrintModal(sibs);
+      });
       const edt = document.getElementById('editInvoiceBtn');
       if(edt) edt.addEventListener('click', ()=>{ closeModal(); openEditBillModal(bill.id); });
       document.getElementById('printInvoiceBtn').addEventListener('click', ()=>{
@@ -12819,6 +13074,7 @@ async function renderSalesData(){
     <div class="stat-tile"><div class="label">${t('sales_tileAvgBillValue')}</div><div class="value small">${fmtMoney(avgBill)}</div></div>
     <div class="stat-tile"><div class="label">${t('sales_tileGstCollected')}</div><div class="value small">${fmtMoney(totalTax)}</div></div>
     <div class="stat-tile"><div class="label">${t('sales_tileNewCreditGiven')}</div><div class="value small">${fmtMoney(totalCredit)}</div></div>
+    ${(()=>{ const sl = live.filter(b=>b.splitGroup); const ids = new Set(sl.map(b=>b.splitGroup.id)); return ids.size ? `<div class="stat-tile"><div class="label">${t('split_tile')} (${ids.size})</div><div class="value small">${fmtMoney(sl.reduce((s,b)=>s+Number(b.grandTotal||0),0))}</div></div>` : ''; })()}
     ${retsInRange.length ? `<div class="stat-tile"><div class="label">${t('ret_tile')} (${retsInRange.length})</div><div class="value small">${fmtMoney(retValue)}</div></div>` : ''}
   `;
 
@@ -12862,6 +13118,7 @@ async function renderSalesData(){
               ` <span class="tag tag-amber" style="font-size:10px;">${escapeHTML(rs.pending ? t('ret_exchPending') : rs.exchanged ? t('ret_exchanged') : (rs.status==='full' ? t('ret_tagReturned') : t('ret_tagPart')))}</span>`
               + `<br><span class="muted" style="font-size:11px;">${escapeHTML(fillTpl(t('ret_listLine'), [rs.retQty, rs.soldQty, fmtMoney(rs.value)]))}</span>`)
               + (b.exchangeFrom ? `<br><span class="muted" style="font-size:11px;">${escapeHTML(fillTpl(t('ret_exchangeFor'), [b.exchangeFrom.invoiceNo, fmtMoney(b.exchangeFrom.credit)]))}</span>` : '');
+            const splitTag = b.splitGroup ? ` <span class="tag" style="font-size:10px;">${escapeHTML(t('split_tag'))}</span><br><span class="muted" style="font-size:11px;">${escapeHTML(fillTpl(t('split_with'), [(b.splitGroup.siblings||[]).filter(s=>s.id!==b.id).map(s=>s.invoiceNo).join(', ')]))}</span>` : '';
             const reasonLine = b.cancelled && b.cancelReason
               ? `<br><span class="muted" style="font-size:11px;">${escapeHTML(b.cancelReason)}</span>` : '';
             return `<tr${b.cancelled?' class="row-cancelled"':''}>
@@ -12869,11 +13126,12 @@ async function renderSalesData(){
               <td>${fmtDate(b.date)}</td>
               <td>${cust?escapeHTML(cust.name):t('bill_walkIn')}</td>
               <td class="num">${fmtMoney(b.grandTotal)}</td>
-              <td>${statusTag}${dueLine}${editedTag}${retTag}</td>
+              <td>${statusTag}${dueLine}${editedTag}${splitTag}${retTag}</td>
               <td style="white-space:nowrap;">
                 <button class="btn btn-outline btn-sm" onclick="viewBillDetail(${b.id})">${t('sales_viewBtn')}</button>
                 ${(!b.cancelled && stillDue)?`<button class="btn btn-primary btn-sm" onclick="openReceiveBillPaymentModal(${b.id})">${t('pay_receiveBtn')}</button>`:''}
                 ${!b.cancelled?`<button class="btn btn-outline btn-sm" onclick="openEditBillModal(${b.id})">${t('edit_btn')}</button>`:''}
+                ${(!b.cancelled && isOwner() && canSplitBill(b))?`<button class="btn btn-outline btn-sm" onclick="openSplitBillModal(${b.id})">${t('split_btn')}</button>`:''}
                 ${b.cancelled?'':`<button class="btn btn-outline btn-sm" onclick="openReturnModal(${b.id})">${t('sales_returnExchangeBtn')}</button>`}
                 ${(!b.cancelled && isOwner())?`<button class="btn btn-danger btn-sm" onclick="openCancelBillModal(${b.id})">${t('sales_cancelBillBtn')}</button>`:''}
               </td>
