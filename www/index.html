@@ -11951,39 +11951,35 @@ function printCssFor(format){
 }
 function printHTMLDocument(title, content, format){
   const isThermal = format!=='a4';
-  const w = window.open('','_blank', isThermal ? 'width=380,height=600' : 'width=780,height=900');
+  const feat = isThermal ? 'width=380,height=600' : 'width=780,height=900';
+  const w = (window.IS_TAURI && window.openPrintWindow) ? window.openPrintWindow(feat) : window.open('','_blank', feat);
   if(!w) return;
   w.document.write(`<!DOCTYPE html><html><head><title>${escapeHTML(title)}</title><style>${printCssFor(format)}</style></head><body>${content}</body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{ w.print(); }, 250);
 }
-// What the customer gets: ONE slip for the whole sale, with each firm's items and invoice number; the tax invoices stay per firm.
-function buildSplitSlipHTML(kids, customerName, format){
-  const isThermal = format!=='a4', pad = isThermal ? '4px 5px' : '7px 8px';
-  const first = kids[0], total = kids.reduce((s,k)=>s+Number(k.grandTotal||0),0);
-  const disc = kids.reduce((s,k)=>s+Number(k.discountTotal||0),0), credit = kids.reduce((s,k)=>s+Number(k.creditAmount||0),0);
+// What the customer gets: ONE bill for the whole sale, laid out exactly like a normal bill (items, GST, totals, payments, UPI QR for the
+// amount), with each item marked by the firm it belongs to and every invoice number in the header. The tax invoices stay per firm.
+function mergeSplitBills(kids){
+  const r2 = n=>Math.round((Number(n)||0)*100)/100, S = k=>kids.reduce((s,x)=>s+Number(x[k]||0),0);
   const modes = {}; kids.forEach(k=>(k.payments||[]).forEach(p=>{ modes[p.mode] = (modes[p.mode]||0) + Number(p.amount||0); }));
-  const row = (a,b,bold)=>`<div style="display:flex;justify-content:space-between;gap:8px;${bold?'font-weight:700;':''}"><span>${a}</span><span class="num">${b}</span></div>`;
-  const sections = kids.map(k=>{
-    const firm = firmById(k.firmId) || {};
-    return `<div style="padding:${pad};border-bottom:1px solid #000;">
-      <div style="font-weight:700;">${escapeHTML(firm.name||'')}</div><div class="muted" style="font-size:.85em;">${escapeHTML(t('modal_invoicePrefix'))}${escapeHTML(k.invoiceNo)}</div>
-      <table style="margin-top:3px;">${(k.items||[]).map(it=>`<tr><td>${escapeHTML(it.name)}${(it.size||it.color)?` <span class="muted" style="font-size:.85em;">(${escapeHTML([it.size,it.color].filter(Boolean).join('/'))})</span>`:''}</td><td class="num">${it.qty}</td><td class="num">${fmtMoney(it.qty*it.rate - itemDiscountAmount(it))}</td></tr>`).join('')}</table>
-      ${row(escapeHTML(t('split_billTotal')), fmtMoney(k.grandTotal), true)}</div>`;
-  }).join('');
-  return `<div style="border:2px solid #000;font-family:inherit;">
-    <div style="text-align:center;padding:${pad};border-bottom:1px solid #000;">
-      <div style="font-weight:700;letter-spacing:.14em;font-size:.82em;">${escapeHTML(t('split_slipTitle'))}</div>
-      <div style="font-size:${isThermal?'14px':'18px'};font-weight:700;">${escapeHTML(SETTINGS.name||'')}</div>
-      <div class="muted" style="font-size:.85em;">${fmtDate(first.date)} · ${escapeHTML(customerName||t('acct_customerFallback'))}</div></div>
-    ${sections}
-    <div style="padding:${pad};">
-      ${disc>0 ? row(escapeHTML(t('print_discountLabel')), '-'+fmtMoney(disc)) : ''}
-      ${row(escapeHTML(t('bill_grandTotal')), fmtMoney(total), true)}
-      ${Object.entries(modes).map(([m,a])=>row(escapeHTML(dv(m)), fmtMoney(a))).join('')}
-      ${credit>0 ? row(escapeHTML(t('print_onCredit')), fmtMoney(credit), true) : ''}
-      ${(credit>0 && kids.every(k=>k._dueNow!=null) && kids.reduce((s,k)=>s+Number(k._dueNow),0) < credit-0.004) ? row(escapeHTML(t('print_paidLater')), '-'+fmtMoney(Math.round((credit - kids.reduce((s,k)=>s+Number(k._dueNow),0))*100)/100)) + row(escapeHTML(t('print_balanceDueNow')), fmtMoney(Math.round(kids.reduce((s,k)=>s+Number(k._dueNow),0)*100)/100), true) : ''}
-      <div class="muted" style="font-size:.8em;margin-top:4px;">${escapeHTML(t('split_taxNote'))}</div></div></div>
-    <div style="text-align:center;margin-top:6px;font-size:.85em;" class="muted">${escapeHTML(String(first.firmId?firmValue(first.firmId,'billFooterText'):SETTINGS.billFooterText||'').trim() || t('print_thankYouShopping'))}</div>`;
+  const upiFirm = [combinedIssueFirmId()].concat(kids.map(k=>k.firmId)).find(id=>id && firmValue(id,'upiId'));
+  const m = {
+    invoiceNo: kids.map(k=>k.invoiceNo).join(' + '), firmId: null, date: kids[0].date, customerId: kids[0].customerId,
+    items: kids.reduce((a,k)=>a.concat((k.items||[]).map(it=>({...it, note:[it.note, (firmById(k.firmId)||{}).name].filter(Boolean).join(' · ')}))), []),
+    subtotal:r2(S('subtotal')), discountTotal:r2(S('discountTotal')), couponCode:(kids.find(k=>k.couponCode)||{}).couponCode||'',
+    packagingCharge:r2(S('packagingCharge')), deliveryCharge:r2(S('deliveryCharge')),
+    deliveryEnabled:kids.some(k=>k.deliveryEnabled), deliveryAddress:(kids.find(k=>k.deliveryEnabled)||{}).deliveryAddress||'',
+    roundOff:r2(S('roundOff')), taxTotal:r2(S('taxTotal')), taxIncluded:r2(S('taxIncluded')), grandTotal:r2(S('grandTotal')),
+    pointsRedeemed:S('pointsRedeemed'), pointsRedeemedValue:r2(S('pointsRedeemedValue')), amountDue:r2(S('amountDue')), pointsEarned:S('pointsEarned'),
+    payments:Object.entries(modes).map(([mode,amount])=>({mode, amount:r2(amount)})),
+    cashTendered: kids.every(k=>k.cashTendered==null) ? null : r2(S('cashTendered')), changeGiven:r2(S('changeGiven')),
+    creditAmount:r2(S('creditAmount')), cancelled:false, __heading:t('split_slipTitle'), __upiId: upiFirm ? firmValue(upiFirm,'upiId') : ''
+  };
+  if(kids.every(k=>k._dueNow!=null)) m._dueNow = r2(kids.reduce((s,k)=>s+Number(k._dueNow),0));
+  return m;
+}
+function buildSplitSlipHTML(kids, customerName, format){
+  return buildInvoiceContentHTML(mergeSplitBills(kids), customerName, format);
 }
 // One WhatsApp / e-mail message for the whole sale (both firms), the same text the customer would read on the slip.
 function buildSplitMessageText(kids, plain){
@@ -12199,7 +12195,7 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
   // by default even on a bill already marked paid. A shop that collects before printing can
   // switch it to "only when payment is pending" in Settings.
   const qrMode = SETTINGS.billQrMode || 'always';
-  const billUpi = firmValue(bill.firmId, 'upiId');
+  const billUpi = bill.__upiId || firmValue(bill.firmId, 'upiId');
   if(billUpi && !docTitle && qrMode !== 'never'){
     const payable = bill.amountDue!=null ? bill.amountDue : bill.grandTotal;
     const paidSoFar = (bill.payments||[]).reduce((s,p)=>s+Number(p.amount||0),0);
@@ -12228,7 +12224,7 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
       <div style="border:2px solid #000;">
 
         <div style="text-align:center;padding:${isThermal?'6px 5px':'10px 8px'};border-bottom:1px solid #000;">
-          <div style="font-weight:700;letter-spacing:.16em;font-size:${isThermal?'.8em':'.82em'};">${escapeHTML(docTitle || t('print_taxInvoice'))}</div>
+          <div style="font-weight:700;letter-spacing:.16em;font-size:${isThermal?'.8em':'.82em'};">${escapeHTML(docTitle || bill.__heading || t('print_taxInvoice'))}</div>
           ${bill.cancelled?`<div style="border:2px solid #000;display:inline-block;padding:2px 10px;margin-top:4px;font-weight:700;letter-spacing:.12em;font-size:${isThermal?'.85em':'.95em'};">${escapeHTML(t('print_cancelledStamp'))}</div>`:''}
           ${logoHTML}
           <div style="font-size:${isThermal?'14px':'18px'};font-weight:700;margin-top:2px;">${escapeHTML(hName)}</div>
