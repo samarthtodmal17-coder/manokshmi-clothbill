@@ -1859,6 +1859,12 @@ const I18N = {
     split_tile:'Combined sales (split)',
     split_cartNote:'Items from {0}: at checkout this becomes one bill per firm. The customer pays once.',
     split_sendTitle:'Send the one bill to the customer',
+    credlist_title:'Customers with credit', credlist_btn:'Credit customers list', credlist_tapHint:'Tap to see the full list',
+    credlist_total:'Total credit due', credlist_count:'{0} customers', credlist_none:'No customers have credit due.',
+    credlist_search:'Search name or phone', credlist_sort:'Sort by', credlist_sortDue:'Highest due first',
+    credlist_sortOld:'Oldest due first', credlist_sortName:'Name A-Z', credlist_oldest:'Pending since',
+    credlist_days:'Days', credlist_lastBill:'Last bill', credlist_lastPay:'Last payment', credlist_limit:'Credit limit',
+    credlist_csv:'Download CSV', credlist_csvDone:'Credit list downloaded',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2691,6 +2697,12 @@ const I18N = {
     split_tile:'एकत्रित विक्री (विभाजित)',
     split_cartNote:'{0} च्या वस्तू: चेकआउटला प्रत्येक फर्मचे एक बिल होईल. ग्राहक एकदाच पैसे देतो.',
     split_sendTitle:'ग्राहकाला एकच बिल पाठवा',
+    credlist_title:'उधारी असलेले ग्राहक', credlist_btn:'उधारी ग्राहकांची यादी', credlist_tapHint:'पूर्ण यादी पाहण्यासाठी टॅप करा',
+    credlist_total:'एकूण थकीत उधारी', credlist_count:'{0} ग्राहक', credlist_none:'कोणत्याही ग्राहकाची उधारी बाकी नाही.',
+    credlist_search:'नाव किंवा फोन शोधा', credlist_sort:'क्रमवारी', credlist_sortDue:'सर्वाधिक उधारी आधी',
+    credlist_sortOld:'सर्वात जुनी उधारी आधी', credlist_sortName:'नाव अ-ज्ञ', credlist_oldest:'पासून बाकी',
+    credlist_days:'दिवस', credlist_lastBill:'शेवटचे बिल', credlist_lastPay:'शेवटचे पेमेंट', credlist_limit:'उधारी मर्यादा',
+    credlist_csv:'CSV डाउनलोड', credlist_csvDone:'उधारी यादी डाउनलोड झाली',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -13031,6 +13043,7 @@ async function renderSales(){
       <div class="col" style="flex:0 0 auto;">
         <button class="btn btn-outline" id="noBillReturnBtn" title="${t('bill_returnWithoutBillTooltip')}">${t('sales_returnNoBillBtn')}</button>
         <button class="btn btn-outline" id="salesPrintDayCloseBtn">${t('sales_printDayCloseBtn')}</button>
+        <button class="btn btn-outline" id="salesCreditListBtn">${t('credlist_btn')}</button>
       </div>
     </div>
     <div class="stat-tiles" id="salesStatTiles"></div>
@@ -13074,6 +13087,7 @@ async function renderSales(){
   });
   document.getElementById('noBillReturnBtn').addEventListener('click', openNoBillReturnModal);
   document.getElementById('salesPrintDayCloseBtn').addEventListener('click', ()=>openPrintDayCloseModal());
+  document.getElementById('salesCreditListBtn').addEventListener('click', openCreditCustomersList);
   await renderSalesData();
 }
 
@@ -15764,9 +15778,10 @@ async function renderDashboard(){
     <div class="stat-tile"><div class="label">${iconSVG('billing',13)} ${t('dash_todaySales')}</div><div class="value">${fmtMoney(todaySales)}</div></div>
     <div class="stat-tile"><div class="label">${iconSVG('trends',13)} ${t('dash_last7')}</div><div class="value small">${fmtMoney(weekSales)}</div></div>
     <div class="stat-tile"><div class="label">${iconSVG('inventory',13)} ${t('dash_lowStockItems')}</div><div class="value small">${lowStockCount}</div></div>
-    <div class="stat-tile" ${overdueCredit.length?`style="cursor:pointer;" onclick="goToCreditReminders()" title="${t('dash_openCreditRemindersTooltip')}"`:''}>
+    <div class="stat-tile" style="cursor:pointer;" onclick="openCreditCustomersList()" title="${t('credlist_btn')}">
       <div class="label">${iconSVG('customers',13)} ${t('dash_creditOutstanding')}</div>
       <div class="value small">${fmtMoney(totalCredit)}</div>
+      <div style="font-size:10.5px;margin-top:2px;color:var(--gold,#b8860b);font-weight:700;">${t('credlist_tapHint')}</div>
       ${overdueCredit.length?`<div style="font-size:10.5px;margin-top:2px;color:var(--red);font-weight:700;">${t('dash_creditOverdueCount').replace('{0}', overdueCredit.length)}</div>`:''}
     </div>
     <div class="stat-tile" style="cursor:pointer;" onclick="goToVendorLedger()" title="${t('dash_openVendorLedgerTooltip')}"><div class="label">${iconSVG('requirements',13)} ${t('dash_vendorPayables')}</div><div class="value small">${fmtMoney(totalPayables)}</div></div>
@@ -16357,6 +16372,98 @@ async function deleteSupplierConfirm(supplierId){
   });
 }
 /* ---- Vendor Ledger overview (all suppliers, first-class Requirements subtab) ---- */
+/* ---- Full list of customers with credit (Dashboard + Sales) ---- */
+let CREDLIST_SEARCH = '', CREDLIST_SORT = 'due';
+async function creditListRows(){
+  const customers = await scopedGetAll('customers');
+  const bills = await scopedLiveBills();
+  const lastBill = {};
+  bills.forEach(b=>{ if(b.customerId!=null){ const ts = new Date(b.date).getTime(); if(!(lastBill[b.customerId]>ts)) lastBill[b.customerId] = ts; } });
+  const rows = [];
+  customers.forEach(c=>{
+    const due = Math.round((c.creditBalance||0)*100)/100;
+    if(due <= 0.009) return;
+    const age = creditAgeInfo(c);
+    let lastPay = null;
+    (c.ledger||[]).forEach(l=>{ if(l.type!=='sale'){ const ts = new Date(l.date).getTime(); if(!(lastPay>ts)) lastPay = ts; } });
+    rows.push({id:c.id, name:c.name||'', phone:c.phone||'', due, since:age.oldestDate, days:age.days,
+      lastBill:lastBill[c.id]||null, lastPay, limit:Number(c.creditLimit)||0});
+  });
+  return rows;
+}
+function creditListFiltered(rows){
+  let r = rows;
+  if(srchNorm(CREDLIST_SEARCH)) r = r.filter(x=>searchMatch(CREDLIST_SEARCH, [x.name], [x.phone]));
+  r = r.slice();
+  if(CREDLIST_SORT==='old') r.sort((a,b)=> (b.days-a.days) || (b.due-a.due));
+  else if(CREDLIST_SORT==='name') r.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  else r.sort((a,b)=> b.due-a.due);
+  return r;
+}
+function creditListRender(rows){
+  const wrap = document.getElementById('credlistWrap');
+  if(!wrap) return;
+  const list = creditListFiltered(rows);
+  const total = Math.round(list.reduce((s,x)=>s+x.due,0)*100)/100;
+  const sum = document.getElementById('credlistSummary');
+  if(sum) sum.innerHTML = `<div class="stat-tile"><div class="label">${t('credlist_total')}</div><div class="value">${fmtMoney(total)}</div></div>
+    <div class="stat-tile"><div class="label">${t('credlist_title')}</div><div class="value small">${t('credlist_count').replace('{0}', list.length)}</div></div>`;
+  if(!list.length){ wrap.innerHTML = `<div class="empty-state">${t('credlist_none')}</div>`; return; }
+  const fd = ts => ts ? fmtDate(new Date(ts).toISOString()) : '-';
+  wrap.innerHTML = `<table>
+    <thead><tr><th>#</th><th>${t('th_name')}</th><th>${t('th_phone')}</th><th class="num">${t('th_creditDue')}</th>
+      <th>${t('credlist_oldest')}</th><th class="num">${t('credlist_days')}</th><th>${t('credlist_lastBill')}</th>
+      <th>${t('credlist_lastPay')}</th><th class="num">${t('credlist_limit')}</th><th>${t('th_actions')}</th></tr></thead>
+    <tbody>${list.map((x,i)=>`<tr>
+      <td>${i+1}</td><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.phone)}</td>
+      <td class="num"><span class="tag tag-red">${fmtMoney(x.due)}</span></td>
+      <td>${x.since ? fmtDate(x.since) : '-'}</td><td class="num">${x.since ? x.days : '-'}</td>
+      <td>${fd(x.lastBill)}</td><td>${fd(x.lastPay)}</td>
+      <td class="num">${x.limit>0 ? fmtMoney(x.limit) : '-'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="viewCustomerLedger(${x.id})">${t('cust_ledgerBtn')}</button></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+async function openCreditCustomersList(){
+  const rows = await creditListRows();
+  openModal({
+    title: t('credlist_title'),
+    wide: true,
+    bodyHTML: `
+      <div class="stat-tiles" id="credlistSummary" style="grid-template-columns:1fr 1fr;margin-bottom:10px;"></div>
+      <div class="row" style="align-items:flex-end;margin-bottom:8px;">
+        <div class="col field"><label>${t('credlist_search')}</label><input id="credlistSearch" value="${escapeHTML(CREDLIST_SEARCH)}"></div>
+        <div class="col field" style="max-width:220px;"><label>${t('credlist_sort')}</label>
+          <select id="credlistSort">
+            <option value="due">${t('credlist_sortDue')}</option>
+            <option value="old">${t('credlist_sortOld')}</option>
+            <option value="name">${t('credlist_sortName')}</option>
+          </select></div>
+      </div>
+      <div id="credlistWrap" style="max-height:60vh;overflow:auto;"></div>`,
+    footerHTML: `<button class="btn btn-outline" id="credlistCsv">${t('credlist_csv')}</button>
+      <button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>`,
+    onMount: ()=>{
+      document.getElementById('credlistSort').value = CREDLIST_SORT;
+      creditListRender(rows);
+      document.getElementById('credlistSearch').addEventListener('input', e=>{ CREDLIST_SEARCH = e.target.value; creditListRender(rows); });
+      document.getElementById('credlistSort').addEventListener('change', e=>{ CREDLIST_SORT = e.target.value; creditListRender(rows); });
+      document.getElementById('credlistCsv').addEventListener('click', ()=>{
+        const list = creditListFiltered(rows);
+        const iso = ts => ts ? new Date(ts).toISOString().slice(0,10) : '';
+        const lines = [toCSVRow(['#', t('th_name'), t('th_phone'), t('th_creditDue'), t('credlist_oldest'), t('credlist_days'), t('credlist_lastBill'), t('credlist_lastPay'), t('credlist_limit')])];
+        list.forEach((x,i)=>lines.push(toCSVRow([i+1, x.name, x.phone, x.due, x.since?String(x.since).slice(0,10):'', x.since?x.days:'', iso(x.lastBill), iso(x.lastPay), x.limit||''])));
+        const blob = new Blob(['\ufeff'+lines.join('\r\n')], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'credit-customers-'+todayISO()+'.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        toast(t('credlist_csvDone'),'success');
+      });
+    }
+  });
+}
+
 function goToCreditReminders(){
   showView('customers');
   setTimeout(()=>{
