@@ -1721,7 +1721,7 @@ const I18N = {
     edit_saveBtn:'Save changes',
     edit_intro:'You can change the customer, how each payment was taken, and add a remark. Items, prices and amounts cannot change - cancel the bill and make a new one for that. Every change is recorded with your name.',
     edit_paymentModes:'Payment mode',
-    edit_modeHint:'Only the mode can change, not the amount.',
+    edit_modeHint:'You can change the mode, or split the payment across modes. The total paid cannot change.',
     edit_remark:'Remark (internal)',
     edit_reason:'Why is it being changed? (required)',
     edit_reasonPh:'e.g. customer paid by UPI, not cash',
@@ -1865,6 +1865,7 @@ const I18N = {
     credlist_sortOld:'Oldest due first', credlist_sortName:'Name A-Z', credlist_oldest:'Pending since',
     credlist_days:'Days', credlist_lastBill:'Last bill', credlist_lastPay:'Last payment', credlist_limit:'Credit limit',
     credlist_csv:'Download CSV', credlist_csvDone:'Credit list downloaded',
+    edit_splitAdd:'+ Split payment', edit_payLeft:'Left to assign', edit_errPaySum:'The payment amounts must add up to {0}.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2559,7 +2560,7 @@ const I18N = {
     edit_saveBtn:'बदल जतन करा',
     edit_intro:'ग्राहक, प्रत्येक पेमेंट कसे घेतले आणि शेरा बदलता येतो. वस्तू, किंमत आणि रक्कम बदलता येत नाही - त्यासाठी बिल रद्द करून नवे बिल करा. प्रत्येक बदल तुमच्या नावासह नोंदवला जातो.',
     edit_paymentModes:'पेमेंट प्रकार',
-    edit_modeHint:'फक्त प्रकार बदलता येतो, रक्कम नाही.',
+    edit_modeHint:'तुम्ही पेमेंट प्रकार बदलू शकता किंवा पेमेंट अनेक प्रकारांत विभागू शकता. एकूण दिलेली रक्कम बदलता येत नाही.',
     edit_remark:'शेरा (अंतर्गत)',
     edit_reason:'बदल का करत आहात? (आवश्यक)',
     edit_reasonPh:'उदा. ग्राहकाने रोख नाही तर UPI ने दिले',
@@ -2703,6 +2704,7 @@ const I18N = {
     credlist_sortOld:'सर्वात जुनी उधारी आधी', credlist_sortName:'नाव अ-ज्ञ', credlist_oldest:'पासून बाकी',
     credlist_days:'दिवस', credlist_lastBill:'शेवटचे बिल', credlist_lastPay:'शेवटचे पेमेंट', credlist_limit:'उधारी मर्यादा',
     credlist_csv:'CSV डाउनलोड', credlist_csvDone:'उधारी यादी डाउनलोड झाली',
+    edit_splitAdd:'+ पेमेंट विभागा', edit_payLeft:'वाटप बाकी', edit_errPaySum:'पेमेंट रकमांची बेरीज {0} असावी.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -13388,22 +13390,65 @@ async function doOpenEditBillModal(billId){
         ${custLocked?`<div class="muted" style="font-size:11.5px;">${escapeHTML(t('edit_lockCustomer'))}</div>`:''}
       </div>
       ${(bill.payments||[]).length ? `<div class="field"><label>${t('edit_paymentModes')}</label>
-        ${(bill.payments||[]).map((p,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
-          <select id="eb_mode_${i}" ${returned?'disabled':''} style="flex:1;">${modes.map(m=>`<option value="${escapeHTML(m)}" ${m===p.mode?'selected':''}>${escapeHTML(dv(m))}</option>`).join('')}</select>
-          <span class="num" style="min-width:90px;text-align:right;">${fmtMoney(p.amount)}</span></div>`).join('')}
-        ${returned?`<div class="muted" style="font-size:11.5px;">${escapeHTML(t('edit_lockReturns'))}</div>`:`<div class="muted" style="font-size:11.5px;">${escapeHTML(t('edit_modeHint'))}</div>`}
+        <div id="eb_payRows"></div>
+        <div id="eb_payLeft" style="font-size:12px;margin:2px 0 6px;"></div>
+        ${returned?`<div class="muted" style="font-size:11.5px;">${escapeHTML(t('edit_lockReturns'))}</div>`:`<button class="btn btn-outline btn-sm" type="button" id="eb_splitAdd">${t('edit_splitAdd')}</button>
+        <div class="muted" style="font-size:11.5px;margin-top:4px;">${escapeHTML(t('edit_modeHint'))}</div>`}
       </div>` : ''}
       <div class="field"><label>${t('edit_remark')}</label><input id="eb_remark" maxlength="160" value="${escapeHTML(bill.remark||'')}"></div>
       <div class="field"><label>${t('edit_reason')}</label><input id="eb_reason" maxlength="120" placeholder="${escapeHTML(t('edit_reasonPh'))}"></div>
       <div id="eb_err" class="muted" style="font-size:12px;color:var(--red);"></div>`,
     footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="eb_go">${t('edit_saveBtn')}</button>`,
     onMount: ()=>{
+      const payTotal = r2c((bill.payments||[]).reduce((n,p)=>n+Number(p.amount||0),0));
+      let rows = (bill.payments||[]).map(p=>({mode:p.mode, amount:r2c(p.amount)}));
+      const rowsEl = document.getElementById('eb_payRows');
+      const leftEl = document.getElementById('eb_payLeft');
+      const drawLeft = ()=>{
+        if(!leftEl) return;
+        const left = r2c(payTotal - rows.reduce((n,r)=>n+(Number(r.amount)||0),0));
+        leftEl.innerHTML = Math.abs(left)<0.005 ? '' : `<span style="color:var(--red);font-weight:700;">${t('edit_payLeft')}: ${fmtMoney(left)}</span>`;
+      };
+      const drawRows = ()=>{
+        if(!rowsEl) return;
+        rowsEl.innerHTML = rows.map((r,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+          <select class="eb_m" data-i="${i}" ${returned?'disabled':''} style="flex:1;">${modes.map(m=>`<option value="${escapeHTML(m)}" ${m===r.mode?'selected':''}>${escapeHTML(dv(m))}</option>`).join('')}</select>
+          <input type="number" class="eb_a" data-i="${i}" step="0.01" min="0" value="${r.amount}" ${returned?'disabled':''} style="width:110px;text-align:right;">
+          ${(rows.length>1 && !returned)?`<button class="btn btn-outline btn-sm eb_x" type="button" data-i="${i}">&#10005;</button>`:''}</div>`).join('');
+        rowsEl.querySelectorAll('.eb_m').forEach(el=>el.addEventListener('change',()=>{ rows[+el.dataset.i].mode = el.value; }));
+        rowsEl.querySelectorAll('.eb_a').forEach(el=>el.addEventListener('input',()=>{
+          const i = +el.dataset.i;
+          rows[i].amount = Math.max(0, parseFloat(el.value)||0);
+          const last = rows.length-1;
+          if(rows.length>1 && i<last){
+            const others = rows.slice(0,last).reduce((n,r)=>n+(Number(r.amount)||0),0);
+            rows[last].amount = Math.max(0, r2c(payTotal - others));
+            const lastEl = rowsEl.querySelector('.eb_a[data-i="'+last+'"]');
+            if(lastEl) lastEl.value = rows[last].amount;
+          }
+          drawLeft();
+        }));
+        rowsEl.querySelectorAll('.eb_x').forEach(el=>el.addEventListener('click',()=>{
+          rows.splice(+el.dataset.i,1);
+          const last = rows.length-1;
+          rows[last].amount = Math.max(0, r2c(payTotal - rows.slice(0,last).reduce((n,r)=>n+(Number(r.amount)||0),0)));
+          drawRows();
+        }));
+        drawLeft();
+      };
+      drawRows();
+      const addBtn = document.getElementById('eb_splitAdd');
+      if(addBtn) addBtn.addEventListener('click',()=>{
+        const used = rows.map(r=>r.mode);
+        rows.push({mode: modes.find(m=>!used.includes(m)) || modes[0], amount:0});
+        drawRows();
+      });
       document.getElementById('eb_go').addEventListener('click', async ()=>{
         const err = document.getElementById('eb_err');
         const reason = document.getElementById('eb_reason').value.trim();
         const res = await applyBillEdit(billId, {
           customerId: custLocked ? undefined : (document.getElementById('eb_cust').value ? parseInt(document.getElementById('eb_cust').value) : null),
-          modes: (bill.payments||[]).map((p,i)=>{ const el = document.getElementById('eb_mode_'+i); return el ? el.value : p.mode; }),
+          payments: (bill.payments||[]).length ? rows.map(r=>({mode:r.mode, amount:r.amount})) : undefined,
           remark: document.getElementById('eb_remark').value.trim(),
           reason
         });
@@ -13426,14 +13471,23 @@ async function applyBillEdit(billId, v){
     if(locks.includes(t('edit_lockCustomer')) || returned) return {ok:false, msg:t('edit_lockCustomer')};
     changes.push({field:'customer', label:t('th_customer'), from: await custName(bill.customerId), to: await custName(v.customerId)});
   }
-  const newPayments = (bill.payments||[]).map((p,i)=>({...p, mode: (v.modes && v.modes[i]) || p.mode}));
-  const modeDiff = newPayments.some((p,i)=>p.mode !== bill.payments[i].mode);
-  if(modeDiff){
-    if(returned) return {ok:false, msg:t('edit_lockReturns')};
-    const day = (bill.date||'').slice(0,10);
-    const closed = (await dbGetAll('dayCloses')).some(c=>c.date===day && ((c.firmId||null)===(bill.firmId||null) || !multiFirmInUse() || combinedBilling()));
-    if(closed) return {ok:false, msg:t('edit_errDayClosed')};
-    newPayments.forEach((p,i)=>{ if(p.mode !== bill.payments[i].mode) changes.push({field:'payment', label:t('edit_paymentModes')+' '+fmtMoney(p.amount), from:dv(bill.payments[i].mode), to:dv(p.mode)}); });
+  let newPayments = bill.payments, modeDiff = false;
+  if(v.payments && (bill.payments||[]).length){
+    const mergeP = arr => { const out = []; (arr||[]).forEach(p=>{ const a = r2c(p.amount); if(!(a>0.004)) return; const ex = out.find(x=>x.mode===p.mode); if(ex) ex.amount = r2c(ex.amount+a); else out.push({mode:p.mode, amount:a}); }); return out; };
+    const oldM = mergeP(bill.payments), newM = mergeP(v.payments);
+    const oldTotal = r2c(oldM.reduce((n,p)=>n+p.amount,0)), newTotal = r2c(newM.reduce((n,p)=>n+p.amount,0));
+    if(Math.abs(oldTotal-newTotal) > 0.005) return {ok:false, msg:fillTpl(t('edit_errPaySum'), [fmtMoney(oldTotal)])};
+    const key = arr => arr.map(p=>p.mode+'|'+p.amount).sort().join(';');
+    modeDiff = key(oldM) !== key(newM);
+    if(modeDiff){
+      if(returned) return {ok:false, msg:t('edit_lockReturns')};
+      const day = (bill.date||'').slice(0,10);
+      const closed = (await dbGetAll('dayCloses')).some(c=>c.date===day && ((c.firmId||null)===(bill.firmId||null) || !multiFirmInUse() || combinedBilling()));
+      if(closed) return {ok:false, msg:t('edit_errDayClosed')};
+      const sum = arr => arr.map(p=>dv(p.mode)+' '+fmtMoney(p.amount)).join(' + ');
+      changes.push({field:'payment', label:t('edit_paymentModes'), from:sum(oldM), to:sum(newM)});
+      newPayments = newM;
+    }
   }
   if((v.remark||'') !== (bill.remark||'')) changes.push({field:'remark', label:t('edit_remark'), from:bill.remark||'—', to:v.remark||'—'});
   if(!changes.length) return {ok:false, msg:t('edit_nothing')};
