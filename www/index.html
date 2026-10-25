@@ -11023,7 +11023,7 @@ function stepCartQty(i, delta){
   const it = CART.items[i];
   updateCartQty(i, (it.qty||1) + delta);
 }
-function updateCartRate(i,val){ CART.items[i].rate = parseFloat(val)||0; renderCartItems(); renderBillTotals(); }
+function updateCartRate(i,val){ CART.items[i].rate = Math.max(0, parseFloat(val)||0); renderCartItems(); renderBillTotals(); }
 // A manual edit means the cashier is taking over from the auto-applied sale discount, so the
 // SALE badge (which implies "this is the configured sale price") no longer applies here.
 function updateCartDiscount(i,val){ CART.items[i].discount = Math.max(0, parseFloat(val)||0); CART.items[i].autoSale = false; renderCartItems(); renderBillTotals(); }
@@ -11056,15 +11056,18 @@ function computeTotals(cartArg){
   const taxAdded = Math.round((taxTotal - taxIncluded)*100)/100;
   const afterItemDiscount = Math.max(0, subtotal - itemDiscount);
   const autoTierDiscount = autoTierDiscountAmount(afterItemDiscount);
-  const overallDiscount = C.overallDiscountType==='percent'
+  const overallDiscountRaw = C.overallDiscountType==='percent'
     ? Math.round(Math.max(0, afterItemDiscount - autoTierDiscount) * (Number(C.overallDiscount)||0) / 100 * 100)/100
     : Math.max(0, Number(C.overallDiscount)||0);
+  // Discounts can never take more than what is left of the bill, so the discount shown/stored matches what was really given.
+  const overallDiscount = Math.min(overallDiscountRaw, Math.max(0, afterItemDiscount - autoTierDiscount));
   let couponDiscount = Math.max(0, Number(C.couponDiscount)||0);
   if(C.couponCode && C.couponType){
     const cb = Math.max(0, subtotal - itemDiscount);
     couponDiscount = (C.couponMin>0 && cb < C.couponMin) ? 0
       : (C.couponType==='percent' ? Math.round(cb*(Number(C.couponValue)||0)/100*100)/100 : Math.min(cb, Number(C.couponValue)||0));
   }
+  couponDiscount = Math.min(couponDiscount, Math.max(0, afterItemDiscount - autoTierDiscount - overallDiscount));
   const packagingCharge = Math.max(0, Number(C.packagingCharge)||0);
   const deliveryCharge = C.deliveryEnabled ? Math.max(0, Number(C.deliveryCharge)||0) : 0;
 
@@ -17609,6 +17612,7 @@ async function openVendorPaymentModal(supplierId, prefillInvoiceId, returnToLedg
       document.getElementById('vp_save').addEventListener('click', async ()=>{
         const amount = Math.max(0, parseFloat(document.getElementById('vp_amount').value)||0);
         if(amount<=0){ toast(t('toast_enterValidAmount'),'error'); return; }
+        if(window.__vp_busy) return; window.__vp_busy = true; setTimeout(()=>{ window.__vp_busy = false; }, 1500);   // a double-click must not post the payment twice
         const mode = document.getElementById('vp_mode').value;
         const reference = document.getElementById('vp_ref').value.trim();
         const note = document.getElementById('vp_note').value.trim();
@@ -17645,7 +17649,6 @@ async function openVendorPaymentModal(supplierId, prefillInvoiceId, returnToLedg
         }
 
         await dbPut('suppliers', fresh);
-        toast(t('toast_paymentRecorded'),'success');        await dbPut('suppliers', fresh);
         toast(t('toast_paymentRecorded'),'success');
         if(returnToLedger){
           await viewSupplierLedger(supplierId);
