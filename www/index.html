@@ -1891,6 +1891,14 @@ const I18N = {
     inv_tallyBySize:'Units by size', inv_tallyByColor:'Units by colour',
     adj_showingOf:'Showing {0} of {1} entries', adj_unitsIn:'Units in', adj_unitsOut:'Units out', adj_net:'Net', adj_csvBtn:'Download CSV',
     acct_stockWriteOff:'Stock lost / damaged / corrected (at cost)',
+    ub_btn:'Stock without purchase bill', ub_title:'Stock not on any purchase bill',
+    ub_intro:'This stock is on your shelf but is not on any purchase bill, so it does not show under a vendor\'s purchases. Choose the vendor, quantity and cost rate to record it as a purchase. Your stock count does not change.',
+    ub_none:'All stock is covered by purchase bills.', ub_count:'{0} variants / {1} units are not on a purchase bill.',
+    ub_stock:'In stock', ub_billed:'On bills', ub_qty:'Qty to bill', ub_rate:'Cost rate', ub_vendor:'Vendor',
+    ub_billNo:'Supplier bill no. (optional)', ub_billDate:'Bill date', ub_billHint:'The bill no. is used only when all ticked rows are for one vendor.',
+    ub_record:'Record purchases', ub_skipped:'{0} row(s) skipped: each needs a vendor, a quantity and a cost rate above 0.',
+    ub_done:'Recorded {0} purchase bill(s) for {1} item line(s).', ub_nothingPicked:'Tick at least one row with a vendor, quantity and cost rate.',
+    sa_errVendorNeeded:'Choose the vendor for "Purchased from Vendor", or pick another reason.',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2741,6 +2749,14 @@ const I18N = {
     inv_tallyBySize:'साईजनुसार नग', inv_tallyByColor:'रंगानुसार नग',
     adj_showingOf:'{1} पैकी {0} नोंदी दाखवत आहे', adj_unitsIn:'आलेले नग', adj_unitsOut:'गेलेले नग', adj_net:'निव्वळ', adj_csvBtn:'CSV डाउनलोड',
     acct_stockWriteOff:'हरवलेला / खराब / दुरुस्त केलेला स्टॉक (खरेदी किमतीनुसार)',
+    ub_btn:'खरेदी बिल नसलेला स्टॉक', ub_title:'कोणत्याही खरेदी बिलावर नसलेला स्टॉक',
+    ub_intro:'हा स्टॉक तुमच्याकडे आहे पण कोणत्याही खरेदी बिलावर नाही, म्हणून तो विक्रेत्याच्या खरेदीत दिसत नाही. खरेदी म्हणून नोंदवण्यासाठी विक्रेता, नग आणि खरेदी दर निवडा. तुमचा स्टॉक बदलत नाही.',
+    ub_none:'सर्व स्टॉक खरेदी बिलांनी कव्हर आहे.', ub_count:'{0} व्हेरिएंट / {1} नग खरेदी बिलावर नाहीत.',
+    ub_stock:'स्टॉक', ub_billed:'बिलांवर', ub_qty:'बिल करायचे नग', ub_rate:'खरेदी दर', ub_vendor:'विक्रेता',
+    ub_billNo:'विक्रेत्याचा बिल क्र. (ऐच्छिक)', ub_billDate:'बिल तारीख', ub_billHint:'सर्व निवडलेल्या ओळी एकाच विक्रेत्याच्या असतील तेव्हाच बिल क्र. वापरला जातो.',
+    ub_record:'खरेदी नोंदवा', ub_skipped:'{0} ओळी वगळल्या: प्रत्येकाला विक्रेता, नग आणि 0 पेक्षा जास्त खरेदी दर हवा.',
+    ub_done:'{1} वस्तू ओळींसाठी {0} खरेदी बिल नोंदवली.', ub_nothingPicked:'विक्रेता, नग आणि खरेदी दर असलेली किमान एक ओळ निवडा.',
+    sa_errVendorNeeded:'"विक्रेत्याकडून खरेदी" साठी विक्रेता निवडा, किंवा दुसरे कारण निवडा.',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -4933,6 +4949,7 @@ async function renderInvReportsTab(){
         <button class="btn btn-outline btn-sm" id="invValuationBtn">${iconSVG('chart',13)} ${t('inv_stockValuationBtn')}</button>
         <button class="btn btn-outline btn-sm" id="invDeadStockBtn">${iconSVG('chart',13)} ${t('inv_deadStockBtn')}</button>
         <button class="btn btn-outline btn-sm" id="invAdjustLogBtn">${iconSVG('adjust',13)} ${t('inv_adjustmentsLogBtn')}</button>
+        <button class="btn btn-outline btn-sm" id="invUnbilledBtn">${iconSVG('chart',13)} ${t('ub_btn')}</button>
         <button class="btn btn-outline btn-sm" id="invActiveSalesBtn">${iconSVG('tag',13)} ${t('inv_activeSalesBtn')}</button>
       </div>
     </div>
@@ -4941,6 +4958,7 @@ async function renderInvReportsTab(){
   document.getElementById('invValuationBtn').addEventListener('click', showStockValuationReport);
   document.getElementById('invDeadStockBtn').addEventListener('click', showDeadStockReport);
   document.getElementById('invAdjustLogBtn').addEventListener('click', showStockAdjustmentsLog);
+  document.getElementById('invUnbilledBtn').addEventListener('click', ()=>openUnbilledStockModal());
   document.getElementById('invActiveSalesBtn').addEventListener('click', showActiveSalesReport);
 }
 
@@ -6333,6 +6351,7 @@ async function saveProductFromModal(productId){
   // Stock added with a vendor chosen = a purchase from that vendor. Records it under Purchases
   // (and the vendor's ledger) so the books match the shelves.
   let pfInv = null; const pfPurchasedIdx = new Set();
+  const pfRecChk = !!(document.getElementById('pf_recordPurchase') && document.getElementById('pf_recordPurchase').checked);
   const vendorId = record.preferredSupplierId;
   if(vendorId && document.getElementById('pf_recordPurchase') && document.getElementById('pf_recordPurchase').checked){
     const lines = [];
@@ -6385,10 +6404,19 @@ async function saveProductFromModal(productId){
       }
     }
   }catch(e){ console.warn('stock log failed', e); }
+  // A vendor chosen AFTER the stock was added (or a purchase that could not be recorded): offer to put the
+  // stock that is not on any purchase bill under that vendor's purchases.
+  const pfAskUnbilled = !!(vendorId && ((!oldProduct || oldProduct.preferredSupplierId!==vendorId) || (pfRecChk && !pfInv)));
   closeModal();
   await renderInventoryTable();
   await refreshLowStockBadge();
   await refreshSupplierSurfaces();
+  if(pfAskUnbilled){
+    try{
+      const un = await unbilledStockRows(savedId);
+      if(un.length) await openUnbilledStockModal({productId:savedId, supplierId:vendorId});
+    }catch(e){ console.warn('unbilled check failed', e); }
+  }
 }
 
 async function deleteProductConfirm(productId){
@@ -7339,6 +7367,7 @@ async function openStockAdjustModal(productId){
         if(vendorId && vendorCost<=0){ toast(t('toast_purchaseNeedsCost'),'error'); return; }
         const reason = vendorId ? 'Purchased from Vendor' : document.getElementById('sa_reason').value;
         const note = document.getElementById('sa_note').value.trim();
+        if(dir==='add' && reason==='Purchased from Vendor' && !vendorId){ toast(t('sa_errVendorNeeded'),'error'); return; }
         const isVendorReturn = dir==='remove' && reason==='Returned to Vendor';
         const rvVendorId = isVendorReturn ? (parseInt(document.getElementById('sa_rvVendor').value)||null) : null;
         const rvRate = isVendorReturn ? (parseFloat(document.getElementById('sa_rvRate').value)||0) : 0;
@@ -14575,10 +14604,12 @@ async function renderPurchaseInvoicesTab(){
   wrap.innerHTML = `
     <div class="row" style="margin-bottom:12px;">
       <button class="btn btn-primary" id="addInvoiceBtn">${t('vendor_newPurchaseInvoiceBtn')}</button>
+      <button class="btn btn-outline" id="unbilledBtn" style="margin-left:6px;">${t('ub_btn')}</button>
     </div>
     <div class="card" id="pinvTableWrap"></div>
   `;
   document.getElementById('addInvoiceBtn').addEventListener('click', ()=>openPurchaseInvoiceModal());
+  document.getElementById('unbilledBtn').addEventListener('click', ()=>openUnbilledStockModal());
   await renderPurchaseInvoicesTable();
 }
 
@@ -15039,6 +15070,83 @@ async function recordStockPurchase({supplierId, lines, gstMode, gstRate, paidNow
   await dbPut('suppliers', supplier);
   if(billKey) LAST_STOCK_BILL = {supplierId, billNo:billText, at:Date.now()};
   return fresh;
+}
+
+// Stock that is on the shelf but not on any (active) purchase bill: stock added first, the vendor chosen later.
+// Per variant: units on active purchase bills, minus units sent back on purchase returns, against the stock now.
+async function unbilledStockRows(onlyProductId){
+  const [products, invs, rets] = await Promise.all([scopedGetAll('products'), scopedGetAll('purchaseInvoices'), scopedGetAll('purchaseReturns')]);
+  const billed = {};
+  invs.filter(i=>!i.voided && !i.merged).forEach(i=>(i.items||[]).forEach(it=>{ const k = it.productId+':'+it.variantIndex; billed[k] = (billed[k]||0) + Number(it.qty||0); }));
+  rets.filter(r=>!r.voided).forEach(r=>(r.items||[]).forEach(it=>{ const k = it.productId+':'+it.variantIndex; billed[k] = (billed[k]||0) - Number(it.qty||0); }));
+  const rows = [];
+  products.forEach(p=>{
+    if(onlyProductId!=null && p.id!==onlyProductId) return;
+    (p.variants||[]).forEach((v,vi)=>{
+      const stock = Number(v.stock||0), b = Math.max(0, billed[p.id+':'+vi]||0), un = stock - b;
+      if(un>0) rows.push({p, v, vi, stock, billed:b, unbilled:un, label:[v.size,v.color].filter(Boolean).join('/') || v.sku || (t('inv_variantFallbackPrefix')+(vi+1))});
+    });
+  });
+  return rows;
+}
+async function openUnbilledStockModal(opts){
+  opts = opts || {};
+  const rows = await unbilledStockRows(opts.productId!=null ? opts.productId : undefined);
+  if(!rows.length){
+    openModal({title:t('ub_title'), bodyHTML:`<div class="empty-state">${t('ub_none')}</div>`, footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>`});
+    return;
+  }
+  const suppliers = (await scopedGetAll('suppliers')).filter(s=>s.active!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const defVendor = r=>String(opts.supplierId || r.p.preferredSupplierId || '');
+  const supOpts = sel=>'<option value="">—</option>' + suppliers.map(s=>`<option value="${s.id}" ${String(s.id)===sel?'selected':''}>${supplierOptionLabel(s)}</option>`).join('');
+  const totalUnits = rows.reduce((n,r)=>n+r.unbilled,0);
+  openModal({
+    title: t('ub_title'), wide:true,
+    bodyHTML: `<p class="muted" style="font-size:12.5px;margin-top:0;">${t('ub_intro')}</p>
+      <p style="font-size:12.5px;"><strong>${fillTpl(t('ub_count'), [rows.length, totalUnits])}</strong></p>
+      <div style="max-height:48vh;overflow:auto;"><table>
+        <thead><tr><th></th><th>${t('th_product')}</th><th class="num">${t('ub_stock')}</th><th class="num">${t('ub_billed')}</th><th class="num">${t('ub_qty')}</th><th class="num">${t('ub_rate')}</th><th>${t('ub_vendor')}</th></tr></thead>
+        <tbody>${rows.map((r,i)=>`<tr>
+          <td><input type="checkbox" class="ub_on" data-i="${i}" ${defVendor(r)?'checked':''} style="width:auto;"></td>
+          <td>${escapeHTML(r.p.name)} <span class="muted" style="font-size:11px;">(${escapeHTML(r.label)})</span></td>
+          <td class="num">${r.stock}</td><td class="num">${r.billed}</td>
+          <td class="num"><input type="number" class="ub_qty" data-i="${i}" min="1" step="1" value="${r.unbilled}" style="width:72px;text-align:right;"></td>
+          <td class="num"><input type="number" class="ub_rate" data-i="${i}" min="0" step="0.01" value="${Number(r.v.costPrice||0)}" style="width:90px;text-align:right;"></td>
+          <td><select class="ub_v" data-i="${i}">${supOpts(defVendor(r))}</select></td>
+        </tr>`).join('')}</tbody></table></div>
+      <div class="row" style="margin-top:10px;">
+        <div class="col field"><label>${t('ub_billNo')}</label><input id="ub_billNo" autocomplete="off"></div>
+        <div class="col field" style="max-width:190px;"><label>${t('ub_billDate')}</label><input type="date" id="ub_billDate" value="${localISODate()}" max="${localISODate()}"></div>
+      </div>
+      <p class="muted" style="font-size:11.5px;margin:0;">${t('ub_billHint')}</p>`,
+    footerHTML: `<button class="btn btn-outline" onclick="closeModal()">${t('acct_cancelBtn')}</button><button class="btn btn-primary" id="ub_go">${t('ub_record')}</button>`,
+    onMount: ()=>{
+      document.getElementById('ub_go').addEventListener('click', async ()=>{
+        const byVendor = {}; let skipped = 0, picked = 0;
+        rows.forEach((r,i)=>{
+          const q = sel=>document.querySelector(sel+'[data-i="'+i+'"]');
+          if(!q('.ub_on').checked) return;
+          const vid = parseInt(q('.ub_v').value)||null, qty = parseInt(q('.ub_qty').value)||0, rate = parseFloat(q('.ub_rate').value)||0;
+          if(!vid || qty<=0 || rate<=0){ skipped++; return; }
+          (byVendor[vid] = byVendor[vid]||[]).push({productId:r.p.id, variantIndex:r.vi, qty, rate});
+          picked++;
+        });
+        if(!picked){ toast(t('ub_nothingPicked'),'error'); return; }
+        const vids = Object.keys(byVendor);
+        const billNo = vids.length===1 ? document.getElementById('ub_billNo').value : '';
+        const billDate = document.getElementById('ub_billDate').value;
+        let made = 0;
+        for(const vid of vids){
+          const inv = await recordStockPurchase({supplierId:parseInt(vid), lines:byVendor[vid], gstMode:'none', gstRate:0, paidNow:0, payMode:'Cash', billNo, billDate});
+          if(inv) made++;
+        }
+        if(skipped) toast(fillTpl(t('ub_skipped'), [skipped]),'error');
+        toast(fillTpl(t('ub_done'), [made, picked]),'success');
+        closeModal();
+        await refreshSupplierSurfaces();
+      });
+    }
+  });
 }
 
 // Goods going back to a vendor from the stock screen: records a purchase return (PRET) and lowers the vendor's balance.
