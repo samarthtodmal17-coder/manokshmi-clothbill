@@ -1072,7 +1072,7 @@ const I18N = {
     toast_addAtLeastOneItem:'Add at least one item', toast_addVariantWithSellPrice:'Add at least one variant with a sell price', toast_adjustmentRecorded:'Adjustment recorded',
     toast_alreadyZeroStock:'Already at 0 stock', toast_atLeastOneFirmActive:'At least one firm must stay active', toast_backupRestoredReloading:'Backup restored — reloading the app...',
     toast_billHeld:'Bill held', toast_billingLayoutUpdated:'Billing screen layout updated', toast_bookingUpdated:'Booking updated',
-    toast_csvEmpty:'CSV appears to be empty', toast_csvMissingColumns:'CSV must include at least Name, SellPrice and Stock columns', toast_cannotDeleteCustomerCredit:'Cannot delete a customer with outstanding credit due',
+    toast_csvEmpty:'CSV appears to be empty', toast_csvMissingColumns:'CSV must include at least Name, SellPrice and Stock columns', toast_cannotDeleteCustomerCredit:'Cannot delete a customer with outstanding credit due', toast_cannotDeleteCustomerStore:'Cannot delete a customer who still has store credit to use',
     toast_cannotDeleteSupplierBalance:'Cannot delete a supplier with outstanding balance due', toast_cartEmpty:'Cart is empty', toast_categoryExists:'Category already exists',
     toast_copied:'Copied', toast_couldNotCopyManual:'Could not copy — please write it down manually', toast_couldNotLoadImage:'Could not load that image',
     toast_couldNotReadFile:'Could not read that file', toast_couponCodeRequired:'Coupon code required', toast_couponDeleted:'Coupon deleted',
@@ -1930,7 +1930,7 @@ const I18N = {
     toast_addAtLeastOneItem:'किमान एक वस्तू जोडा', toast_addVariantWithSellPrice:'विक्री किंमत असलेला किमान एक व्हेरिएंट जोडा', toast_adjustmentRecorded:'समायोजन नोंदवले',
     toast_alreadyZeroStock:'आधीच स्टॉक ० आहे', toast_atLeastOneFirmActive:'किमान एक फर्म सक्रिय राहणे आवश्यक आहे', toast_backupRestoredReloading:'बॅकअप पुनर्संचयित केला — अॅप पुन्हा लोड होत आहे...',
     toast_billHeld:'बिल थांबवले', toast_billingLayoutUpdated:'बिलिंग स्क्रीन मांडणी अद्ययावत केली', toast_bookingUpdated:'बुकिंग अद्ययावत केली',
-    toast_csvEmpty:'CSV रिकामी दिसत आहे', toast_csvMissingColumns:'CSV मध्ये किमान Name, SellPrice आणि Stock हे कॉलम असणे आवश्यक आहे', toast_cannotDeleteCustomerCredit:'थकीत उधारी असलेल्या ग्राहकाला हटवता येणार नाही',
+    toast_csvEmpty:'CSV रिकामी दिसत आहे', toast_csvMissingColumns:'CSV मध्ये किमान Name, SellPrice आणि Stock हे कॉलम असणे आवश्यक आहे', toast_cannotDeleteCustomerCredit:'थकीत उधारी असलेल्या ग्राहकाला हटवता येणार नाही', toast_cannotDeleteCustomerStore:'स्टोअर क्रेडिट शिल्लक असलेल्या ग्राहकाला हटवता येणार नाही',
     toast_cannotDeleteSupplierBalance:'थकीत रक्कम असलेल्या पुरवठादाराला हटवता येणार नाही', toast_cartEmpty:'कार्ट रिकामी आहे', toast_categoryExists:'वर्ग आधीच अस्तित्वात आहे',
     toast_copied:'कॉपी केले', toast_couldNotCopyManual:'कॉपी करता आले नाही — कृपया हाताने लिहून घ्या', toast_couldNotLoadImage:'ती इमेज लोड करता आली नाही',
     toast_couldNotReadFile:'ती फाईल वाचता आली नाही', toast_couponCodeRequired:'कूपन कोड आवश्यक आहे', toast_couponDeleted:'कूपन हटवले',
@@ -6407,6 +6407,7 @@ async function saveProductFromModal(productId){
   // A vendor chosen AFTER the stock was added (or a purchase that could not be recorded): offer to put the
   // stock that is not on any purchase bill under that vendor's purchases.
   const pfAskUnbilled = !!(vendorId && ((!oldProduct || oldProduct.preferredSupplierId!==vendorId) || (pfRecChk && !pfInv)));
+  await syncSnapshotNames();
   closeModal();
   await renderInventoryTable();
   await refreshLowStockBadge();
@@ -7430,6 +7431,7 @@ async function openStockAdjustModal(productId){
 }
 
 async function showStockAdjustmentsLog(){
+  await syncSnapshotNames();
   const records = (await dbGetAll('stockAdjustments')).sort((a,b)=> new Date(b.date)-new Date(a.date));
   const PBILLS = await loadPurchaseBillMap();
   const productNames = ['all', ...new Set(records.map(r=>r.productName))];
@@ -12974,6 +12976,7 @@ function openCustomerModal(customerId){
           } else {
             await dbAdd('customers', {name, phone, birthday, anniversary, creditLimit, firmId: firmIdForStockOps(), creditBalance:0, storeCredit:0, ledger:[], loyaltyPoints:0, pointsLedger:[]});
           }
+          await syncSnapshotNames();
           closeModal();
           toast(t('toast_saved'),'success');
           await renderCustomerTable();
@@ -12988,6 +12991,10 @@ async function deleteCustomerConfirm(customerId, approved){
   const customer = await dbGet('customers', customerId);
   if(customer.creditBalance>0){
     toast(t('toast_cannotDeleteCustomerCredit'),'error');
+    return;
+  }
+  if((customer.storeCredit||0)>0){
+    toast(t('toast_cannotDeleteCustomerStore'),'error');
     return;
   }
   openModal({
@@ -13835,7 +13842,9 @@ async function cancelBill(billId, reason){
 
   // 1. Stock back. Match the variant by SKU first — a product's variants can be reordered
   //    after the sale, so the stored index alone is not safe to trust.
-  for(const it of (bill.items||[])){
+  // Pieces already returned by the customer went back to the shelf at return time, so only the rest is restocked here.
+  const alreadyReturned = await returnedQtyByItem(billId);
+  for(const [itIdx, it] of (bill.items||[]).entries()){
     if(!it.productId) continue;
     const product = await dbGet('products', it.productId);
     if(!product || !product.variants) continue;
@@ -13843,7 +13852,9 @@ async function cancelBill(billId, reason){
     if(it.sku) idx = product.variants.findIndex(v=>v.sku && v.sku===it.sku);
     if(idx < 0 && it.variantIndex!=null && product.variants[it.variantIndex]) idx = it.variantIndex;
     if(idx < 0) continue;
-    adjustFirmStock(product.variants[idx], bill.firmId, Number(it.qty||0));
+    const back = Math.max(0, Number(it.qty||0) - Number(alreadyReturned[itIdx]||0));
+    if(back<=0) continue;
+    adjustFirmStock(product.variants[idx], bill.firmId, back);
     await dbPut('products', product);
   }
 
@@ -14674,6 +14685,33 @@ function reverseLedgerRow(supplier, row, reason){
   return rev;
 }
 // After anything that changes purchases / payments, re-draw whatever screen is open so it shows up everywhere at once.
+/* Names saved on old records (price history, purchase/stock logs, orders, requirements) follow the live
+   product / supplier / customer, so a rename or later edit shows up everywhere. Bills keep their own
+   snapshot on purpose: a printed invoice must not change after the fact. */
+async function syncSnapshotNames(){
+  try{
+    const prods = await dbGetAll('products'); const pm = new Map(prods.map(p=>[p.id,p]));
+    const sups = await dbGetAll('suppliers'); const sm = new Map(sups.map(x=>[x.id,x]));
+    const custs = await dbGetAll('customers'); const cm = new Map(custs.map(c=>[c.id,c]));
+    const fixItems = (items)=>{ let ch=false; (items||[]).forEach(it=>{ const pr=pm.get(it.productId); if(pr && pr.name && it.productName!==pr.name){ it.productName=pr.name; ch=true; } }); return ch; };
+    for(const st of ['stockAdjustments','purchasePriceHistory']){
+      for(const r of await dbGetAll(st)){
+        let ch=false; const pr=pm.get(r.productId);
+        if(pr && pr.name && r.productName!==pr.name){ r.productName=pr.name; ch=true; }
+        if(st==='purchasePriceHistory' && r.supplierId){ const su=sm.get(r.supplierId); if(su && su.name && r.supplierName!==su.name){ r.supplierName=su.name; ch=true; } }
+        if(ch) await dbPut(st, r);
+      }
+    }
+    for(const st of ['purchaseInvoices','purchaseReturns','purchaseOrders','stockTransfers']){
+      let rows=[]; try{ rows = await dbGetAll(st); }catch(e){ continue; }
+      for(const r of rows){ if(fixItems(r.items)) await dbPut(st, r); }
+    }
+    for(const r of await dbGetAll('requirements')){
+      const c = r.customerId ? cm.get(r.customerId) : null;
+      if(c && c.name && r.customerName!==c.name){ r.customerName=c.name; if(c.phone) r.phone=c.phone; await dbPut('requirements', r); }
+    }
+  }catch(e){ console.warn('syncSnapshotNames failed', e); }
+}
 async function refreshSupplierSurfaces(){
   try{
     const act = document.querySelector('[id^="view-"].active');
@@ -15750,6 +15788,7 @@ async function renderPurchaseReportsTab(){
 }
 
 async function showPurchasePriceHistoryLog(){
+  await syncSnapshotNames();
   const records = (await dbGetAll('purchasePriceHistory')).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const productNames = ['all', ...new Set(records.map(r=>r.productName))];
   const renderRows = (filter)=>{
@@ -15791,6 +15830,7 @@ async function showPurchasePriceHistoryLog(){
 
 /* ---- Supplier price comparison: for one product, who's cheapest? ---- */
 async function showPriceComparisonTool(){
+  await syncSnapshotNames();
   const records = await dbGetAll('purchasePriceHistory');
   const productNames = [...new Set(records.map(r=>r.productName))].sort((a,b)=>a.localeCompare(b));
   const renderComparison = (productName)=>{
@@ -16739,6 +16779,7 @@ function openSupplierModal(supplierId){
             await dbAdd('suppliers', {name, ...common, firmId: firmIdForStockOps(), openingBalance, balanceDue:openingBalance, advanceBalance:0, active:true, ledger,
               audit:[{at:oStamp.at, by:oStamp.by, action:'vendor created', detail:name+(openingBalance>0?(' — opening balance '+openingBalance):'')}]});
           }
+          await syncSnapshotNames();
           closeModal(); toast(t('toast_saved'),'success'); await renderSuppliersTable();
         });
       }
