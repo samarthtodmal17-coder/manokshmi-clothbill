@@ -785,6 +785,20 @@ function sellableStock(variant){
 function adjustFirmStock(variant, firmId, delta){
   variant.stock = Math.max(0, Number(variant.stock||0) + delta);
 }
+// One line in the Stock Adjustment Log for every change to a variant's stock that does not come from a sale
+// (purchases, purchase returns, product-form edits, CSV import, transfers ...), so the log always tallies with the shelf.
+async function logStockMove(product, vi, prev, next, reason, note, vOverride){
+  const v = vOverride || (product.variants||[])[vi];
+  prev = Number(prev||0); next = Number(next||0);
+  if(!v || prev===next) return;
+  await dbAdd('stockAdjustments', {
+    productId:product.id, variantIndex:vi, productName:product.name,
+    variantLabel:[v.size,v.color].filter(Boolean).join('/') || v.sku || '', sku:v.sku||'', firmId:product.firmId,
+    delta:next-prev, previousStock:prev, newStock:next, reason, note:note||'',
+    date:new Date().toISOString(),
+    user:(typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER.name : 'Owner'
+  });
+}
 // Generic read-side scoping: filters any records[] with a `firmId` field down to the
 // active firm. Returns everything unfiltered in "All Firms (Combined)" view, and for a
 // shop that has never added a 2nd firm — so a single-firm shop behaves exactly as before.
@@ -1866,6 +1880,17 @@ const I18N = {
     credlist_days:'Days', credlist_lastBill:'Last bill', credlist_lastPay:'Last payment', credlist_limit:'Credit limit',
     credlist_csv:'Download CSV', credlist_csvDone:'Credit list downloaded',
     edit_splitAdd:'+ Split payment', edit_payLeft:'Left to assign', edit_errPaySum:'The payment amounts must add up to {0}.',
+    sa_productTotal:'All sizes/colours of this product: {0} → {1} units',
+    sa_returnToVendor:'Returned to Vendor', sa_rvVendorLabel:'Vendor the goods go back to', sa_rvRateLabel:'Credit rate per piece',
+    sa_rvHint:'A purchase return is recorded for this vendor and their balance goes down.', sa_errReturnVendor:'Choose the vendor the goods are going back to.',
+    toast_purchaseReturnFromStock:'Purchase return {0} recorded for {1}',
+    pf_totalUnits:'Total units', pf_unitsAcross:'across {0} variants', pf_costValue:'Cost value', pf_sellValue:'Selling value',
+    pf_bySize:'By size', pf_byColor:'By colour', pf_before:'Before', pf_change:'Change',
+    grid_preview:'{0} sizes × {1} colours = {2} variants × {3} each = {4} units',
+    inv_tallyUnits:'Total units', inv_tallyCost:'Stock value (cost)', inv_tallySell:'Stock value (selling price)', inv_tallyVariants:'{0} variants',
+    inv_tallyBySize:'Units by size', inv_tallyByColor:'Units by colour',
+    adj_showingOf:'Showing {0} of {1} entries', adj_unitsIn:'Units in', adj_unitsOut:'Units out', adj_net:'Net', adj_csvBtn:'Download CSV',
+    acct_stockWriteOff:'Stock lost / damaged / corrected (at cost)',
   },
   mr: {
     nav_dashboard:'डॅशबोर्ड', nav_billing:'बिलिंग', nav_inventory:'इन्व्हेंटरी आणि स्टॉक', nav_sales:'विक्री',
@@ -2705,6 +2730,17 @@ const I18N = {
     credlist_days:'दिवस', credlist_lastBill:'शेवटचे बिल', credlist_lastPay:'शेवटचे पेमेंट', credlist_limit:'उधारी मर्यादा',
     credlist_csv:'CSV डाउनलोड', credlist_csvDone:'उधारी यादी डाउनलोड झाली',
     edit_splitAdd:'+ पेमेंट विभागा', edit_payLeft:'वाटप बाकी', edit_errPaySum:'पेमेंट रकमांची बेरीज {0} असावी.',
+    sa_productTotal:'या उत्पादनाचे सर्व साईज/रंग: {0} → {1} नग',
+    sa_returnToVendor:'विक्रेत्याला परत', sa_rvVendorLabel:'माल ज्या विक्रेत्याला परत जातो', sa_rvRateLabel:'प्रति नग क्रेडिट दर',
+    sa_rvHint:'या विक्रेत्यासाठी खरेदी परतावा नोंदवला जातो आणि त्यांची बाकी कमी होते.', sa_errReturnVendor:'माल ज्या विक्रेत्याला परत जातो तो निवडा.',
+    toast_purchaseReturnFromStock:'खरेदी परतावा {0} — {1} साठी नोंदवला',
+    pf_totalUnits:'एकूण नग', pf_unitsAcross:'{0} व्हेरिएंटमध्ये', pf_costValue:'खरेदी किंमत मूल्य', pf_sellValue:'विक्री किंमत मूल्य',
+    pf_bySize:'साईजनुसार', pf_byColor:'रंगानुसार', pf_before:'आधी', pf_change:'बदल',
+    grid_preview:'{0} साईज × {1} रंग = {2} व्हेरिएंट × प्रत्येकी {3} = {4} नग',
+    inv_tallyUnits:'एकूण नग', inv_tallyCost:'स्टॉक मूल्य (खरेदी)', inv_tallySell:'स्टॉक मूल्य (विक्री किंमत)', inv_tallyVariants:'{0} व्हेरिएंट',
+    inv_tallyBySize:'साईजनुसार नग', inv_tallyByColor:'रंगानुसार नग',
+    adj_showingOf:'{1} पैकी {0} नोंदी दाखवत आहे', adj_unitsIn:'आलेले नग', adj_unitsOut:'गेलेले नग', adj_net:'निव्वळ', adj_csvBtn:'CSV डाउनलोड',
+    acct_stockWriteOff:'हरवलेला / खराब / दुरुस्त केलेला स्टॉक (खरेदी किमतीनुसार)',
   }
 };
 // Stored data values (payment modes, vendor types, return reasons) must keep
@@ -5142,9 +5178,14 @@ async function openTransferModal(){
           const v = product.variants[row.variantIndex];
           v.stock = Math.max(0, Number(v.stock||0) - row.qty);
 
+          const prevSrcStk = Number(v.stock||0) + row.qty;
           const {product: destProduct, variantIndex: destVariantIndex} = await findOrCreateFirmProduct(allProductsFresh, product, v, toFirmId);
-          destProduct.variants[destVariantIndex].stock = Number(destProduct.variants[destVariantIndex].stock||0) + row.qty;
+          const prevDestStk = Number(destProduct.variants[destVariantIndex].stock||0);
+          destProduct.variants[destVariantIndex].stock = prevDestStk + row.qty;
           await dbPut('products', destProduct);
+          const trNote = (firmById(fromFirmId)||{}).name + ' → ' + (firmById(toFirmId)||{}).name;
+          await logStockMove(product, row.variantIndex, prevSrcStk, Number(v.stock||0), 'Stock transfer out', trNote);
+          await logStockMove(destProduct, destVariantIndex, prevDestStk, prevDestStk + row.qty, 'Stock transfer in', trNote);
 
           items.push({
             productId: row.productId, variantIndex: row.variantIndex,
@@ -5683,7 +5724,27 @@ async function renderInventoryTable(){
   });
 
   const pageEnd = Math.min(filteredCount, pageStart+pageProducts.length);
-  wrap.innerHTML = `
+  // Tally strip: totals for everything the filters currently show (all pages), to compare with a physical count.
+  let tUnits = 0, tCostV = 0, tSellV = 0, tVar = 0;
+  const tSize = {}, tColor = {};
+  products.forEach(p=>visibleVariantsOf(p).forEach(v=>{
+    const q = Number(v.stock||0);
+    tVar++; tUnits += q; tCostV += q*Number(v.costPrice||0); tSellV += q*Number(v.sellPrice||0);
+    const s = String(v.size||'').trim() || '—', c = String(v.color||'').trim() || '—';
+    tSize[s] = (tSize[s]||0) + q; tColor[c] = (tColor[c]||0) + q;
+  }));
+  const tChips = o=>Object.keys(o).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).slice(0,60).map(k=>`<span class="tag" style="margin:0 4px 3px 0;">${escapeHTML(k)}: <strong>${o[k]}</strong></span>`).join('');
+  const invTotalsHTML = `
+    <div class="stat-tiles" style="margin-bottom:8px;">
+      <div class="stat-tile"><div class="label">${t('inv_tallyUnits')}</div><div class="value small">${tUnits}</div><div class="muted" style="font-size:10.5px;">${fillTpl(t('inv_tallyVariants'), [tVar])}</div></div>
+      <div class="stat-tile"><div class="label">${t('inv_tallyCost')}</div><div class="value small">${fmtMoney(tCostV)}</div></div>
+      <div class="stat-tile"><div class="label">${t('inv_tallySell')}</div><div class="value small">${fmtMoney(tSellV)}</div></div>
+    </div>
+    <details style="margin-bottom:10px;font-size:12.5px;"><summary style="cursor:pointer;">${t('inv_tallyBySize')} / ${t('inv_tallyByColor')}</summary>
+      <div style="margin-top:6px;"><strong>${t('inv_tallyBySize')}:</strong> ${tChips(tSize)}</div>
+      <div style="margin-top:4px;"><strong>${t('inv_tallyByColor')}:</strong> ${tChips(tColor)}</div>
+    </details>`;
+  wrap.innerHTML = invTotalsHTML + `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:2px 2px 10px;">
       <span class="muted" style="font-size:12.5px;">${t('inv_showingRange').replace('{0}', pageStart+1).replace('{1}', pageEnd).replace('{2}', filteredCount)}${anyFilterActive?(' '+t('inv_totalParen').replace('{0}', totalProductCount)):''}</span>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -5866,6 +5927,7 @@ async function openProductModalCore(product, productId, title){
     </div>
     <h3 class="sub-title">${t('prod_variantsTitle')}</h3>
     <div id="variantRowsWrap"></div>
+    <div id="pf_totals" style="margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper-soft);font-size:12.5px;line-height:1.7;"></div>
     <div class="row" style="gap:6px;margin-top:6px;">
       <button type="button" class="btn btn-outline btn-sm" id="addVariantRowBtn">${t('prod_addVariantBtn')}</button>
       <button type="button" class="btn btn-outline btn-sm" id="toggleGridToolBtn">${iconSVG('adjust',13)} ${t('prod_quickAddGridBtn')}</button>
@@ -5885,6 +5947,7 @@ async function openProductModalCore(product, productId, title){
         <div class="col field"><label>${t('prod_sellPriceAllLabel')}</label><input id="grid_sell" type="number" min="0" step="0.01" value="0"></div>
         <div class="col field"><label>${t('prod_startingStockLabel')}</label><input id="grid_stock" type="number" min="0" value="0"></div>
       </div>
+      <div id="grid_preview" class="muted" style="font-size:12px;margin-bottom:6px;"></div>
       <button type="button" class="btn btn-primary btn-sm" id="grid_generate">${t('prod_generateVariantsBtn')}</button>
       <span class="muted" style="font-size:11.5px;margin-left:8px;">${t('inv_skusAutoAssigned')}</span>
     </div>
@@ -5906,6 +5969,15 @@ async function openProductModalCore(product, productId, title){
         const panel = document.getElementById('gridToolWrap');
         panel.style.display = panel.style.display==='none' ? '' : 'none';
       });
+      const gridPreview = ()=>{
+        const sz = document.getElementById('grid_sizes').value.split(',').map(s=>s.trim()).filter(Boolean).length;
+        const co = document.getElementById('grid_colors').value.split(',').map(s=>s.trim()).filter(Boolean).length;
+        const per = parseInt(document.getElementById('grid_stock').value)||0;
+        const variants = sz * Math.max(1, co);
+        document.getElementById('grid_preview').textContent = sz ? fillTpl(t('grid_preview'), [sz, Math.max(1,co), variants, per, variants*per]) : '';
+      };
+      ['grid_sizes','grid_colors','grid_stock'].forEach(id=>document.getElementById(id).addEventListener('input', gridPreview));
+      gridPreview();
       document.getElementById('grid_generate').addEventListener('click', async ()=>{
         const sizes = document.getElementById('grid_sizes').value.split(',').map(s=>s.trim()).filter(Boolean);
         const colors = document.getElementById('grid_colors').value.split(',').map(s=>s.trim()).filter(Boolean);
@@ -6113,7 +6185,31 @@ function updatePfStockChanges(){
   }
   box.innerHTML = h;
 }
+// Live unit totals under the variant rows (manual entry or grid) so the count can be tallied with the shelf.
+function updatePfTotals(){
+  const box = document.getElementById('pf_totals');
+  if(!box) return;
+  const rows = (typeof VARIANT_ROWS!=='undefined' ? VARIANT_ROWS : []);
+  let units = 0, cost = 0, sell = 0, n = 0;
+  const bySize = {}, byColor = {};
+  rows.forEach(v=>{
+    const q = parseInt(v.stock)||0;
+    n++; units += q; cost += q*(parseFloat(v.costPrice)||0); sell += q*(parseFloat(v.sellPrice)||0);
+    const s = String(v.size||'').trim() || '—', c = String(v.color||'').trim() || '—';
+    bySize[s] = (bySize[s]||0) + q; byColor[c] = (byColor[c]||0) + q;
+  });
+  const chips = o=>Object.keys(o).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).map(k=>`<span class="tag" style="margin:0 4px 2px 0;">${escapeHTML(k)}: <strong>${o[k]}</strong></span>`).join('');
+  let h = `<div><strong>${t('pf_totalUnits')}: ${units}</strong> <span class="muted">(${fillTpl(t('pf_unitsAcross'), [n])})</span> · ${t('pf_costValue')}: ${fmtMoney(cost)} · ${t('pf_sellValue')}: ${fmtMoney(sell)}</div>`;
+  if(typeof PF_OLD_PRODUCT!=='undefined' && PF_OLD_PRODUCT){
+    const before = (PF_OLD_PRODUCT.variants||[]).reduce((a,x)=>a+Number(x.stock||0),0);
+    h += `<div class="muted">${t('pf_before')}: ${before} → ${units} (${t('pf_change')}: ${units-before>0?'+':''}${units-before})</div>`;
+  }
+  if(Object.keys(bySize).length>1) h += `<div>${t('pf_bySize')}: ${chips(bySize)}</div>`;
+  if(Object.keys(byColor).length>1) h += `<div>${t('pf_byColor')}: ${chips(byColor)}</div>`;
+  box.innerHTML = h;
+}
 function updatePfPurchaseSummary(){
+  updatePfTotals();
   updatePfStockChanges();
   if(!document.getElementById('pf_purSummary')) return;
   const rec = document.getElementById('pf_recordPurchase');
@@ -6236,13 +6332,14 @@ async function saveProductFromModal(productId){
   }
   // Stock added with a vendor chosen = a purchase from that vendor. Records it under Purchases
   // (and the vendor's ledger) so the books match the shelves.
+  let pfInv = null; const pfPurchasedIdx = new Set();
   const vendorId = record.preferredSupplierId;
   if(vendorId && document.getElementById('pf_recordPurchase') && document.getElementById('pf_recordPurchase').checked){
     const lines = [];
     record.variants.forEach((v,i)=>{
       const prev = (oldProduct && origIdx[i]>=0) ? ((oldProduct.variants||[])[origIdx[i]] || null) : null;
       const added = (Number(v.stock)||0) - (prev ? Number(prev.stock||0) : 0);
-      if(added>0) lines.push({productId:savedId, variantIndex:i, qty:added, rate:Number(v.costPrice)||0});
+      if(added>0){ lines.push({productId:savedId, variantIndex:i, qty:added, rate:Number(v.costPrice)||0}); pfPurchasedIdx.add(i); }
     });
     if(lines.length){
       const inv = await recordStockPurchase({
@@ -6251,6 +6348,7 @@ async function saveProductFromModal(productId){
         paidNow: parseFloat(document.getElementById('pf_purPaid').value)||0, payMode:'Cash',
         billNo: document.getElementById('pf_billNo').value, billDate: document.getElementById('pf_billDate').value
       });
+      pfInv = inv;
       if(inv){
         const sup = await dbGet('suppliers', vendorId);
         toast(inv.__merged ? fillTpl(t('toast_purchaseMerged'), [inv.billNo, inv.invoiceNumber, sup?sup.name:'']) : t('toast_purchaseFromStockRecorded').replace('{0}', inv.invoiceNumber).replace('{1}', sup?sup.name:''),'success');
@@ -6259,6 +6357,34 @@ async function saveProductFromModal(productId){
       }
     }
   }
+  // Every stock change made in this form goes into the Stock Adjustment Log, so the log tallies with the shelf.
+  try{
+    const savedP = await dbGet('products', savedId);
+    if(savedP){
+      const seenOld = new Set();
+      for(let i=0;i<record.variants.length;i++){
+        const nv = (savedP.variants||[])[i]; if(!nv) continue;
+        const oi = origIdx[i];
+        const pv = (oldProduct && oi>=0) ? (oldProduct.variants||[])[oi] : null;
+        if(pv) seenOld.add(oi);
+        const prevStk = pv ? Number(pv.stock||0) : 0;
+        const nextStk = Number(nv.stock||0);
+        if(prevStk===nextStk) continue;
+        const bought = !!(pfInv && pfPurchasedIdx.has(i));
+        await logStockMove(savedP, i, prevStk, nextStk,
+          bought ? 'Purchased from Vendor' : (pv ? 'Stock edited (product form)' : 'Opening stock'),
+          bought ? (pfInv.invoiceNumber + (pfInv.billNo?' (bill '+pfInv.billNo+')':'')) : '');
+      }
+      if(oldProduct){
+        const oldVs = oldProduct.variants||[];
+        for(let oi=0; oi<oldVs.length; oi++){
+          if(seenOld.has(oi)) continue;
+          const st = Number(oldVs[oi].stock||0);
+          if(st>0) await logStockMove(savedP, oi, st, 0, 'Variant removed (product form)', '', oldVs[oi]);
+        }
+      }
+    }
+  }catch(e){ console.warn('stock log failed', e); }
   closeModal();
   await renderInventoryTable();
   await refreshLowStockBadge();
@@ -7074,10 +7200,19 @@ async function openStockAdjustModal(productId){
           <option value="Purchased from Vendor">${t('dv_PurchasedfromVendor')}</option>
           <option value="Damaged">${t('dv_Damaged')}</option>
           <option value="Lost / Theft">${t('dv_LostTheft')}</option>
+          <option value="Returned to Vendor">${t('sa_returnToVendor')}</option>
           <option value="Found Extra">${t('dv_FoundExtra')}</option>
           <option value="Stock Count Correction">${t('dv_StockCountCorrection')}</option>
           <option value="Other">${t('sales_reasonOther')}</option>
         </select>
+      </div>
+      <div id="sa_rvBox" style="display:none;background:var(--paper-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div class="row">
+          <div class="col field"><label>${t('sa_rvVendorLabel')}</label>
+            <select id="sa_rvVendor"><option value="">—</option>${saSuppliers.map(s=>`<option value="${s.id}">${supplierOptionLabel(s)}</option>`).join('')}</select></div>
+          <div class="col field" style="max-width:170px;"><label>${t('sa_rvRateLabel')}</label><input id="sa_rvRate" type="number" min="0" step="0.01" value="0"></div>
+        </div>
+        <p class="muted" style="font-size:11.5px;margin:0;">${t('sa_rvHint')}</p>
       </div>
       <div class="field"><label>${t('sales_noteOptionalLabel')}</label><input id="sa_note"></div>
       <div id="sa_preview" class="muted" style="font-size:12.5px;"></div>
@@ -7095,7 +7230,9 @@ async function openStockAdjustModal(productId){
         const qty = Math.max(1, parseInt(document.getElementById('sa_qty').value)||1);
         const dir = document.getElementById('sa_direction').value;
         const newStock = dir==='add' ? current+qty : current-qty;
-        document.getElementById('sa_preview').textContent = `${t('sa_newStockWillBe')}${Math.max(0,newStock)}` + (newStock<0 ? t('sa_cannotGoBelowZero') : '');
+        const prodNow = product.variants.reduce((n,x)=>n+Number(x.stock||0),0);
+        const prodAfter = prodNow - current + Math.max(0,newStock);
+        document.getElementById('sa_preview').textContent = `${t('sa_newStockWillBe')}${Math.max(0,newStock)}` + (newStock<0 ? t('sa_cannotGoBelowZero') : '') + '   |   ' + fillTpl(t('sa_productTotal'), [prodNow, prodAfter]);
       };
       ['sa_variant','sa_qty','sa_direction'].forEach(id=>document.getElementById(id).addEventListener('input', recalc));
       recalc();
@@ -7176,6 +7313,22 @@ async function openStockAdjustModal(productId){
         });
         saSearch.focus();
       }
+      // "Returned to Vendor" (removing stock): pick the vendor and the credit rate; a purchase return is recorded for them.
+      const rvRateEl = document.getElementById('sa_rvRate'), rvVendEl = document.getElementById('sa_rvVendor');
+      rvRateEl.addEventListener('input', ()=>{ rvRateEl.dataset.touched = '1'; });
+      const rvToggle = ()=>{
+        const dir = document.getElementById('sa_direction').value;
+        if(dir==='add' && saReason.value==='Returned to Vendor') saReason.value = 'Found Extra';
+        const on = dir==='remove' && saReason.value==='Returned to Vendor';
+        document.getElementById('sa_rvBox').style.display = on ? '' : 'none';
+        if(on){
+          const vi = curVi(), v = product.variants[vi];
+          if(!rvRateEl.dataset.touched) rvRateEl.value = (v && v.costPrice) || 0;
+          if(!rvVendEl.value){ const sg = saSuggestVendor(vi); if(sg) rvVendEl.value = String(sg.id); }
+        }
+      };
+      ['sa_reason','sa_direction','sa_variant'].forEach(id=>document.getElementById(id).addEventListener('change', rvToggle));
+      rvToggle();
       document.getElementById('sa_save').addEventListener('click', async ()=>{
         if(!product.variants[parseInt(document.getElementById('sa_variant').value)]) return;
         const vi = parseInt(document.getElementById('sa_variant').value);
@@ -7186,6 +7339,13 @@ async function openStockAdjustModal(productId){
         if(vendorId && vendorCost<=0){ toast(t('toast_purchaseNeedsCost'),'error'); return; }
         const reason = vendorId ? 'Purchased from Vendor' : document.getElementById('sa_reason').value;
         const note = document.getElementById('sa_note').value.trim();
+        const isVendorReturn = dir==='remove' && reason==='Returned to Vendor';
+        const rvVendorId = isVendorReturn ? (parseInt(document.getElementById('sa_rvVendor').value)||null) : null;
+        const rvRate = isVendorReturn ? (parseFloat(document.getElementById('sa_rvRate').value)||0) : 0;
+        if(isVendorReturn){
+          if(!rvVendorId){ toast(t('sa_errReturnVendor'),'error'); return; }
+          if(rvRate<=0){ toast(t('toast_purchaseNeedsCost'),'error'); return; }
+        }
         const fresh = await dbGet('products', productId);
         const v = fresh.variants[vi];
         const prevStock = Number(v.stock||0);
@@ -7219,11 +7379,22 @@ async function openStockAdjustModal(productId){
             toast(inv.__merged ? fillTpl(t('toast_purchaseMerged'), [inv.billNo, inv.invoiceNumber, sup?sup.name:'']) : t('toast_purchaseFromStockRecorded').replace('{0}', inv.invoiceNumber).replace('{1}', sup?sup.name:''),'success');
           }
         }
+        let rvRec = null;
+        if(rvVendorId){
+          const removedQty = prevStock - Number(v.stock||0);
+          if(removedQty>0){
+            rvRec = await recordStockPurchaseReturn({supplierId:rvVendorId, lines:[{productId, variantIndex:vi, qty:removedQty, rate:rvRate}], reason:'Returned to vendor (stock adjustment)', note});
+            if(rvRec){
+              const rvSup = saSuppliers.find(s=>s.id===rvVendorId);
+              toast(fillTpl(t('toast_purchaseReturnFromStock'), [rvRec.returnNumber, rvSup?rvSup.name:'']),'success');
+            }
+          }
+        }
         closeModal();
-        if(!vendorId) toast(t('toast_stockAdjusted'),'success');
+        if(!vendorId && !rvRec) toast(t('toast_stockAdjusted'),'success');
         await renderInventoryTable();
         await refreshLowStockBadge();
-        if(vendorId) await refreshSupplierSurfaces();
+        if(vendorId || rvRec) await refreshSupplierSurfaces();
       });
     }
   });
@@ -7233,10 +7404,16 @@ async function showStockAdjustmentsLog(){
   const records = (await dbGetAll('stockAdjustments')).sort((a,b)=> new Date(b.date)-new Date(a.date));
   const PBILLS = await loadPurchaseBillMap();
   const productNames = ['all', ...new Set(records.map(r=>r.productName))];
+  const adjFiltered = (filter, q)=>records.filter(r=>(filter==='all' || r.productName===filter) && searchMatch(q, [r.productName, r.variantLabel, r.sku, r.reason, r.note, r.user, billTextOf(PBILLS[r.productId+':'+r.variantIndex])]));
+  const adjSummaryHTML = (filter, q)=>{
+    const f = adjFiltered(filter, q);
+    const inn = f.reduce((n,r)=>n+(r.delta>0?r.delta:0),0), out = f.reduce((n,r)=>n+(r.delta<0?-r.delta:0),0);
+    return `${fillTpl(t('adj_showingOf'), [Math.min(f.length,1000), f.length])} · ${t('adj_unitsIn')}: <strong style="color:var(--green);">+${inn}</strong> · ${t('adj_unitsOut')}: <strong style="color:var(--red);">-${out}</strong> · ${t('adj_net')}: <strong>${inn-out>0?'+':''}${inn-out}</strong>`;
+  };
   const renderRows = (filter, q)=>{
-    const filtered = records.filter(r=>(filter==='all' || r.productName===filter) && searchMatch(q, [r.productName, r.variantLabel, r.sku, r.reason, r.note, r.user, billTextOf(PBILLS[r.productId+':'+r.variantIndex])]));
+    const filtered = adjFiltered(filter, q);
     if(filtered.length===0) return `<tr><td colspan="6" class="muted">No stock adjustments recorded yet.</td></tr>`;
-    return filtered.slice(0,150).map(r=>`
+    return filtered.slice(0,1000).map(r=>`
       <tr>
         <td>${fmtDate(r.date)}</td>
         <td>${escapeHTML(r.productName)}${r.variantLabel?` <span class="muted" style="font-size:11px;">(${escapeHTML(r.variantLabel)})</span>`:''}${PBILLS[r.productId+':'+r.variantIndex]?'<br>'+billLinksHTML(PBILLS[r.productId+':'+r.variantIndex],2):''}</td>
@@ -7257,6 +7434,7 @@ async function showStockAdjustmentsLog(){
         </div>
         <div class="col field"><input id="adjQ" autocomplete="off" placeholder="${escapeHTML(t('adj_searchPlaceholder'))}"></div>
       </div>
+      <div id="adjSummary" class="muted" style="font-size:12.5px;margin-top:8px;">${adjSummaryHTML('all','')}</div>
       <div style="max-height:400px;overflow:auto;margin-top:8px;">
         <table>
           <thead><tr><th>${t('th_date')}</th><th>${t('th_product')}</th><th>${t('th_reason')}</th><th class="num">${t('th_change')}</th><th>${t('th_stock')}</th><th>${t('th_by')}</th></tr></thead>
@@ -7264,9 +7442,17 @@ async function showStockAdjustmentsLog(){
         </table>
       </div>
     `,
-    footerHTML:`<button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>`,
+    footerHTML:`<button class="btn btn-outline" id="adjCsv">${t('adj_csvBtn')}</button><button class="btn btn-outline" onclick="closeModal()">${t('print_closeBtn')}</button>`,
     onMount:()=>{
-      const redraw = ()=>{ document.getElementById('adjRowsWrap').innerHTML = renderRows(document.getElementById('adjFilter').value, document.getElementById('adjQ').value); };
+      document.getElementById('adjCsv').addEventListener('click', ()=>{
+        const f = adjFiltered(document.getElementById('adjFilter').value, document.getElementById('adjQ').value);
+        const lines = [toCSVRow(['Date','Product','Variant','SKU','Reason','Note','Change','Before','After','By'])];
+        f.forEach(r=>lines.push(toCSVRow([String(r.date||'').slice(0,10), r.productName, r.variantLabel||'', r.sku||'', r.reason||'', r.note||'', r.delta, r.previousStock, r.newStock, r.user||''])));
+        const blob = new Blob(['\ufeff'+lines.join('\r\n')], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'stock-log-'+todayISO()+'.csv'; a.click(); URL.revokeObjectURL(url);
+      });
+      const redraw = ()=>{ document.getElementById('adjRowsWrap').innerHTML = renderRows(document.getElementById('adjFilter').value, document.getElementById('adjQ').value); document.getElementById('adjSummary').innerHTML = adjSummaryHTML(document.getElementById('adjFilter').value, document.getElementById('adjQ').value); };
       document.getElementById('adjFilter').addEventListener('change', redraw);
       document.getElementById('adjQ').addEventListener('input', redraw);
     }
@@ -7447,13 +7633,19 @@ async function importInventoryCSV(file){
       document.getElementById('confirmImportBtn').addEventListener('click', async ()=>{
         for(const [key, obj] of touchedProducts.entries()){
           if(typeof key === 'number'){
+            const origP = await dbGet('products', key);
             obj.variants.forEach((v,i)=>{ if(!v.sku) v.sku = autoSKU(key, i); });
             await dbPut('products', obj);
+            for(let i=0;i<obj.variants.length;i++){
+              const pv = origP && origP.variants ? origP.variants[i] : null;
+              await logStockMove(obj, i, pv ? Number(pv.stock||0) : 0, Number(obj.variants[i].stock||0), pv ? 'CSV import' : 'Opening stock', 'CSV import');
+            }
           } else {
             const newId = await dbAdd('products', obj);
             obj.variants.forEach((v,i)=>{ if(!v.sku) v.sku = autoSKU(newId, i); });
             obj.id = newId;
             await dbPut('products', obj);
+            for(let i=0;i<obj.variants.length;i++) await logStockMove(obj, i, 0, Number(obj.variants[i].stock||0), 'Opening stock', 'CSV import');
           }
         }
         closeModal();
@@ -14849,6 +15041,34 @@ async function recordStockPurchase({supplierId, lines, gstMode, gstRate, paidNow
   return fresh;
 }
 
+// Goods going back to a vendor from the stock screen: records a purchase return (PRET) and lowers the vendor's balance.
+// The stock itself has already been taken off by the caller.
+async function recordStockPurchaseReturn({supplierId, lines, reason, note}){
+  const supplier = await dbGet('suppliers', supplierId);
+  if(!supplier || !lines.length) return null;
+  const stamp = stampNow();
+  const items = [];
+  let firmId = null;
+  for(const l of lines){
+    const product = await dbGet('products', l.productId);
+    if(!product || !product.variants[l.variantIndex]) continue;
+    const v = product.variants[l.variantIndex];
+    if(firmId==null) firmId = product.firmId;
+    items.push({productId:l.productId, variantIndex:l.variantIndex, productName:product.name,
+      variantLabel:[v.size,v.color].filter(Boolean).join('/') || v.sku || '', qty:l.qty, rate:l.rate});
+  }
+  if(!items.length) return null;
+  const total = r2m(items.reduce((s,it)=>s+it.qty*it.rate,0));
+  const date = new Date().toISOString();
+  const newId = await dbAdd('purchaseReturns', {supplierId, items, reason, note:note||'', total, date, enteredAt:stamp.at, enteredBy:stamp.by, firmId: firmId!=null ? firmId : firmIdForStockOps()});
+  const fresh = await dbGet('purchaseReturns', newId);
+  fresh.returnNumber = 'PRET-' + String(newId).padStart(4,'0');
+  await dbPut('purchaseReturns', fresh);
+  supPost(supplier, {date, type:'return', amount:total, returnId:newId, invoiceNo:fresh.returnNumber, note:'Return '+fresh.returnNumber+(reason?' — '+reason:'')}, -total, 0);
+  await dbPut('suppliers', supplier);
+  return fresh;
+}
+
 async function openPurchaseInvoiceModal(prefill){
   if(!requireWorkingFirm(t('action_recordPurchaseInvoice'))) return;
   const [products, suppliers] = await Promise.all([scopedGetAll('products'), scopedGetAll('suppliers')]);
@@ -15043,12 +15263,15 @@ async function openPurchaseInvoiceModal(prefill){
             const supplier = suppliers.find(s=>s.id===supplierId);
             supplierName = supplier ? supplier.name : '';
           }
+          const stockMoves = [];
           for(const it of items){
             const product = await dbGet('products', it.productId);
             if(!product || !product.variants[it.variantIndex]) continue;
+            const prevStk = Number(product.variants[it.variantIndex].stock||0);
             adjustFirmStock(product.variants[it.variantIndex], firmIdForStockOps(), it.qty);
             product.variants[it.variantIndex].costPrice = it.rate;
             await dbPut('products', product);
+            stockMoves.push({product, vi:it.variantIndex, prev:prevStk, next:Number(product.variants[it.variantIndex].stock||0)});
           }
 
           const paidTotal = Math.round((paidNow + advanceUse)*100)/100;
@@ -15070,6 +15293,7 @@ async function openPurchaseInvoiceModal(prefill){
           const fresh = await dbGet('purchaseInvoices', newId);
           fresh.invoiceNumber = 'PINV-' + String(newId).padStart(4,'0');
           await dbPut('purchaseInvoices', fresh);
+          for(const m of stockMoves) await logStockMove(m.product, m.vi, m.prev, m.next, 'Purchase invoice', fresh.invoiceNumber + (billNoText?' (bill '+billNoText+')':'') + (supplierName?' — '+supplierName:''));
 
           for(const it of items){
             await dbAdd('purchasePriceHistory', {
@@ -15295,11 +15519,14 @@ async function openPurchaseReturnModal(){
         const note = document.getElementById('pret_note').value.trim();
         const date = new Date().toISOString();
 
+        const retMoves = [];
         for(const it of items){
           const product = await dbGet('products', it.productId);
           if(product && product.variants[it.variantIndex]){
+            const prevStk = Number(product.variants[it.variantIndex].stock||0);
             adjustFirmStock(product.variants[it.variantIndex], firmIdForStockOps(), -it.qty);
             await dbPut('products', product);
+            retMoves.push({product, vi:it.variantIndex, prev:prevStk, next:Number(product.variants[it.variantIndex].stock||0)});
           }
         }
 
@@ -15308,6 +15535,7 @@ async function openPurchaseReturnModal(){
         const fresh = await dbGet('purchaseReturns', newId);
         fresh.returnNumber = 'PRET-' + String(newId).padStart(4,'0');
         await dbPut('purchaseReturns', fresh);
+        for(const m of retMoves) await logStockMove(m.product, m.vi, m.prev, m.next, 'Purchase return', fresh.returnNumber + (reason?' — '+reason:''));
 
         const supplier = await dbGet('suppliers', supplierId);
         supPost(supplier, {date, type:'return', amount:total, returnId:newId, invoiceNo:fresh.returnNumber, note:'Return '+fresh.returnNumber+(reason?' — '+reason:'')}, -total, 0);
@@ -17363,9 +17591,11 @@ async function openPurchaseModal(presetProductId, presetVariantIndex, presetQty)
         if(qty<=0){ toast(t('toast_enterValidQuantity'),'error'); return; }
 
         const product = await dbGet('products', pid);
+        const prevPuStock = Number(product.variants[vi].stock||0);
         product.variants[vi].stock = (product.variants[vi].stock||0) + qty;
         product.variants[vi].costPrice = cost;
         await dbPut('products', product);
+        await logStockMove(product, vi, prevPuStock, Number(product.variants[vi].stock||0), 'Purchased from Vendor', 'Recorded from Vendor Management');
 
         const total = qty*cost;
         const due = total - paidNow;
@@ -18184,8 +18414,8 @@ async function renderProfitLoss(){
   let lastSummary = null;
   const compute = async ()=>{
     const {from, to} = getPeriodValues('pl');
-    const [bills, returns, products, expenses] = await Promise.all([
-      scopedLiveBills(), scopedGetAll('returns'), scopedGetAll('products'), scopedGetAll('expenses')
+    const [bills, returns, products, expenses, stockAdjs] = await Promise.all([
+      scopedLiveBills(), scopedGetAll('returns'), scopedGetAll('products'), scopedGetAll('expenses'), scopedGetAll('stockAdjustments')
     ]);
     const productMap = {}; products.forEach(p=> productMap[p.id]=p);
 
@@ -18212,12 +18442,20 @@ async function renderProfitLoss(){
       });
     });
 
+    // Stock lost / damaged / corrected through Adjust Stock, a stock count or the +/- buttons leaves the shelf without a sale:
+    // its cost is an expense of the period (extra stock found brings it back). Purchases and returns to vendors are not included.
+    const WRITEOFF_REASONS = new Set(['Damaged','Lost / Theft','Found Extra','Stock Count Correction','Stock count','Other','Quick Adjustment']);
+    let stockWriteOff = 0;
+    stockAdjs.filter(a=>inRange(a.date, from, to) && WRITEOFF_REASONS.has(a.reason)).forEach(a=>{
+      stockWriteOff += -(Number(a.delta)||0) * costPriceOf(productMap, a.productId, a.variantIndex);
+    });
+    stockWriteOff = Math.round(stockWriteOff*100)/100;
     grossRevenue = Math.round(grossRevenue*100)/100;
     returnsValue = Math.round(returnsValue*100)/100;
     const netRevenue = Math.round((grossRevenue-returnsValue)*100)/100;
     cogsSold = Math.round(cogsSold*100)/100;
     cogsReturned = Math.round(cogsReturned*100)/100;
-    const netCogs = Math.round((cogsSold-cogsReturned)*100)/100;
+    const netCogs = Math.round((cogsSold-cogsReturned+stockWriteOff)*100)/100;
     const grossProfit = Math.round((netRevenue-netCogs)*100)/100;
     const grossMargin = netRevenue>0 ? Math.round((grossProfit/netRevenue*100)*10)/10 : 0;
 
@@ -18230,7 +18468,7 @@ async function renderProfitLoss(){
     const netProfit = Math.round((grossProfit-totalExpenses)*100)/100;
     const netMargin = netRevenue>0 ? Math.round((netProfit/netRevenue*100)*10)/10 : 0;
 
-    lastSummary = {from, to, grossRevenue, returnsValue, netRevenue, cogsSold, cogsReturned, netCogs, grossProfit, grossMargin, expenseByCat, totalExpenses, netProfit, netMargin};
+    lastSummary = {from, to, grossRevenue, returnsValue, netRevenue, cogsSold, cogsReturned, stockWriteOff, netCogs, grossProfit, grossMargin, expenseByCat, totalExpenses, netProfit, netMargin};
 
     document.getElementById('plRevenueWrap').innerHTML = `
       <div style="display:flex;justify-content:space-between;"><span class="muted">${t('acct_grossSalesExclGst')}</span><span>${fmtMoney(grossRevenue)}</span></div>
@@ -18240,6 +18478,7 @@ async function renderProfitLoss(){
     document.getElementById('plCogsWrap').innerHTML = `
       <div style="display:flex;justify-content:space-between;"><span class="muted">${t('acct_cogsHeading')}</span><span>${fmtMoney(cogsSold)}</span></div>
       <div style="display:flex;justify-content:space-between;"><span class="muted">${t('acct_lessCostOfReturnedGoods')}</span><span>-${fmtMoney(cogsReturned)}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span class="muted">${t('acct_stockWriteOff')}</span><span>${stockWriteOff<0?'-':''}${fmtMoney(Math.abs(stockWriteOff))}</span></div>
       <div style="display:flex;justify-content:space-between;font-weight:700;"><span>${t('acct_netCogs')}</span><span>${fmtMoney(netCogs)}</span></div>
     `;
     document.getElementById('plGrossWrap').innerHTML = `
@@ -18283,6 +18522,7 @@ async function renderProfitLoss(){
       <table>
         <tr><td>${t('acct_cogsHeading')}</td><td class="num">${fmtMoney(s.cogsSold)}</td></tr>
         <tr><td>${t('acct_lessCostOfReturnedGoods')}</td><td class="num">-${fmtMoney(s.cogsReturned)}</td></tr>
+        <tr><td>${t('acct_stockWriteOff')}</td><td class="num">${s.stockWriteOff<0?'-':''}${fmtMoney(Math.abs(s.stockWriteOff))}</td></tr>
         <tr><td>${t('acct_netCogs')}</td><td class="num">${fmtMoney(s.netCogs)}</td></tr>
       </table>
       <table><tr class="grand"><td>${t('acct_grossProfitParenPrefix')}${s.grossMargin}${t('acct_marginSuffix')}</td><td class="num">${fmtMoney(s.grossProfit)}</td></tr></table>
