@@ -4459,12 +4459,12 @@ function renderTierRows(){
     wrap.innerHTML = `<p class="muted" style="font-size:12.5px;">${t('settings_noTiersEmpty')}</p>`;
     return;
   }
-  wrap.innerHTML = TIER_ROWS.map((t,i)=>`
+  wrap.innerHTML = TIER_ROWS.map((row,i)=>`
     <div class="row" style="gap:8px;align-items:center;margin-top:6px;">
       <div class="col field" style="margin-bottom:0;"><label style="font-size:11px;">${t('settings_billAmountLabel')}</label>
-        <input type="number" min="0" step="1" value="${t.minAmount}" onchange="updateTierRow(${i},'minAmount',this.value)"></div>
+        <input type="number" min="0" step="1" value="${row.minAmount}" onchange="updateTierRow(${i},'minAmount',this.value)"></div>
       <div class="col field" style="margin-bottom:0;flex:0 0 110px;"><label style="font-size:11px;">${t('settings_discountPercentLabel')}</label>
-        <input type="number" min="0" max="100" step="0.1" value="${t.percent}" onchange="updateTierRow(${i},'percent',this.value)"></div>
+        <input type="number" min="0" max="100" step="0.1" value="${row.percent}" onchange="updateTierRow(${i},'percent',this.value)"></div>
       <button class="btn btn-danger btn-sm" type="button" style="margin-top:16px;" onclick="removeTierRow(${i})">&times;</button>
     </div>
   `).join('');
@@ -11162,7 +11162,7 @@ function removeCartItem(i){ { const it = CART.items[i]; if(it) logAct('cart_remo
 function autoTierDiscountAmount(baseAmount){
   const tiers = SETTINGS.tieredDiscounts||[];
   let best = 0;
-  tiers.forEach(t=>{ if(baseAmount >= t.minAmount && t.percent > best) best = t.percent; });
+  tiers.forEach(tr=>{ if(baseAmount >= tr.minAmount && tr.percent > best) best = tr.percent; });
   return Math.round(baseAmount * best / 100 * 100)/100;
 }
 
