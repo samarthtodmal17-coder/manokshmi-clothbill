@@ -12675,7 +12675,7 @@ function buildInvoiceContentHTML(bill, customerName, format, docTitle){
           </div>
           <div style="flex:1;min-width:0;padding:${pad};">
             <span class="muted" style="font-size:${fsSm};">${docTitle?t('print_quotationNoLabel'):t('modal_invoicePrefix')}</span><strong>${escapeHTML(bill.invoiceNo)}</strong><br>
-            <span class="muted" style="font-size:${fsSm};">${t('th_date')} </span>${fmtDate(bill.date)}
+            <span class="muted" style="font-size:${fsSm};">${t('th_date')} </span>${fmtDateExact(bill.date)}
           </div>
         </div>
 
@@ -13980,6 +13980,16 @@ async function openSalesReport(){
   });
 }
 
+/* Date plus the exact time (with seconds). Works for every saved bill, old or new, because the time was always saved with the bill. */
+function fmtDateExact(d){
+  try{
+    const x = new Date(d);
+    if(isNaN(x)) return fmtDate(d);
+    if(typeof d==='string' && d.length<=10) return fmtDate(d);
+    const tm = x.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}).toUpperCase();
+    return fmtDate(d)+', '+tm;
+  }catch(e){ return fmtDate(d); }
+}
 async function viewBillDetail(billId){
   const bill = await dbGet('bills', billId);
   if(bill) showInvoiceModal(bill);
@@ -14350,7 +14360,7 @@ async function doOpenCancelBillModal(billId){
       <p style="font-size:13.5px;margin-top:0;">${t('cancel_intro')}</p>
       <div class="stat-tiles" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px;">
         <div class="stat-tile"><div class="label">${t('th_invoice')}</div><div class="value small">${escapeHTML(bill.invoiceNo)}</div></div>
-        <div class="stat-tile"><div class="label">${t('th_date')}</div><div class="value small">${fmtDate(bill.date)}</div></div>
+        <div class="stat-tile"><div class="label">${t('th_date')}</div><div class="value small">${fmtDateExact(bill.date)}</div></div>
         <div class="stat-tile"><div class="label">${t('bill_grandTotal')}</div><div class="value small">${fmtMoney(bill.grandTotal)}</div></div>
       </div>
       <h3 class="sub-title">${t('cancel_whatHappens')}</h3>
@@ -16630,7 +16640,7 @@ function buildInvoiceMessageText(bill, plain){
   const lines = [];
   lines.push(bold(billShopName(bill)));
   lines.push(`${t('wa_invoiceLabelPrefix')}${bill.invoiceNo}`);
-  lines.push(`${t('wa_dateLabelPrefix')}${fmtDate(bill.date)}`);
+  lines.push(`${t('wa_dateLabelPrefix')}${fmtDateExact(bill.date)}`);
   lines.push('');
   bill.items.forEach(it=>{
     const variant = [it.size,it.color].filter(Boolean).join('/');
