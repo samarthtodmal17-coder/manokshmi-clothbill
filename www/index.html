@@ -11217,6 +11217,7 @@ function renderBillTotals(){
   const tot = computeTotals();
   wrap.innerHTML = `
     <div style="font-size:13px;line-height:1.9;">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--amber-soft,#fff4e0);border-radius:6px;padding:3px 8px;margin-bottom:4px;font-weight:700;font-size:15px;"><span>${t('print_totalQty')}</span><span id="billNetQty">${Math.round(CART.items.reduce((n,it)=>n+Number(it.qty||0),0)*1000)/1000}</span></div>
       <div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_subtotal')}</span><span>${fmtMoney(tot.subtotal)}</span></div>
       <div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_itemDiscounts')}</span><span>-${fmtMoney(tot.itemDiscount)}</span></div>
       ${tot.autoTierDiscount>0?`<div style="display:flex;justify-content:space-between;"><span class="muted">${t('bill_automaticDiscount')}</span><span>-${fmtMoney(tot.autoTierDiscount)}</span></div>`:''}
